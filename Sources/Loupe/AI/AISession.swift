@@ -415,8 +415,12 @@ enum AIToolNames {
         case "read_cells", "select_cells": detail = a["range"]?.string ?? ""
         case "calculate": detail = a["formula"]?.string ?? ""
         case "summarize":
-            detail = "按 " + (a["group_by"]?.stringList.joined(separator: "、") ?? "") + " · " + (SheetSummary.Aggregate(rawValue: a["aggregate"]?.string ?? "")?.title ?? "")
-                + ((a["values"]?.stringList).map { $0.isEmpty ? "" : " " + $0.joined(separator: "、") } ?? "")
+            // Built in steps: as one expression, older compilers time out type-checking it.
+            let groups: String = a["group_by"]?.stringList.joined(separator: "、") ?? ""
+            let aggregate: String = SheetSummary.Aggregate(rawValue: a["aggregate"]?.string ?? "")?.title ?? ""
+            let values: [String] = a["values"]?.stringList ?? []
+            let valueText: String = values.isEmpty ? "" : " " + values.joined(separator: "、")
+            detail = "按 \(groups) · \(aggregate)\(valueText)"
         case "add_column": detail = "\(a["name"]?.string ?? "")：\(a["formula"]?.string ?? "")"
         case "filter_view": detail = [a["column"]?.string, a["op"]?.string, a["value"]?.string].compactMap { $0 }.joined(separator: " ")
         case "edit_document": detail = String((a["find"]?.string ?? "").prefix(30))

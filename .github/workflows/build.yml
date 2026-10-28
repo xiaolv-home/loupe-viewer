@@ -20,8 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 用 runner 上最新的 Xcode：本地开发用的是新版编译器，旧版对某些表达式会类型推断超时。
       - name: 工具链
-        run: swift --version && xcrun --show-sdk-version
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          swift --version && xcrun --show-sdk-version
 
       - name: 单元测试
         run: scripts/test.sh

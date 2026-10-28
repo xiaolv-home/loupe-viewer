@@ -67,9 +67,8 @@ public enum ChartParser {
             p.series.append(series(s, kind: kind, position: i, theme: theme))
         }
         // Series are drawn in `order`, which can differ from document order.
-        p.series = zip(node.children("ser"), p.series)
-            .sorted { (Int($0.0.value(of: "order") ?? "") ?? 0) < (Int($1.0.value(of: "order") ?? "") ?? 0) }
-            .map(\.1)
+        let order: [Int] = node.children("ser").map { Int($0.value(of: "order") ?? "") ?? 0 }
+        p.series = p.series.indices.sorted { (order[$0], $0) < (order[$1], $1) }.map { p.series[$0] }
         return p
     }
 
