@@ -1,0 +1,3 @@
+/* 样式 */
+.card { color: #ff6a3d; padding: 12px; }
+@media (prefers-color-scheme: dark) { body { background: #111; } }

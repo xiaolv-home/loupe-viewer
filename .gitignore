@@ -1,0 +1,11 @@
+.build/
+build/
+.DS_Store
+fixtures/text/large-60mb.log
+fixtures/data/large-200k.csv
+fixtures/images/panorama-20000px.png
+# 不能再分发的样例：系统字体的拷贝（Arial 归 Monotype、宋体 / New York 归 Apple），以及
+# iWork 生成的文档（带 Apple 主题图片）。分别由 scripts/gen-fixtures.py 和
+# scripts/gen-iwork-fixtures.sh 在本机重新生成。
+fixtures/fonts/
+fixtures/iwork/

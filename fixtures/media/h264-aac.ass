@@ -1,0 +1,6 @@
+[Script Info]
+Title: test
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:04.00,Default,,0,0,0,,{\b1}ASS 字幕{\b0}\N第二行
