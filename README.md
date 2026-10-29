@@ -3,9 +3,9 @@
 轻量、离线、原生的 macOS 万能文件查看器。一个窗口，看清每一种文件。
 
 - **原生**：Swift + SwiftUI/AppKit，Universal（Apple Silicon + Intel），macOS 14 起。
-- **轻量**：安装包约 8 MB，启动到出窗口约 0.4–0.5 秒。
+- **轻量**：1.0.0 在 Apple Silicon 上测得安装包约 8 MB、启动到出窗口约 0.4–0.5 秒。之后每个带版本标签的发布说明会写上该次 DMG 的体积。启动时间要在本机直接运行二进制并设置 `LOUPE_TIMING=1` 再测（`open -a` 传不进这个环境变量）。
 - **稳定**：每种格式都有一条渲染器降级链：专用渲染器 → 系统快速查看 → 文本 → 十六进制，打不开就降级，不会白屏或崩溃。
-- **离线优先、以看为主**：看文件不联网；Office 宏和文档里的外部链接不执行、不自动加载；本地网页的脚本只在受限环境里运行（见「本地网页」）。只有你主动用 AI 或安装技能时才会访问对应的服务。表格和 Markdown 可以按需打开编辑。
+- **离线优先、以看为主**：看文件不联网。Office 宏不执行。PDF 的外部链接不会自动打开，要点「在浏览器中打开」。Word / PowerPoint 交给系统快速查看，里面的超链接由系统处理，Loupe 没有再拦一层。应用没有启用 App Sandbox，网页和 AI 的限制是程序自己做的检查。本地网页的脚本只在受限环境里运行（见「本地网页」）。只有你主动用 AI 或安装技能时才会访问对应的服务。表格和 Markdown 可以按需打开编辑。
 - **独特的视觉**：「校样」设计语言。文档像一张带裁切标记的校样纸放在打样台上；代码用墨色加余烬橙的双色套印高亮；底部是印刷品出血区那样的版口信息条和色标条。
 
 > Loupe · 览 是独立项目，与 GNOME 桌面的同名看图工具 Loupe 无关。
@@ -24,15 +24,16 @@
 | PDF | pdf、ai | PDFKit | 缩略图 / 目录侧栏、页码跳转、缩放、文本选择、全文搜索高亮、全屏放映、加密 PDF 解锁；外部链接拦截 |
 | iWork | pages、key、numbers（含旧版文件包） | Quick Look → Pages/Keynote/Numbers 导出 PDF | 先用快速查看秒开；本机装有 iWork 时在后台静默导出完整 PDF（缓存，文件修改后失效）；未安装时显示内嵌预览图并提示 |
 | 表格 | xlsx/xlsm、ods、csv/tsv；xls、Numbers（经 Numbers 转换） | Loupe 自有表格 | 保留原格式显示（含一格之内分段的字色、加粗、字号）；表上的图表（柱/条/折线/面积/饼/环形/散点/雷达/气泡、组合图与副坐标轴，没存缓存值的也从单元格现取数）、图片、形状和文本框、整页图表都画出来；筛选、查找、排序、隐藏行列、框选求和/平均/计数、约 90 个函数（含 VLOOKUP/XLOOKUP/SUMIFS）、计算列；可编辑单元格并保存（xlsx 局部写回、CSV 保持原编码）、另存为、导出 |
-| Office | docx/doc、pptx/ppt、rtf/rtfd、odt/odp、wps | Quick Look | 演示文稿可「全屏放映」：借助 Keynote 转换，←/→ 翻页、Esc 退出；没有 Keynote 时改用快速查看全屏 |
+| Office | docx/doc、pptx/ppt、rtf/rtfd、odt/odp、wps | Quick Look | 演示文稿可「全屏放映」：借助 Keynote 转换，←/→ 翻页、Esc 退出；没有 Keynote 时改用快速查看全屏。不执行宏。快速查看里的超链接由系统打开，不像 PDF 那样先拦下来 |
 | 图片 | jpg、png、gif（动图）、webp、heic/heif、avif、tiff（多页）、bmp、ico/icns、psd、exr、hdr、jp2、jxl、相机 RAW（cr2/cr3/nef/arw/dng/raf/orf/rw2…） | ImageIO + IOSurface | 1:1 原始像素 / 适应窗口、指针为中心缩放、拖动平移、旋转、像素化显示；保留色彩配置（Display P3 等）；HDR 以 EDR 显示；EXIF 信息；超过 16384 像素自动缩减显示 |
 | 矢量图 | svg、svgz | WebKit（禁用脚本） | 可切换源码 |
 | 视频 | mp4、mov、m4v（H.264/HEVC/ProRes/HDR） | AVFoundation | 原画质、逐帧、倍速、截图、画中画、全屏、外挂字幕 srt/ass/vtt、内嵌字幕 |
 | 视频 | mkv、webm、avi、wmv、flv、rmvb、ts、mpg、ogv… | libmpv（内嵌 OpenGL，VideoToolbox 硬解） | 自动检测 Homebrew 的 mpv；嵌入失败时改用 mpv 独立窗口；未安装时给出安装提示 |
 | 音频 | mp3、m4a、aac、flac、wav、aiff、caf → AVFoundation；opus、ogg、wma、ape、wv… → mpv | | 封面、标题、艺术家信息 |
-| Markdown | md、markdown… | WebKit + markdown-it（全部本地） | 表格、任务列表、脚注、KaTeX 公式、Mermaid 图表、代码高亮；渲染 / 编辑切换（左侧源码、右侧实时预览，⌘B 粗体 ⌘I 斜体 ⌘K 链接，⌘S 按原编码与换行保存）；跟随深浅色；HTML 经过 DOMPurify 净化，远程图片拦截 |
+| Markdown | md、markdown… | WebKit + markdown-it（全部本地） | 表格、任务列表、脚注、KaTeX 公式、Mermaid 图表、代码高亮；渲染 / 编辑切换（左侧源码、右侧实时预览，⌘B 粗体 ⌘I 斜体 ⌘K 链接，⌘S 按原编码与换行保存）；跟随深浅色；HTML 经过 DOMPurify 净化，远程图片拦截，本地图片只限于该文件所在文件夹（指向文件夹外的符号链接打不开） |
 | 文本 / 代码 | txt、log 以及 40 多种语言（swift、py、js/ts、go、rs、c/cpp、java、kt、sql、sh、yaml、toml、ini、xml、css、diff、Dockerfile、Makefile…） | TextKit | 行号、语法高亮、查找、自动换行；自动识别 UTF-8/UTF-16/UTF-32/GBK/GB18030/Big5/Shift_JIS/EUC-KR，可手动切换编码；超过 16 MB 进入虚拟化大文件模式（内存映射、按需解码、后台全文搜索），超过 2 MB 关闭高亮（可设置） |
-| 数据 | json、jsonl、geojson | 自研保序解析器 | 可折叠树视图（保持键顺序、拷贝值 / 路径）、源码；单行压缩 JSON 自动格式化 |
+| 数据 | json、geojson | 自研保序解析器 | 可折叠树视图（保持键顺序、拷贝值 / 路径）、源码；单行压缩 JSON 自动格式化 |
+| 数据 | jsonl、ndjson | TextKit | 按行当文本高亮，不是可折叠树 |
 | 数据 | plist（XML / 二进制） | PropertyListSerialization | 树视图；二进制 plist 自动转为可读 XML |
 | 网页 | html、htm、xhtml | WebKit（禁用 JavaScript） | 远程资源拦截；可切换源码 |
 | 字体 | ttf、otf、ttc、woff、woff2、dfont | CoreText | 字体样张、自定义预览文字、字符集网格、字面切换、字体信息（不会安装字体） |
@@ -48,7 +49,7 @@
 离线阅读器、导出的报表这类本地 HTML 会运行自己的脚本，所以能正常显示。安全上做了这些限制：
 
 - 所有联网请求都被拦住，包括 fetch、WebSocket 和跳转到网站。
-- 脚本只能读取网页所在文件夹里的文件。
+- 脚本只能读取网页所在文件夹里的文件。会先解析符号链接，指向文件夹外面的链接读不到。关闭脚本时也一样，不能靠关掉脚本去读别的目录。
 - 不能弹出新窗口。
 - 阅读进度等本地存储会保留，与其他数据隔离。
 
@@ -86,7 +87,7 @@
 
 窗口右侧的 AI 面板会对当前标签页的文件**真正动手**，不只是总结：
 
-- **两种模式**：「本地」自动找 LM Studio / Ollama / llama.cpp（文件不出本机）；「云端」支持 DeepSeek、通义千问、Kimi、智谱、豆包、硅基流动、Claude、OpenAI、OpenRouter 和任意 OpenAI 兼容接口。API Key 只存在本机一个仅你的账户可读的文件里（~/Library/Application Support/Loupe/ai-keys.json），不用钥匙串、不会弹密码框。
+- **两种模式**：「本地」只连接 localhost 或 127.0.0.1（文件不出本机）；局域网或其他地址请改用「云端 API」里的自定义服务。「云端」支持 DeepSeek、通义千问、Kimi、智谱、豆包、硅基流动、Claude、OpenAI、OpenRouter 和任意 OpenAI 兼容接口。内置服务的接口地址是固定的，只有「自定义」和豆包可以改地址。API Key 只存在本机一个仅你的账户可读的文件里（~/Library/Application Support/Loupe/ai-keys.json），不用钥匙串、不会弹密码框。
 - **能做的事**：
   - 读任何文件：文本按原编码读，PDF 按页读，也能读 Word、PPT、Excel；图片会做文字识别（OCR）。
   - 用 Loupe 的公式引擎精确计算，也可以跨文件 VLOOKUP。
@@ -97,7 +98,7 @@
   - 运行终端命令（需要在设置里打开，每条都要你点「允许」）。
 - **看图**：能看图的模型（本地 Qwen3.5/3.6 这类 VLM、Claude、GPT、通义 VL 等）可以直接看图片或 PDF 的某一页（`view_image`）。也可以点回形针附图，或直接粘贴截图。不能看图的模型会自动改为发送识别出的文字。
 - **历史对话**：每次对话自动保存在本机（`~/Library/Application Support/Loupe/Conversations`），面板顶部的时钟按钮可以搜索、打开后接着聊、删除。
-- **安全**：原文件不会被改，生成的文件放在原文件旁边，覆盖已有文件要你确认。AI 只能写入个人文件夹，不读 `~/.ssh` 这类隐藏目录和 `~/Library`。
+- **安全**：原文件不会被改，生成的文件放在原文件旁边，覆盖已有文件要你确认。AI 只能写入个人文件夹（不含隐藏目录和 ~/Library）。不读取隐藏目录（包括嵌套的 `.env`、`.ssh`）和 `~/Library`（已安装的技能目录除外），也不读 `/etc`、`/System`。符号链接按它指向的真实路径判断。
 - **使用云端模型时**，你发给 AI 的内容（包括它读取的文件内容和图片）会发送到你选择的服务商，按该服务商的条款处理。处理敏感文件请用「本地」模式。
 - **AI 的输出只供参考**：包括「合同审阅」「简历诊断」等技能在内，结果不构成法律、财务、人事或其他专业意见，重要决定请自行核对或咨询专业人士。
 - **技能**：用的是和 Claude、Codex 相同的 SKILL.md 格式。
@@ -136,9 +137,10 @@ xattr -dr com.apple.quarantine /Applications/Loupe.app
 ## 隐私与安全
 
 - **不收集任何数据**：没有统计、遥测、崩溃上报，也不检查更新。
-- **什么时候联网**：只有三种情况——用 AI 对话时访问你配置的模型服务（「本地」模式只连本机）；在技能市场安装技能时从 GitHub 下载；查找本地模型时访问本机端口。看文件本身不联网，网页、Markdown、SVG 里的远程资源都会被拦住。
+- **没有 App Sandbox**：下载的应用是 ad-hoc 签名，没有沙盒，也没有公证。网页文件夹限制和 AI 读写限制都是程序内部的检查，不是系统沙盒。
+- **什么时候联网**：只有三种情况——用 AI 对话时访问你配置的模型服务（「本地」模式只连 localhost 或 127.0.0.1）；在技能市场安装技能时从 GitHub 下载；查找本地模型时访问本机端口。看文件本身不联网，网页、Markdown、SVG 里的远程资源都会被拦住。Markdown 和本地网页能读的本地文件只限于该文件所在文件夹。
 - **AI 密钥**：保存在 `~/Library/Application Support/Loupe/ai-keys.json`，文件权限 600（只有你的账户能读写），不放进钥匙串（本地签名的应用每次更新都会被钥匙串当成新应用、反复要密码）。同一台 Mac 上以你的账户运行的其他程序也能读到这个文件，请据此判断。
-- **AI 运行命令**：默认关闭；打开后每一条命令都要你点「允许」才会执行。
+- **AI 运行命令**：默认关闭；打开后每一条命令都要你点「允许」才会执行。如果这次对话里载入过技能，运行命令前会再确认一次（技能内容未经 Loupe 审核，命令以你的账户权限执行）。
 - **安全问题**请通过 GitHub Issues 联系，涉及漏洞细节时请先不要公开写出复现方法。
 
 ## 构建
@@ -194,6 +196,7 @@ python3 scripts/verify-renderers.py    # 端到端：用真实应用逐个打开
 Sources/LoupeCore/      纯逻辑（可单测，不依赖界面）
   Drawing/ Chart/       Office 绘图层与图表：锚点、形状、图片、图表模型与取数（表格之外也能复用）
   Detection/            格式识别、扩展名表、编码检测
+  Security/             路径边界、符号链接、回环地址（网页与 AI 共用）
   Text/                 CSV、行索引、高亮、JSON、字幕
   Archive/              libarchive 封装
   Formula/              公式：值与语法树、解析、求值、函数库、引用平移（插入删除行列 / 共享公式）
