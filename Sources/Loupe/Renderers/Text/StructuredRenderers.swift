@@ -102,7 +102,7 @@ final class JSONRenderer: StructuredRenderer, Renderer {
         self.host = host
         let url = file.url
         let result: (JSONValue, String) = try await Task.detached(priority: .userInitiated) {
-            let data = try Data(contentsOf: url)
+            let data = try Data(contentsOf: url, options: [.mappedIfSafe])
             let (text, _) = TextEncodingDetector.decode(data)
             let utf8 = Data(text.utf8)
             return (try JSONParser.parse(utf8), text)
@@ -147,7 +147,7 @@ final class PlistRenderer: StructuredRenderer, Renderer {
         self.host = host
         let url = file.url
         let result: (JSONValue, String, String) = try await Task.detached(priority: .userInitiated) {
-            let data = try Data(contentsOf: url)
+            let data = try Data(contentsOf: url, options: [.mappedIfSafe])
             var format = PropertyListSerialization.PropertyListFormat.xml
             let obj: Any
             do {

@@ -27,6 +27,10 @@ final class CSVRenderer: NSObject, Renderer, ObservableObject, NSTableViewDataSo
 
     func makeView(for file: FileContext, host: RenderHost) async throws -> NSView {
         self.host = host
+        let wide = TextEncodingDetector.detect(file.head)
+        if wide.unitWidth > 1 && file.size > SpreadsheetReader.wideTextLimit {
+            throw RenderError.unreadable("UTF-16/32 表格超过 32MB，已停止载入以免占满内存")
+        }
         delimiter = file.format.delimiter ?? (file.ext == "tsv" || file.ext == "tab" ? 9 : (CSVSniffer.sniffDelimiter(TextSniffer.leadingText(file.head, max: 16 * 1024)) ?? 44))
         let url = file.url
         let delim = delimiter
@@ -107,6 +111,7 @@ final class CSVRenderer: NSObject, Renderer, ObservableObject, NSTableViewDataSo
         var pending = Data()
         var consumed: Int64 = 0
         if enc.unitWidth > 1 {
+            if size > SpreadsheetReader.wideTextLimit { return }
             // UTF-16/32: transcode the whole file to UTF-8 first (rare for CSV).
             try? h.seek(toOffset: 0)
             let all = (try? h.readToEnd()) ?? Data()
