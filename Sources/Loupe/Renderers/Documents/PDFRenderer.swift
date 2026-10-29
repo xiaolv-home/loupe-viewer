@@ -8,7 +8,7 @@ import Quartz
 @MainActor
 final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, NSSearchFieldDelegate {
     static let engineName = "PDFKit"
-    static func canHandle(_ file: FileContext) -> Bool { true }
+    static func canHandle(_ file: FileContext) -> Bool { file.format.family == .pdf }
 
     @Published var pageIndex = 0
     @Published var pageCount = 0
@@ -42,9 +42,16 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
 
     func makeView(for file: FileContext, host: RenderHost) async throws -> NSView {
         let url = file.url
-        guard let doc = await Task.detached(priority: .userInitiated, operation: { PDFDocument(url: url) }).value,
-              doc.pageCount > 0 || doc.isLocked else {
-            throw RenderError.unreadable("PDF 无法解析（文件可能已损坏）")
+        // PDFKit raises NSException on some malformed files. That has to be caught on the
+        // main thread, inside the ObjC bridge; a background task would not.
+        var reason: NSString?
+        var opened: PDFDocument?
+        let caught = LPTry({
+            opened = PDFDocument(url: url)
+        }, &reason)
+        guard caught, let doc = opened, doc.pageCount > 0 || doc.isLocked else {
+            let detail = reason as String?
+            throw RenderError.unreadable(detail ?? "PDF 无法解析（文件可能已损坏）")
         }
         try Task.checkCancellation()
         return makeView(document: doc, host: host)

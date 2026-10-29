@@ -175,11 +175,15 @@ final class LargeTextView: NSView, NSTableViewDataSource, NSTableViewDelegate, N
             let found = await Task.detached(priority: .userInitiated) { () -> [Int] in
                 LargeTextView.search(idx, q, isCancelled: { Task.isCancelled })
             }.value
-            guard let self, !Task.isCancelled else { return }
-            self.matches = found
-            self.searchStatus.stringValue = found.isEmpty ? "无结果" : "\(found.count >= 100_000 ? "100000+" : String(found.count)) 处"
-            self.table.reloadData()
-            if !found.isEmpty { self.nextMatch() }
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.matches = found
+                let countText = found.count >= 100_000 ? "100000+" : String(found.count)
+                self.searchStatus.stringValue = found.isEmpty ? "无结果" : "\(countText) 处"
+                self.table.reloadData()
+                if !found.isEmpty { self.nextMatch() }
+            }
         }
     }
 

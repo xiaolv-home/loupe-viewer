@@ -175,41 +175,25 @@ final class CodeView: NSView {
         let attrs = textView.typingAttributes
         let ns = text as NSString
         let starts = await Task.detached(priority: .userInitiated) { CodeView.lineStarts(ns) }.value
-        lineCount = starts.count
-        let storage = NSTextStorage(string: text, attributes: attrs)
-        textView.layoutManager?.replaceTextStorage(storage)
-        ruler.lineStarts = starts
-        textView.scrollToBeginningOfDocument(nil)
-        textView.setSelectedRange(NSRange(location: 0, length: 0))
+        await MainActor.run { [weak self] in
+            guard let self else { return }
+            self.lineCount = starts.count
+            let storage = NSTextStorage(string: text, attributes: attrs)
+            self.textView.layoutManager?.replaceTextStorage(storage)
+            self.ruler.lineStarts = starts
+            self.textView.scrollToBeginningOfDocument(nil)
+            self.textView.setSelectedRange(NSRange(location: 0, length: 0))
+        }
 
         guard highlight, let lang = language, let hl = SyntaxHighlighter.forLanguage(lang) else { return }
         highlightTask = Task { [weak self] in
             let tokens = await Task.detached(priority: .utility) { () -> [Token] in
                 hl.tokens(in: text, isCancelled: { Task.isCancelled })
             }.value
-            guard let self, !Task.isCancelled, let lm = self.textView.layoutManager,
-                  let storage = self.textView.textStorage else { return }
-            let length = storage.length
-            let valid = tokens.filter { NSMaxRange($0.range) <= length }
-            // Weight/italic live in the storage; colour as temporary attributes (no relayout).
-            // The two must not be interleaved: temporary attributes may not change mid-edit.
-            let base = self.textView.font ?? Theme.codeFont
-            let bold = NSFont.monospacedSystemFont(ofSize: base.pointSize, weight: .semibold)
-            let italic = NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
-            _ = LPTry({
-                storage.beginEditing()
-                for t in valid {
-                    if Theme.syntaxIsBold(t.kind) { storage.addAttribute(.font, value: bold, range: t.range) }
-                    else if t.kind == .comment { storage.addAttribute(.font, value: italic, range: t.range) }
-                }
-                storage.endEditing()
-            }, nil)
-            _ = LPTry({
-                for t in valid {
-                    lm.addTemporaryAttribute(.foregroundColor, value: Theme.syntax(t.kind), forCharacterRange: t.range)
-                }
-            }, nil)
-            self.highlighted = true
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                self?.applyHighlight(tokens, resetBaseFont: false)
+            }
         }
     }
 
@@ -274,28 +258,40 @@ final class CodeView: NSView {
             let tokens = await Task.detached(priority: .utility) { () -> [Token] in
                 hl.tokens(in: text, isCancelled: { Task.isCancelled })
             }.value
-            guard let self, !Task.isCancelled, self.textView.string == text,
-                  let lm = self.textView.layoutManager, let storage = self.textView.textStorage else { return }
-            let full = NSRange(location: 0, length: storage.length)
-            let base = self.textView.font ?? Theme.codeFont
-            let bold = NSFont.monospacedSystemFont(ofSize: base.pointSize, weight: .semibold)
-            let italic = NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
-            let valid = tokens.filter { NSMaxRange($0.range) <= storage.length }
-            // Font changes are attribute-only and stay out of the undo stack.
-            _ = LPTry({
-                storage.beginEditing()
-                storage.addAttribute(.font, value: base, range: full)
-                for t in valid {
-                    if Theme.syntaxIsBold(t.kind) { storage.addAttribute(.font, value: bold, range: t.range) }
-                    else if t.kind == .comment { storage.addAttribute(.font, value: italic, range: t.range) }
-                }
-                storage.endEditing()
-            }, nil)
-            _ = LPTry({
-                lm.removeTemporaryAttribute(.foregroundColor, forCharacterRange: full)
-                for t in valid { lm.addTemporaryAttribute(.foregroundColor, value: Theme.syntax(t.kind), forCharacterRange: t.range) }
-            }, nil)
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                guard let self, self.textView.string == text else { return }
+                self.applyHighlight(tokens, resetBaseFont: true)
+            }
         }
+    }
+
+    /// TextKit updates. Call on the main thread.
+    private func applyHighlight(_ tokens: [Token], resetBaseFont: Bool) {
+        guard let lm = textView.layoutManager, let storage = textView.textStorage else { return }
+        let full = NSRange(location: 0, length: storage.length)
+        let valid = tokens.filter { NSMaxRange($0.range) <= storage.length }
+        let base = textView.font ?? Theme.codeFont
+        let bold = NSFont.monospacedSystemFont(ofSize: base.pointSize, weight: .semibold)
+        let italic = NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
+        // Weight/italic live in the storage; colour as temporary attributes (no relayout).
+        // The two must not be interleaved: temporary attributes may not change mid-edit.
+        _ = LPTry({
+            storage.beginEditing()
+            if resetBaseFont { storage.addAttribute(.font, value: base, range: full) }
+            for t in valid {
+                if Theme.syntaxIsBold(t.kind) { storage.addAttribute(.font, value: bold, range: t.range) }
+                else if t.kind == .comment { storage.addAttribute(.font, value: italic, range: t.range) }
+            }
+            storage.endEditing()
+        }, nil)
+        _ = LPTry({
+            if resetBaseFont { lm.removeTemporaryAttribute(.foregroundColor, forCharacterRange: full) }
+            for t in valid {
+                lm.addTemporaryAttribute(.foregroundColor, value: Theme.syntax(t.kind), forCharacterRange: t.range)
+            }
+        }, nil)
+        highlighted = true
     }
 
     /// ⌘B / ⌘I: wraps the selection in ** or *, or unwraps it when it already has that style.

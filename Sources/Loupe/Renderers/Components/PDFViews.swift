@@ -10,6 +10,28 @@ final class SafePDFView: PDFView {
     /// Set by the renderer: scroll to page 1 on the first layout with a real size.
     var pendingInitialPage = false
     override func registerForDraggedTypes(_ newTypes: [NSPasteboard.PasteboardType]) {}
+
+    /// External links are offered by the delegate. Calling super lets PDFKit open them itself.
+    private func externalLink(at event: NSEvent) -> URL? {
+        let viewPoint = convert(event.locationInWindow, from: nil)
+        guard let page = page(for: viewPoint, nearest: false) else { return nil }
+        let pagePoint = convert(viewPoint, to: page)
+        return page.annotation(at: pagePoint)?.url
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        if let url = externalLink(at: event) {
+            delegate?.pdfViewWillClick?(onLink: self, with: url)
+            return
+        }
+        super.mouseDown(with: event)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if externalLink(at: event) != nil { return }
+        super.mouseUp(with: event)
+    }
+
     override func layout() {
         super.layout()
         if pendingInitialPage, bounds.width > 50, let first = document?.page(at: 0) {
