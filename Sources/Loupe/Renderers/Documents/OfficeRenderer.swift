@@ -10,7 +10,7 @@ import LoupeCore
 @MainActor
 final class OfficeRenderer: Renderer, ObservableObject {
     static let engineName = "QuickLook"
-    static func canHandle(_ file: FileContext) -> Bool { true }
+    static func canHandle(_ file: FileContext) -> Bool { file.format.family == .office }
 
     private let ql = QuickLookRenderer()
     private var file: FileContext?
