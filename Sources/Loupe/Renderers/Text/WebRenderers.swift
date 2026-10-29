@@ -207,7 +207,8 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
         sourceText = text
         sourceLanguage = "markdown"
         editable = true
-        let wv = await WebFactory.make(javaScript: true)
+        let folder = url.deletingLastPathComponent()
+        let wv = try await WebFactory.make(javaScript: true, fileRoot: folder)
         navigator.host = host
         wv.navigationDelegate = navigator
         wv.uiDelegate = navigator
@@ -290,7 +291,7 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
         [InfoSection("Markdown", [InfoItem("字符数", Fmt.number(words)),
                                   InfoItem("编码", format.encoding.name + (format.lineEnding == "\r\n" ? " · CRLF" : format.lineEnding == "\r" ? " · CR" : " · LF")),
                                   InfoItem("渲染", "markdown-it · KaTeX · Mermaid（本地）"),
-                                  InfoItem("安全", "已净化 HTML，远程资源已阻止")])]
+                                  InfoItem("安全", "已净化 HTML，远程资源已阻止，本地文件限于所在文件夹")])]
     }
     var controls: AnyView? { AnyView(WebControls(r: self, labels: ["渲染", "编辑"])) }
     var initialFirstResponder: NSView? { web }
@@ -330,7 +331,7 @@ final class HTMLRenderer: WebDocumentRenderer, Renderer {
         sourceText = (try? await Task.detached { TextEncodingDetector.decode(try Data(contentsOf: url)).0 }.value) ?? ""
         sourceLanguage = isSVG ? "xml" : "html"
         let folder = url.deletingLastPathComponent()
-        let wv = await WebFactory.make(javaScript: scripts, fileRoot: scripts ? folder : nil, keepsData: scripts && !AppEnvironment.isScripted)
+        let wv = try await WebFactory.make(javaScript: scripts, fileRoot: folder, keepsData: scripts && !AppEnvironment.isScripted)
         navigator.host = host
         if scripts { navigator.siteRoot = folder }
         wv.navigationDelegate = navigator
