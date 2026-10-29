@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import OpenGL.GL3
+import os
 import LoupeCore
 
 final class MPVGLLayer: CAOpenGLLayer {
@@ -9,6 +10,8 @@ final class MPVGLLayer: CAOpenGLLayer {
     /// (vo=libmpv disables video if no render context is attached at start).
     private(set) var cglContext: CGLContextObj?
     private(set) var cglPixelFormat: CGLPixelFormatObj?
+    /// rcRender failures are reported once. The draw runs on the CGL thread.
+    private let renderFailureSent = OSAllocatedUnfairLock(initialState: false)
 
     override init() {
         super.init()
@@ -66,12 +69,29 @@ final class MPVGLLayer: CAOpenGLLayer {
         glGetIntegerv(GLenum(GL_VIEWPORT), &vp)
         var fbo = mpv_opengl_fbo(fbo: Int32(fboID), w: Int32(vp[2]), h: Int32(vp[3]), internal_format: 0)
         var flip: Int32 = 1
+        var renderResult: Int32 = 0
         withUnsafeMutablePointer(to: &fbo) { fp in
             withUnsafeMutablePointer(to: &flip) { flp in
                 var params = [mpv_render_param(type: MPVConst.rpFBO, data: UnsafeMutableRawPointer(fp)),
                               mpv_render_param(type: MPVConst.rpFlipY, data: UnsafeMutableRawPointer(flp)),
                               mpv_render_param(type: MPVConst.rpInvalid, data: nil)]
-                _ = params.withUnsafeMutableBufferPointer { api.rcRender(rc, UnsafeMutableRawPointer($0.baseAddress!)) }
+                let drawn: Int32 = params.withUnsafeMutableBufferPointer { buf in
+                    api.rcRender(rc, UnsafeMutableRawPointer(buf.baseAddress!))
+                }
+                renderResult = drawn
+            }
+        }
+        if renderResult < 0 {
+            let shouldReport: Bool = renderFailureSent.withLock { sent in
+                if sent { return false }
+                sent = true
+                return true
+            }
+            if shouldReport {
+                let callback = player.onRenderFailure
+                DispatchQueue.main.async {
+                    callback?()
+                }
             }
         }
         glFlush()
