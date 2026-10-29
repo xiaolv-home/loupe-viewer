@@ -4,7 +4,7 @@ name: build
 # 推 v* 标签：再由单独的 release 任务建 Release（只有它有 contents: write）。
 on:
   push:
-    branches: [main]
+    branches: [main, cursor/review-fixes-712d]
     tags: ['v*']
   pull_request:
 
