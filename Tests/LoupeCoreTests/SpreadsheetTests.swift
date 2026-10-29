@@ -183,4 +183,54 @@ struct SpreadsheetReaderTests {
         #expect(wb.sheets.first?.cell(0, 1) == .text("字段"))
         #expect(wb.sheets.first?.cell(1, 1) == .number(42))
     }
+
+    @Test("共享公式从属格可以出现在主格之前；超远合并不会撑满一百万行")
+    func sharedFormulaOrderAndRowCap() throws {
+        let dir = TestTemp.dir("shared-order")
+        let pkg = dir.appendingPathComponent("pkg")
+        func put(_ path: String, _ s: String) throws {
+            let f = pkg.appendingPathComponent(path)
+            try FileManager.default.createDirectory(at: f.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(s.utf8).write(to: f)
+        }
+        try put("[Content_Types].xml", #"<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>"#)
+        try put("xl/workbook.xml", #"<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="S" sheetId="1" r:id="rId1"/></sheets></workbook>"#)
+        try put("xl/_rels/workbook.xml.rels", #"<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>"#)
+        let sheet = """
+        <?xml version="1.0"?>
+        <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+          <sheetData>
+            <row r="2"><c r="A2"><f t="shared" si="0"/><v>2</v></c></row>
+            <row r="1"><c r="A1"><f t="shared" si="0" ref="A1:A2">A1+1</f><v>1</v></c></row>
+            <row r="500000"><c r="B500000"><v>9</v></c></row>
+          </sheetData>
+          <mergeCells count="1"><mergeCell ref="A1:A1048576"/></mergeCells>
+        </worksheet>
+        """
+        try put("xl/worksheets/sheet1.xml", sheet)
+        let url = dir.appendingPathComponent("shared.xlsx")
+        try Zip.pack(directory: pkg, to: url)
+        let sh = try SpreadsheetReader.readXLSX(url: url).sheets[0]
+        #expect(sh.formulas[Sheet.key(0, 0)] == "=A1+1")
+        #expect(sh.formulas[Sheet.key(1, 0)] == "=A2+1")
+        #expect(sh.rows.count > 2)
+        #expect(sh.rows.count < 200_000)
+    }
+
+    @Test("UTF-16 表格超过 32MB 时拒绝整文件解码")
+    func wideCSVRefused() throws {
+        let url = TestTemp.dir("wide-csv").appendingPathComponent("wide.csv")
+        FileManager.default.createFile(atPath: url.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: url)
+        try handle.write(contentsOf: Data([0xFF, 0xFE, 0x41, 0x00]))
+        let big = UInt64(SpreadsheetReader.wideTextLimit) + 8
+        try handle.truncate(atOffset: big)
+        try handle.close()
+        do {
+            _ = try SpreadsheetReader.readDelimited(url: url, delimiter: 44)
+            Issue.record("应当拒绝超过 32MB 的 UTF-16 表格")
+        } catch let error as SpreadsheetError {
+            #expect(error.message.contains("32MB"))
+        }
+    }
 }

@@ -8,12 +8,19 @@ public struct SpreadsheetError: Error, LocalizedError {
 /// Converts table files into Loupe's Workbook model.
 public enum SpreadsheetReader {
     public static let maxRows = 1_000_000
+    /// How many empty rows a merge or a far custom height may add past the last real row.
+    public static let maxLayoutPadding = 100_000
+    /// UTF-16/32 must be decoded as a whole String. Larger files are refused.
+    public static let wideTextLimit = 32 * 1024 * 1024
 
     // MARK: CSV / TSV
 
     public static func readDelimited(url: URL, delimiter: UInt8?) throws -> Workbook {
         let data = try Data(contentsOf: url, options: [.mappedIfSafe])
         let enc = TextEncodingDetector.detect(data.prefix(256 * 1024))
+        if enc.unitWidth > 1 && data.count > wideTextLimit {
+            throw SpreadsheetError(message: "UTF-16/32 表格超过 32MB，已停止载入以免占满内存")
+        }
         var bytes: Data
         var stringEncoding: String.Encoding = .utf8
         if enc.unitWidth > 1 {
@@ -465,6 +472,8 @@ private final class SheetXMLParser: NSObject, XMLParserDelegate {
     var defaultRowHeight: Double?
     private var fType = "", fShared = ""
     private var sharedMasters: [String: (formula: String, r: Int, c: Int)] = [:]
+    /// Slaves that appeared before their master. Resolved once the sheet is finished.
+    private var pendingShared: [(si: String, r: Int, c: Int)] = []
     var hiddenRows = Set<Int>()
     var hiddenCols = Set<Int>()
     var merges: [MergeRange] = []
@@ -483,7 +492,17 @@ private final class SheetXMLParser: NSObject, XMLParserDelegate {
         inline = RichRunReader(color: color)
     }
 
+    private func resolvePendingShared() {
+        for item in pendingShared {
+            guard let m = sharedMasters[item.si] else { continue }
+            let shifted = FormulaRefs.shifted(m.formula, rows: item.r - m.r, cols: item.c - m.c)
+            formulas[Sheet.key(item.r, item.c)] = "=" + shifted
+        }
+        pendingShared.removeAll()
+    }
+
     func makeSheet(name: String) -> Sheet {
+        resolvePendingShared()
         var s = Sheet(name: name, rows: rows, formulas: formulas)
         s.styleIDs = styleIDs
         s.columnWidths = colWidths
@@ -500,9 +519,14 @@ private final class SheetXMLParser: NSObject, XMLParserDelegate {
         s.defaultColumnWidth = defaultColWidth
         s.richText = richText
         // Empty rows still covered by a merged area or sized by hand belong to the layout.
-        let lastLayoutRow = max(merges.map(\.r1).max() ?? -1, customHeightRows.filter { $0 < s.rows.count + 64 }.max() ?? -1)
+        // A merge that runs to the last Excel row must not materialise a million empty rows.
+        let padCap = min(SpreadsheetReader.maxRows - 1, s.rows.count + SpreadsheetReader.maxLayoutPadding)
+        let mergeEnd = merges.map(\.r1).max() ?? -1
+        let heightEnd = customHeightRows.filter { $0 < s.rows.count + 64 }.max() ?? -1
+        let lastLayoutRow = min(max(mergeEnd, heightEnd), padCap)
         if lastLayoutRow >= s.rows.count && lastLayoutRow < SpreadsheetReader.maxRows {
-            s.rows.append(contentsOf: Array(repeating: [], count: lastLayoutRow + 1 - s.rows.count))
+            let extra = lastLayoutRow + 1 - s.rows.count
+            s.rows.append(contentsOf: Array(repeating: [], count: extra))
         }
         if let mc = merges.map(\.c1).max(), mc >= s.columnCount, mc < 16384 { s.columnCount = mc + 1 }
         // Styled-but-empty columns (e.g. a coloured band) still count as part of the sheet.
@@ -581,7 +605,9 @@ private final class SheetXMLParser: NSObject, XMLParserDelegate {
         case "t": inIsT = false
         case "is": inIs = false
         case "c":
-            guard r >= 0, r < SpreadsheetReader.maxRows, c < 16384 else { return }
+            guard r >= 0, r < SpreadsheetReader.maxRows, c >= 0, c < 16384 else { return }
+            // A single cell a huge gap below the last row is dropped, not used to grow the sheet.
+            if r > rows.count + SpreadsheetReader.maxLayoutPadding { return }
             // Text in mixed formats: from the shared table, or written inline.
             if type == "s", let i = Int(value), let runs = sharedRich[i] { richText[Sheet.key(r, c)] = runs }
             else if type == "inlineStr", let runs = inline.formatted { richText[Sheet.key(r, c)] = runs }
@@ -602,8 +628,13 @@ private final class SheetXMLParser: NSObject, XMLParserDelegate {
             }
             // Shared formulas: the first cell carries the text, the others repeat it shifted.
             if fType == "shared", !fShared.isEmpty {
-                if !formula.isEmpty { sharedMasters[fShared] = (formula, r, c) }
-                else if let m = sharedMasters[fShared] { formula = FormulaRefs.shifted(m.formula, rows: r - m.r, cols: c - m.c) }
+                if !formula.isEmpty {
+                    sharedMasters[fShared] = (formula, r, c)
+                } else if let m = sharedMasters[fShared] {
+                    formula = FormulaRefs.shifted(m.formula, rows: r - m.r, cols: c - m.c)
+                } else {
+                    pendingShared.append((fShared, r, c))
+                }
             }
             if !formula.isEmpty {
                 formulas[Sheet.key(r, c)] = "=" + formula
