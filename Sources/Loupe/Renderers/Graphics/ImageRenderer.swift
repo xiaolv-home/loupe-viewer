@@ -233,8 +233,7 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
             guard let self else { stop.pointee = true; return }
             let stopped = self.animationGate.withLock { $0 }
             if stopped { stop.pointee = true; return }
-            guard let image else { return }
-            let frame = image
+            let frame: CGImage = image
             DispatchQueue.main.async { [weak self] in
                 MainActor.assumeIsolated {
                     guard let self else { return }
