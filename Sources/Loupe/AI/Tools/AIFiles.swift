@@ -22,31 +22,15 @@ enum AIFiles {
         return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first ?? home
     }
 
-    /// Never hand the model credentials or app data: dot-folders in the home folder (.ssh, .aws…)
-    /// and ~/Library are off limits, except Loupe's own skills.
+    /// Never hand the model credentials or app data. Any hidden path segment (.ssh, .env, .aws…)
+    /// and ~/Library are off limits, except Loupe's own skills. Symlinks are resolved first.
     static func readable(_ url: URL) -> String? {
-        let p = url.standardizedFileURL.path
-        if p.hasPrefix(AISkills.installedRoot.path) || p.hasPrefix(AISkills.builtInRoot.path) { return nil }
-        let h = home.path + "/"
-        if p.hasPrefix(h) {
-            let rel = String(p.dropFirst(h.count))
-            if rel.hasPrefix(".") || rel.hasPrefix("Library/") || rel == "Library" { return "出于安全，不读取 ~/\(rel.split(separator: "/").first ?? "") 里的内容（可能含密码或应用数据）" }
-        }
-        if p.hasPrefix("/System/") || p.hasPrefix("/private/etc") || p.hasPrefix("/etc/") { return "不读取系统文件" }
-        return nil
+        FileAccessPolicy.readDenial(url, home: home, skillRoots: [AISkills.installedRoot, AISkills.builtInRoot])
     }
 
     /// Writes stay inside the home folder (outside ~/Library and dot-folders) or /tmp.
     static func writable(_ url: URL) -> String? {
-        let p = url.standardizedFileURL.path
-        if p.hasPrefix("/private/tmp/") || p.hasPrefix("/tmp/") { return nil }
-        let h = home.path + "/"
-        guard p.hasPrefix(h) else { return "只能写到你的个人文件夹里" }
-        let rel = String(p.dropFirst(h.count))
-        if rel.hasPrefix(".") || rel.hasPrefix("Library/") || rel.split(separator: "/").contains(where: { $0.hasPrefix(".") }) {
-            return "不写入隐藏文件夹或 ~/Library"
-        }
-        return nil
+        FileAccessPolicy.writeDenial(url, home: home)
     }
 
     /// A free name next to `url` ("报告 2.docx") when it is taken.

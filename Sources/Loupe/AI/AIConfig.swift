@@ -10,6 +10,8 @@ struct CloudProvider: Identifiable, Hashable {
     let defaultModel: String
     /// Where to get a key.
     let keyPage: String
+    /// Built-in hosts are pinned. Only 自定义 and 豆包 (regional endpoints) may change the base URL.
+    var allowsCustomBaseURL: Bool { id == "custom" || id == "doubao" }
 
     static let all: [CloudProvider] = [
         CloudProvider(id: "deepseek", name: "DeepSeek", proto: .openAI, baseURL: "https://api.deepseek.com/v1", defaultModel: "deepseek-chat",
@@ -71,7 +73,11 @@ final class AIConfig: ObservableObject {
 
     var provider: CloudProvider { CloudProvider.find(providerID) }
 
-    func cloudBaseURL(_ p: CloudProvider) -> String { cloudBaseURLs[p.id].flatMap { $0.isEmpty ? nil : $0 } ?? p.baseURL }
+    func cloudBaseURL(_ p: CloudProvider) -> String {
+        guard p.allowsCustomBaseURL else { return p.baseURL }
+        let override = cloudBaseURLs[p.id] ?? ""
+        return override.isEmpty ? p.baseURL : override
+    }
     func cloudModel(_ p: CloudProvider) -> String { cloudModels[p.id].flatMap { $0.isEmpty ? nil : $0 } ?? p.defaultModel }
 
     func apiKey(_ p: CloudProvider) -> String? { AIKeyStore.shared.key(p.id) }
@@ -85,6 +91,9 @@ final class AIConfig: ObservableObject {
         switch mode {
         case .local:
             guard let u = URL(string: localBaseURL.trimmingCharacters(in: .whitespaces)), u.host != nil else { throw AIError("本地模型地址不对，请在设置里检查") }
+            guard FileAccessPolicy.isLoopback(url: u) else {
+                throw AIError("本地模式只连接本机（localhost 或 127.0.0.1）。访问其他地址请改用「云端 API」里的自定义服务。")
+            }
             guard !localModel.isEmpty else { throw AIError("还没选本地模型。打开 LM Studio / Ollama 后在 AI 面板顶部选一个") }
             return AIEndpoint(proto: .openAI, baseURL: u, model: localModel)
         case .cloud:
@@ -113,7 +122,7 @@ final class AIConfig: ObservableObject {
             candidates.append(c)
         }
         for c in candidates {
-            guard let u = URL(string: c) else { continue }
+            guard let u = URL(string: c), FileAccessPolicy.isLoopback(url: u) else { continue }
             if let models = try? await AIClients.listModels(AIEndpoint(proto: .openAI, baseURL: u, model: "")), !models.isEmpty {
                 return (c, models)
             }
@@ -159,8 +168,18 @@ final class AIKeyStore {
         try? fm.createDirectory(at: dir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         guard let d = try? JSONEncoder().encode(keys) else { return }
         // Create with owner-only permissions before any key is written to it.
-        if !fm.fileExists(atPath: Self.file.path) { fm.createFile(atPath: Self.file.path, contents: nil, attributes: [.posixPermissions: 0o600]) }
-        try? d.write(to: Self.file)
-        try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: Self.file.path)
+        let tmp = Self.file.deletingLastPathComponent().appendingPathComponent(".ai-keys-\(UUID().uuidString).tmp")
+        do {
+            try d.write(to: tmp, options: [.atomic])
+            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmp.path)
+            if fm.fileExists(atPath: Self.file.path) {
+                _ = try fm.replaceItemAt(Self.file, withItemAt: tmp)
+            } else {
+                try fm.moveItem(at: tmp, to: Self.file)
+            }
+            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: Self.file.path)
+        } catch {
+            try? fm.removeItem(at: tmp)
+        }
     }
 }
