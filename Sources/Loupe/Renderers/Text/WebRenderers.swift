@@ -4,27 +4,30 @@ import WebKit
 import UniformTypeIdentifiers
 import LoupeCore
 
-/// Common shell for web-rendered documents: rendered/source toggle, find bar, zoom.
+/// Common shell for web-rendered documents: the page (mode 0), its source (`sourceMode`), and any
+/// panes a subclass adds (Markdown's writer); a find bar and zoom for whichever is showing.
 @MainActor
 class WebDocumentRenderer: NSObject, ObservableObject {
-    @Published var mode = 0 { didSet { applyMode() } } // 0 rendered, 1 source (or editor)
-    /// Markdown: mode 1 is an editor beside a live preview instead of read-only source.
-    var editable = false
-    private var split: NSSplitView?
-    var web: LoupeWebView?
+    @Published var mode = 0 { didSet { if mode != oldValue { modeDidChange(from: oldValue) } } }
+    /// The mode that shows the source (HTML: 1; Markdown: 2).
+    var sourceMode: Int { 1 }
+    /// Markdown: the source can be edited.
+    var editableSource = false
+    private(set) var web: LoupeWebView?
     let navigator = WebNavigator()
     let container = NSView()
     private let body = NSView()
     private let findBar = WebFindBar()
     private var findHeight: NSLayoutConstraint!
     private(set) var code: CodeView?
+    /// Views for other modes (keyed by mode).
+    private var panes: [Int: NSView] = [:]
     var sourceText = ""
     var sourceLanguage = "markdown"
     weak var host: RenderHost?
 
-    func buildShell(_ wv: LoupeWebView) {
-        web = wv
-        findBar.webView = wv
+    /// Lays out the find bar and the content area; the page can be attached later.
+    func buildShell(_ wv: LoupeWebView?) {
         findBar.onClose = { [weak self] in self?.hideFind() }
         for v in [findBar, body] as [NSView] {
             v.translatesAutoresizingMaskIntoConstraints = false
@@ -42,47 +45,53 @@ class WebDocumentRenderer: NSObject, ObservableObject {
             body.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             body.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
-        if editable {
-            // Editor (added on first use) and preview side by side; the editor pane stays
-            // hidden while reading, which an NSSplitView treats as collapsed.
-            let sv = NSSplitView()
-            sv.isVertical = true
-            sv.dividerStyle = .thin
-            sv.addArrangedSubview(wv)
-            split = sv
-            pin(sv)
-        } else {
-            pin(wv)
-        }
+        if let wv { attachWeb(wv) }
     }
 
-    /// Text as it is now (the editor's, if editing has started).
+    func attachWeb(_ wv: LoupeWebView) {
+        web = wv
+        pin(wv)
+        wv.isHidden = mode != 0
+        findBar.webView = activeWebView
+    }
+
+    func addPane(_ v: NSView, forMode m: Int) {
+        panes[m] = v
+        pin(v)
+        v.isHidden = mode != m
+    }
+
+    /// Text as it is now (the source editor's, if it is showing).
     var currentSource: String { code?.textView.string ?? sourceText }
 
-    /// Called after edits settle; subclasses re-render the preview.
+    /// Called after source edits settle.
     func sourceDidChange(_ text: String) {}
 
-    private func makeEditor() -> CodeView {
+    func modeDidChange(from old: Int) { applyMode() }
+
+    /// The web view on screen (page or a pane that is one), for find and zoom.
+    var activeWebView: WKWebView? { mode == 0 ? web : panes[mode] as? WKWebView }
+
+    private func makeSourceView() -> CodeView {
         let c = CodeView()
-        c.wrap = true
-        c.makeEditable(language: sourceLanguage)
-        c.onEdit = { [weak self] text in
-            guard let self else { return }
-            self.sourceText = text
-            self.sourceDidChange(text)
+        c.wrap = editableSource || AppSettings.shared.wrapText
+        if editableSource {
+            c.makeEditable(language: sourceLanguage)
+            c.onEdit = { [weak self] text in
+                guard let self else { return }
+                self.sourceText = text
+                self.sourceDidChange(text)
+            }
         }
-        c.scrollView.contentView.postsBoundsChangedNotifications = true
-        NotificationCenter.default.addObserver(self, selector: #selector(editorScrolled), name: NSView.boundsDidChangeNotification, object: c.scrollView.contentView)
+        let t = sourceText, l = sourceLanguage
+        Task { await c.setText(t, language: l, highlight: t.utf8.count <= AppSettings.shared.highlightLimitBytes) }
         return c
     }
 
-    /// The preview follows the editor at the same relative position.
-    @objc private func editorScrolled() {
-        guard let c = code, let web, mode == 1 else { return }
-        let clip = c.scrollView.contentView
-        let total = max(1, c.textView.frame.height - clip.bounds.height)
-        let f = max(0, min(1, clip.bounds.origin.y / total))
-        web.evaluateJavaScript("window.scrollTo(0, \(f) * Math.max(0, document.documentElement.scrollHeight - window.innerHeight))")
+    /// Replaces the source view's text (after it changed elsewhere).
+    func reloadSource(_ text: String) async {
+        guard let c = code, c.textView.string != text else { return }
+        await c.setText(text, language: sourceLanguage, highlight: text.utf8.count <= AppSettings.shared.highlightLimitBytes)
     }
 
     private func pin(_ v: NSView) {
@@ -94,40 +103,25 @@ class WebDocumentRenderer: NSObject, ObservableObject {
         ])
     }
 
-    private func applyMode() {
-        if editable, let split {
-            if mode == 1 && code == nil {
-                let c = makeEditor()
-                code = c
-                split.insertArrangedSubview(c, at: 0)
-                let t = sourceText, l = sourceLanguage
-                Task { await c.setText(t, language: l, highlight: t.utf8.count <= AppSettings.shared.highlightLimitBytes) }
-                split.layoutSubtreeIfNeeded()
-                split.setPosition(split.bounds.width / 2, ofDividerAt: 0)
-            }
-            code?.isHidden = mode != 1
-            split.adjustSubviews()
-            if mode == 1, let c = code, c.frame.width < 40 { split.setPosition(split.bounds.width / 2, ofDividerAt: 0) }
-            container.window?.makeFirstResponder(mode == 0 ? web : code?.textView)
-            host?.rendererDidUpdate()
-            return
-        }
-        if mode == 1 && code == nil {
-            let c = CodeView()
-            c.wrap = AppSettings.shared.wrapText
+    func applyMode() {
+        if mode == sourceMode && code == nil {
+            let c = makeSourceView()
             code = c
             pin(c)
-            let t = sourceText, l = sourceLanguage
-            Task { await c.setText(t, language: l, highlight: t.utf8.count <= AppSettings.shared.highlightLimitBytes) }
         }
         web?.isHidden = mode != 0
-        code?.isHidden = mode != 1
-        container.window?.makeFirstResponder(mode == 0 ? web : code?.textView)
+        code?.isHidden = mode != sourceMode
+        for (m, v) in panes { v.isHidden = m != mode }
+        findBar.webView = activeWebView
+        if !findBar.isHidden && mode == sourceMode { hideFind() }
+        let first: NSView? = mode == sourceMode ? code?.textView : mode == 0 ? web : panes[mode]
+        container.window?.makeFirstResponder(first)
         host?.rendererDidUpdate()
     }
 
     func showFind() {
-        if mode == 1 { code?.showFind(); return }
+        if mode == sourceMode { code?.showFind(); return }
+        findBar.webView = activeWebView
         findBar.isHidden = false
         findHeight.constant = 38
         container.window?.makeFirstResponder(findBar.field)
@@ -136,37 +130,41 @@ class WebDocumentRenderer: NSObject, ObservableObject {
     func hideFind() {
         findBar.isHidden = true
         findHeight.constant = 0
-        container.window?.makeFirstResponder(web)
+        container.window?.makeFirstResponder(activeWebView)
     }
 
     func cleanupWeb() {
         NotificationCenter.default.removeObserver(self)
         code?.cancel()
-        web?.stopLoading()
-        web?.navigationDelegate = nil
-        web?.uiDelegate = nil
-        web?.loadHTMLString("", baseURL: nil)
-        web?.removeFromSuperview()
+        for wv in [web] + panes.values.map({ $0 as? LoupeWebView }) {
+            wv?.stopLoading()
+            wv?.navigationDelegate = nil
+            wv?.uiDelegate = nil
+            wv?.loadHTMLString("", baseURL: nil)
+            wv?.removeFromSuperview()
+        }
+        panes = [:]
         web = nil
     }
 
     func webSupports(_ c: ViewerCommand) -> Bool {
         switch c {
         case .toggleSource, .find, .findNext, .findPrevious, .zoomIn, .zoomOut, .actualSize: return true
-        case .toggleWrap: return mode == 1
+        case .toggleWrap: return mode == sourceMode
         default: return false
         }
     }
 
     func webPerform(_ c: ViewerCommand) {
+        let source = mode == sourceMode
         switch c {
-        case .toggleSource: mode = mode == 0 ? 1 : 0
+        case .toggleSource: mode = mode == 0 ? sourceMode : 0
         case .find: showFind()
-        case .findNext: mode == 1 ? code?.findNext(true) : findBar.next()
-        case .findPrevious: mode == 1 ? code?.findNext(false) : findBar.previous()
-        case .zoomIn: if mode == 0 { web?.pageZoom = min(3, (web?.pageZoom ?? 1) * 1.1) } else { code?.zoom(by: 1) }
-        case .zoomOut: if mode == 0 { web?.pageZoom = max(0.4, (web?.pageZoom ?? 1) / 1.1) } else { code?.zoom(by: -1) }
-        case .actualSize: web?.pageZoom = 1; code?.setFontSize(12.5)
+        case .findNext: source ? code?.findNext(true) : findBar.next()
+        case .findPrevious: source ? code?.findNext(false) : findBar.previous()
+        case .zoomIn: if source { code?.zoom(by: 1) } else if let w = activeWebView { w.pageZoom = min(3, w.pageZoom * 1.1) }
+        case .zoomOut: if source { code?.zoom(by: -1) } else if let w = activeWebView { w.pageZoom = max(0.4, w.pageZoom / 1.1) }
+        case .actualSize: activeWebView?.pageZoom = 1; code?.setFontSize(12.5)
         case .toggleWrap: code?.wrap.toggle()
         default: break
         }
@@ -180,133 +178,6 @@ struct WebControls: View {
         HStack(spacing: 4) {
             LensSegment(options: labels, selection: $r.mode)
             LensButton(symbol: "magnifyingglass", help: "查找（⌘F）") { r.showFind() }
-        }
-    }
-}
-
-@MainActor
-final class MarkdownRenderer: WebDocumentRenderer, Renderer {
-    static let engineName = "WebKit"
-    static func canHandle(_ file: FileContext) -> Bool { file.size < 32 * 1024 * 1024 }
-    private var words = 0
-    private var url: URL?
-    /// Encoding and line endings the file is saved back with.
-    private var format = TextFileFormat.utf8LF
-    /// The text as last read or saved; edits are unsaved while the editor differs from it.
-    private var savedText = ""
-
-    required override init() { super.init() }
-
-    func makeView(for file: FileContext, host: RenderHost) async throws -> NSView {
-        self.host = host
-        let url = file.url
-        self.url = url
-        let (text, fmt) = try await Task.detached { try TextFileFormat.read(url) }.value
-        format = fmt
-        savedText = text
-        sourceText = text
-        sourceLanguage = "markdown"
-        editable = true
-        let folder = url.deletingLastPathComponent()
-        let wv = try await WebFactory.make(javaScript: true, fileRoot: folder)
-        navigator.host = host
-        wv.navigationDelegate = navigator
-        wv.uiDelegate = navigator
-        buildShell(wv)
-        let template = AppResources.webRoot.appendingPathComponent("markdown.html")
-        guard let html = try? String(contentsOf: template, encoding: .utf8) else { throw RenderError.unsupported("缺少 Markdown 模板资源") }
-        // Base URL is the document's folder so relative images resolve through loupe://file/.
-        let base = LoupeSchemeHandler.url(forFile: url.deletingLastPathComponent()).appendingPathComponent("/")
-        try await navigator.load(wv) { wv.loadHTMLString(html, baseURL: base) }
-        guard await render(text) else { throw RenderError.unreadable("Markdown 渲染脚本执行失败") }
-        return container
-    }
-
-    @discardableResult
-    private func render(_ text: String) async -> Bool {
-        guard let web else { return false }
-        let json = String(data: (try? JSONSerialization.data(withJSONObject: [text], options: [.fragmentsAllowed])) ?? Data(), encoding: .utf8) ?? "[\"\"]"
-        let result = try? await web.evaluateJavaScript("loupeRender(\(json)[0])")
-        words = text.unicodeScalars.filter { !$0.properties.isWhitespace }.count
-        return result != nil
-    }
-
-    /// Live preview while editing.
-    override func sourceDidChange(_ text: String) {
-        Task { await render(text) }
-        updateEdited()
-    }
-
-    private func updateEdited() {
-        host?.window?.isDocumentEdited = hasUnsavedChanges
-        host?.rendererDidUpdate()
-    }
-
-    var hasUnsavedChanges: Bool { currentSource != savedText }
-
-    func saveChanges(completion: @escaping (Bool) -> Void) {
-        guard let url else { completion(false); return }
-        write(to: url, completion: completion)
-    }
-
-    private func write(to dest: URL, completion: ((Bool) -> Void)? = nil) {
-        let text = currentSource
-        do {
-            let kept = try format.write(text, to: dest)
-            if !kept {
-                format = TextFileFormat(encoding: .utf8, lineEnding: format.lineEnding)
-                host?.showNotice("已保存。部分字符无法用原编码（\(format.encoding.name)）表示，文件已改为 UTF-8。", style: .warning, action: nil)
-            }
-            if dest == url { savedText = text }
-            sourceText = text
-            updateEdited()
-            completion?(true)
-        } catch {
-            host?.showNotice("保存失败：\(error.localizedDescription)。原文件没有被改动。", style: .warning, action: nil)
-            completion?(false)
-        }
-    }
-
-    private func saveAs() {
-        guard let url, let window = host?.window else { return }
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
-        panel.directoryURL = url.deletingLastPathComponent()
-        panel.nameFieldStringValue = url.deletingPathExtension().lastPathComponent + " 副本.md"
-        panel.beginSheetModal(for: window) { [weak self] resp in
-            guard let self, resp == .OK, let dest = panel.url else { return }
-            self.write(to: dest) { ok in if ok { self.host?.open(dest) } }
-        }
-    }
-
-    func cleanup() { cleanupWeb() }
-    var statusText: String {
-        let lines = currentSource.split(separator: "\n", omittingEmptySubsequences: false).count
-        var s = "\(Fmt.number(lines)) 行 · \(Fmt.number(words)) 字符"
-        if mode == 1 { s += " · 编辑中" }
-        if hasUnsavedChanges { s += " · ● 已修改（⌘S 保存）" }
-        return s
-    }
-    var infoSections: [InfoSection] {
-        [InfoSection("Markdown", [InfoItem("字符数", Fmt.number(words)),
-                                  InfoItem("编码", format.encoding.name + (format.lineEnding == "\r\n" ? " · CRLF" : format.lineEnding == "\r" ? " · CR" : " · LF")),
-                                  InfoItem("渲染", "markdown-it · KaTeX · Mermaid（本地）"),
-                                  InfoItem("安全", "已净化 HTML，远程资源已阻止，本地文件限于所在文件夹")])]
-    }
-    var controls: AnyView? { AnyView(WebControls(r: self, labels: ["渲染", "编辑"])) }
-    var initialFirstResponder: NSView? { web }
-    func supports(_ c: ViewerCommand) -> Bool {
-        switch c {
-        case .save: return hasUnsavedChanges
-        case .saveAs: return true
-        default: return webSupports(c)
-        }
-    }
-    func perform(_ c: ViewerCommand) {
-        switch c {
-        case .save: saveChanges { _ in }
-        case .saveAs: saveAs()
-        default: webPerform(c)
         }
     }
 }

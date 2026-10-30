@@ -167,6 +167,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if p.runModal() == .OK { openURLs(p.urls, preferredWindow: target) }
     }
 
+    /// ⌘N: a new Markdown document (a draft until its first save), in a new tab.
+    @objc func newMarkdownDocument(_ sender: Any?) {
+        guard let url = try? MarkdownDrafts.create() else { return }
+        if let wc = NSApp.keyWindow?.windowController as? ViewerWindowController ?? windows.first {
+            wc.showWindow(nil)
+            if wc.tabs.docs.count == 1 && wc.model.file == nil { wc.open(url) } else { wc.addTab(url) }
+        } else {
+            newWindow()?.open(url)
+        }
+    }
+
     @objc func newViewerWindow(_ sender: Any?) {
         newWindow()?.showWindow(nil)
     }

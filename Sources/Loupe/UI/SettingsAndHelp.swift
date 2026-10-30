@@ -46,6 +46,10 @@ struct SettingsView: View {
                     Text("原样（系统预览，只看不算）").tag(true)
                 }
                 Toggle("允许编辑表格（改单元格、插删行列、保存）", isOn: $settings.spreadsheetEditing)
+                Picker("Markdown 打开时", selection: $settings.markdownOpensForWriting) {
+                    Text("写作（像 Typora 一样边写边排版）").tag(true)
+                    Text("阅读（排版好的页面）").tag(false)
+                }
                 Toggle("本地网页运行脚本（离线阅读器、导出的报表等；始终断网，只能读本网页所在文件夹）", isOn: $settings.webPagesRunScripts)
             }
             Section("iWork") {
@@ -89,13 +93,16 @@ struct SettingsView: View {
 struct ShortcutsView: View {
     struct Group: Identifiable { let id = UUID(); let title: String; let items: [(String, String)] }
     let groups: [Group] = [
-        Group(title: "文件", items: [("⌘O", "打开"), ("⌘N", "新建窗口"), ("⌘W", "关闭"), ("⇧⌘R", "在 Finder 中显示"),
+        Group(title: "文件", items: [("⌘O", "打开"), ("⇧⌘N", "新建窗口"), ("⌘W", "关闭"), ("⇧⌘R", "在 Finder 中显示"),
                                     ("⇧⌘O", "用默认应用打开"), ("⌥⌘C", "拷贝路径"), ("⌘I", "显示 / 隐藏简介")]),
         Group(title: "浏览", items: [("←  →", "同文件夹上一个 / 下一个"), ("⌘[  ⌘]", "上一个 / 下一个文件"), ("⌃⌘S", "文件夹侧栏"), ("⌘J", "AI 助手"),
                                     ("⌃⌘F", "全屏幕")]),
         Group(title: "查看", items: [("⌘+  ⌘−", "放大 / 缩小"), ("⌘0", "实际大小（1:1 像素）"), ("⌘9", "适应窗口"),
                                     ("⌘L  ⌘R", "向左 / 向右旋转"), ("⌘U", "源码 / 渲染切换"), ("⌥⌘L", "自动换行"),
                                     ("⌥⌘P", "全屏放映（演示文稿）")]),
+        Group(title: "Markdown 写作", items: [("⌘N", "新建 Markdown 文档"), ("⌘1–⌘6  ⌘0", "标题 / 正文"), ("⌘B  ⌘I  ⌘U", "加粗 / 斜体 / 下划线"),
+                                         ("⌘K  ⌃`", "链接 / 行内代码"), ("⌥⌘C  ⌥⌘B", "代码块 / 公式块"), ("⌥⌘O  ⌥⌘U", "有序 / 无序列表"),
+                                         ("⌥⌘T  ⌥⌘Q", "表格 / 引用"), ("⌘/", "写作 ⇄ 源码"), ("⌃⌘1", "大纲")]),
         Group(title: "查找", items: [("⌘F", "查找"), ("⌘G", "查找下一个"), ("⇧⌘G", "查找上一个")]),
         Group(title: "影音", items: [("空格", "播放 / 暂停"), ("⇧⌘P", "播放 / 暂停（菜单）"), (",  .", "逐帧后退 / 前进（暂停时）"),
                                     ("J  L", "后退 / 前进 10 秒"), ("↑  ↓", "音量")])

@@ -29,6 +29,13 @@ Sources/Loupe/Resources/web/vendor/licenses.
                                                     permissively licensed dependencies (d3, dagre…)
   DOMPurify 3.2.6                 Apache-2.0 or MPL-2.0 (c) Dr.-Ing. Mario Heiderich, Cure53
 
+Sources/Loupe/Resources/web/vditor holds the Markdown writer (a subset of its dist folder:
+the editor, its Lute Markdown engine, Chinese strings, icons, content themes, extra
+highlight.js languages and styles, and KaTeX's mhchem). KaTeX, Mermaid and highlight.js
+requests are served from the copies listed above.
+
+  Vditor 4.0.1 (incl. Lute)       MIT               (c) 2019-present B3log 开源, b3log.org
+
 The app links only to system frameworks and to libarchive as shipped with macOS
 (BSD-2-Clause). It ships no GPL, LGPL or AGPL code.
 

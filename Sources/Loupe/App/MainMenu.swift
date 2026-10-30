@@ -32,7 +32,8 @@ enum MainMenu {
         recent.identifier = NSUserInterfaceItemIdentifier("recent")
         recent.delegate = delegate
         recentItem.submenu = recent
-        add(file, "新建窗口", #selector(AppDelegate.newViewerWindow(_:)), "n", target: delegate)
+        add(file, "新建 Markdown 文档", #selector(AppDelegate.newMarkdownDocument(_:)), "n", target: delegate)
+        add(file, "新建窗口", #selector(AppDelegate.newViewerWindow(_:)), "n", [.command, .shift], target: delegate)
         add(file, "新建标签页", #selector(NSResponder.newWindowForTab(_:)), "t")
         file.addItem(.separator())
         add(file, "关闭标签页", #selector(ViewerWindowController.closeTabAction(_:)), "w")
@@ -81,6 +82,34 @@ enum MainMenu {
         add(view, "显示 AI 助手", #selector(ViewerWindowController.toggleAIPanel(_:)), "j")
         add(view, "进入全屏幕", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control])
 
+        // Format (Typora's commands and shortcuts, for the Markdown writer)
+        let fmt = submenu(main, "格式")
+        for i in 1...6 { format(fmt, "标题 \(i)", "h\(i)", "\(i)") }
+        format(fmt, "正文（⌘0）", "paragraph")
+        fmt.addItem(.separator())
+        format(fmt, "加粗", "bold", "b")
+        format(fmt, "斜体（⌘I）", "italic")
+        format(fmt, "下划线（⌘U）", "underline")
+        format(fmt, "删除线", "strike", "`", [.control, .shift])
+        format(fmt, "高亮", "highlight", "h", [.command, .shift])
+        format(fmt, "行内代码", "inlineCode", "`", [.control])
+        format(fmt, "链接", "link", "k")
+        format(fmt, "图片", "image", "i", [.command, .control])
+        fmt.addItem(.separator())
+        format(fmt, "代码块", "codeBlock", "c", [.command, .option])
+        format(fmt, "公式块", "mathBlock", "b", [.command, .option])
+        format(fmt, "引用", "quote", "q", [.command, .option])
+        format(fmt, "有序列表", "orderedList", "o", [.command, .option])
+        format(fmt, "无序列表", "bulletList", "u", [.command, .option])
+        format(fmt, "任务列表", "taskList", "x", [.command, .option])
+        format(fmt, "表格", "table", "t", [.command, .option])
+        format(fmt, "分割线", "rule", "-", [.command, .option])
+        format(fmt, "增加缩进", "indent", "]")
+        format(fmt, "减少缩进", "outdent", "[")
+        fmt.addItem(.separator())
+        format(fmt, "大纲", "outline", "1", [.command, .control])
+        format(fmt, "写作 / 源码（⌘/）", "source")
+
         // Go
         let go = submenu(main, "前往")
         add(go, "下一个标签页", #selector(ViewerWindowController.nextTab(_:)), "]", [.command, .shift])
@@ -110,6 +139,14 @@ enum MainMenu {
         let m = NSMenu(title: title)
         item.submenu = m
         return m
+    }
+
+    /// A 格式 item: the command name rides along; it is enabled only for Markdown, so its keys
+    /// fall through to other menus elsewhere (⌘[ / ⌘] still switch files there).
+    private static func format(_ menu: NSMenu, _ title: String, _ command: String, _ key: String = "",
+                               _ mods: NSEvent.ModifierFlags = [.command]) {
+        let item = add(menu, title, #selector(ViewerWindowController.loupeFormat(_:)), key, mods)
+        item.representedObject = command
     }
 
     @discardableResult
