@@ -20,6 +20,9 @@ private struct SidebarContent: View {
     /// Set while the selection is moved by code (following the open file, or the folder you came
     /// up from) so that it is not mistaken for a click.
     @State private var programmatic = false
+    /// The last row opened and when, so one click reported twice (selection change and tap)
+    /// opens it once.
+    @State private var lastActivation: (url: URL, at: Date)?
 
     var filtered: [FolderBrowser.Item] {
         guard !filter.isEmpty else { return browser.items }
@@ -37,6 +40,11 @@ private struct SidebarContent: View {
                 ForEach(filtered) { item in
                     SidebarRow(item: item)
                         .tag(item.url)
+                        // Clicking the row that is already selected does not change the selection,
+                        // so the list reports nothing: open it from the click itself.
+                        .simultaneousGesture(TapGesture().onEnded {
+                            if selection == item.url { activate(item.url) }
+                        })
                         .contextMenu {
                             if item.isFolder {
                                 Button("打开文件夹") { browser.show(item.url) }
@@ -134,6 +142,8 @@ private struct SidebarContent: View {
 
     /// Folders open in place; files open in a tab (⌥-click: in this tab, for quick browsing).
     private func activate(_ u: URL) {
+        if let last = lastActivation, last.url == u, Date().timeIntervalSince(last.at) < 0.4 { return }
+        lastActivation = (u, Date())
         if isFolder(u) {
             browser.show(u)
         } else if u != model.file?.url {

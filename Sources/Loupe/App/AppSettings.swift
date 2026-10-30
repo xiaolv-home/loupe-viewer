@@ -28,12 +28,14 @@ final class AppSettings: ObservableObject {
     /// Local web pages (offline readers, exported reports) run their own scripts — confined to
     /// their folder, with every network request blocked.
     @Published var webPagesRunScripts: Bool { didSet { d.set(webPagesRunScripts, forKey: "webPagesRunScripts") } }
+    /// Markdown opens in the Typora-style writer (otherwise as a typeset page to read).
+    @Published var markdownOpensForWriting: Bool { didSet { d.set(markdownOpensForWriting, forKey: "markdownOpensForWriting") } }
 
     private init() {
         d.register(defaults: [
             "singleWindow": true, "showSidebar": false, "iworkExport": true, "mpvPath": "",
             "preferMPV": false, "wrapText": true, "imageStartsActualSize": false,
-            "highlightLimitMB": 2.0, "showHiddenSiblings": false, "spreadsheetOpensOriginal": false, "spreadsheetEditing": false, "webPagesRunScripts": true
+            "highlightLimitMB": 2.0, "showHiddenSiblings": false, "spreadsheetOpensOriginal": false, "spreadsheetEditing": false, "webPagesRunScripts": true, "markdownOpensForWriting": true
         ])
         singleWindow = d.bool(forKey: "singleWindow")
         showSidebar = d.bool(forKey: "showSidebar")
@@ -47,6 +49,7 @@ final class AppSettings: ObservableObject {
         spreadsheetOpensOriginal = d.bool(forKey: "spreadsheetOpensOriginal")
         spreadsheetEditing = d.bool(forKey: "spreadsheetEditing")
         webPagesRunScripts = d.bool(forKey: "webPagesRunScripts")
+        markdownOpensForWriting = d.bool(forKey: "markdownOpensForWriting")
     }
 
     var highlightLimitBytes: Int { Int(highlightLimitMB * 1024 * 1024) }

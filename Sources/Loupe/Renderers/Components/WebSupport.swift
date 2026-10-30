@@ -79,11 +79,26 @@ final class LoupeSchemeHandler: NSObject, WKURLSchemeHandler {
         let path = url.path.removingPercentEncoding ?? url.path
         switch url.host {
         case "app":
-            return FileAccessPolicy.bundledFile(root: AppResources.webRoot, relativePath: path)
+            return FileAccessPolicy.bundledFile(root: AppResources.webRoot, relativePath: sharedVendorPath(path))
         case "file":
             return URL(fileURLWithPath: path)
         default:
             return nil
+        }
+    }
+
+    /// The Markdown writer (Vditor) asks for KaTeX, Mermaid and highlight.js under its own
+    /// folder; the copies Loupe already ships (newer, same APIs) serve those requests.
+    static func sharedVendorPath(_ path: String) -> String {
+        let p = path.hasPrefix("/") ? String(path.dropFirst()) : path
+        let prefix = "vditor/dist/js/"
+        guard p.hasPrefix(prefix) else { return path }
+        let rest = String(p.dropFirst(prefix.count))
+        switch rest {
+        case "mermaid/mermaid.min.js": return "vendor/mermaid.min.js"
+        case "highlight.js/highlight.min.js": return "vendor/highlight.min.js"
+        case "katex/katex.min.js", "katex/katex.min.css": return "vendor/" + rest
+        default: return rest.hasPrefix("katex/fonts/") ? "vendor/" + rest : path
         }
     }
 
@@ -98,9 +113,20 @@ final class LoupeSchemeHandler: NSObject, WKURLSchemeHandler {
 
 /// Web view that never accepts drops (the window handles them) and never opens new windows.
 final class LoupeWebView: WKWebView {
-    override func registerForDraggedTypes(_ newTypes: [NSPasteboard.PasteboardType]) {}
-    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation { [] }
-    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool { false }
+    /// The Markdown writer takes pictures dropped into the text; every other page leaves drops
+    /// to the window (which opens the file).
+    var acceptsFileDrops = false {
+        didSet { if acceptsFileDrops { registerForDraggedTypes([.fileURL, .png, .tiff, .string, .html]) } }
+    }
+    override func registerForDraggedTypes(_ newTypes: [NSPasteboard.PasteboardType]) {
+        if acceptsFileDrops { super.registerForDraggedTypes(newTypes) }
+    }
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        acceptsFileDrops ? super.draggingEntered(sender) : []
+    }
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        acceptsFileDrops ? super.performDragOperation(sender) : false
+    }
 }
 
 @MainActor

@@ -181,6 +181,10 @@ final class DebugHarness {
                 guard let r = wc.model.renderer as? DebugScriptable, let w = wc.window else { print("SHEET not scriptable"); break }
                 let parts = c.split(separator: ":", maxSplits: 2).map(String.init)
                 await r.debugRun(verb: parts.count > 1 ? parts[1] : "", arg: parts.count > 2 ? parts[2] : "", window: w)
+            case "newmd":
+                AppDelegate.shared?.newMarkdownDocument(nil)
+                await sleep(3)
+                printTabs(wc)
             case "aipanel": wc.setAIPanel(open: true); await sleep(0.6)
             case "skills":
                 for sk in AISkills.shared.all { print("SKILL \(sk.builtIn ? "built-in" : "installed") \(sk.name) — \(sk.description.prefix(60))") }
@@ -248,7 +252,7 @@ final class DebugHarness {
 
     private func printTabs(_ wc: ViewerWindowController) {
         let titles = wc.tabs.docs.map { $0.file?.name ?? "首页" }
-        print("TABS count=\(titles.count) windows=\(AppDelegate.shared?.windows.count ?? 0) titles=\(titles) current=\(wc.model.file?.name ?? "首页")")
+        print("TABS count=\(titles.count) windows=\(AppDelegate.shared?.windows.count ?? 0) titles=\(titles) current=\(wc.model.file?.name ?? "首页") folder=\(wc.browser.dir?.path ?? "-")")
     }
 
     private func probe(_ urls: [URL], _ wc: ViewerWindowController) async {

@@ -353,6 +353,15 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
     @objc func nextFile(_ sender: Any?) { model.navigate(1) }
     @objc func closeFile(_ sender: Any?) { closeTabAction(sender) }
 
+    @objc func loupeFormat(_ sender: NSMenuItem) {
+        guard let md = model.renderer as? MarkdownRenderer, let command = sender.representedObject as? String else { return }
+        switch command {
+        case "outline": md.toggleOutline()
+        case "source": md.toggleWriteSource()
+        default: md.format(command)
+        }
+    }
+
     @objc func loupeZoomIn(_ sender: Any?) { model.perform(.zoomIn) }
     @objc func loupeZoomOut(_ sender: Any?) { model.perform(.zoomOut) }
     @objc func loupeActualSize(_ sender: Any?) { model.perform(.actualSize) }
@@ -381,6 +390,7 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
         case #selector(toggleInfoPanel(_:)):
             item.title = inspectorItem.isCollapsed ? "显示简介" : "隐藏简介"
             return true
+        case #selector(loupeFormat(_:)): return model.renderer is MarkdownRenderer
         case #selector(toggleAIPanel(_:)):
             item.title = aiItem.isCollapsed ? "显示 AI 助手" : "隐藏 AI 助手"
             return true
