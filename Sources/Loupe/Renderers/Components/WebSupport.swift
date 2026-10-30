@@ -18,8 +18,8 @@ enum AppResources {
 /// from disk, so pages never need file:// access and nothing ever touches the network.
 final class LoupeSchemeHandler: NSObject, WKURLSchemeHandler {
     private var active = Set<ObjectIdentifier>()
-    /// When set, `loupe://file/` only serves files inside this folder: a page that runs scripts
-    /// can read its own folder (its chapters, pictures, data) but nothing else on the Mac.
+    /// `loupe://file/` only serves files inside this folder, after resolving symlinks.
+    /// `nil` serves nothing (fail closed). Markdown and HTML always pass the document's folder.
     let fileRoot: URL?
 
     init(fileRoot: URL? = nil) {
@@ -28,15 +28,24 @@ final class LoupeSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 
     func allows(_ fileURL: URL) -> Bool {
-        guard let root = fileRoot else { return true }
-        let p = fileURL.standardizedFileURL.path
-        return p == root.path || p.hasPrefix(root.path.hasSuffix("/") ? root.path : root.path + "/")
+        guard let root = fileRoot else { return false }
+        return FileAccessPolicy.fileInsideRoot(fileURL, root: root) != nil
     }
 
     func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
-        guard let url = task.request.url, let fileURL = Self.resolve(url), url.host != "file" || allows(fileURL) else {
+        guard let url = task.request.url, let located = Self.resolve(url) else {
             task.didFailWithError(URLError(.fileDoesNotExist))
             return
+        }
+        let fileURL: URL
+        if url.host == "file" {
+            guard let root = fileRoot, let limited = FileAccessPolicy.fileInsideRoot(located, root: root) else {
+                task.didFailWithError(URLError(.fileDoesNotExist))
+                return
+            }
+            fileURL = limited
+        } else {
+            fileURL = located
         }
         let id = ObjectIdentifier(task)
         active.insert(id)
@@ -70,9 +79,7 @@ final class LoupeSchemeHandler: NSObject, WKURLSchemeHandler {
         let path = url.path.removingPercentEncoding ?? url.path
         switch url.host {
         case "app":
-            let root = AppResources.webRoot.standardizedFileURL
-            let f = root.appendingPathComponent(path).standardizedFileURL
-            return f.path.hasPrefix(root.path) ? f : nil
+            return FileAccessPolicy.bundledFile(root: AppResources.webRoot, relativePath: path)
         case "file":
             return URL(fileURLWithPath: path)
         default:
@@ -101,14 +108,16 @@ enum WebFactory {
     private static var ruleList: WKContentRuleList?
 
     /// Blocks every remote load. Compiled once and cached by WebKit.
-    static func blockRemoteRules() async -> WKContentRuleList? {
+    /// A failed compile is not cached: the page must not load without the rules.
+    static func blockRemoteRules() async throws -> WKContentRuleList {
         if let r = ruleList { return r }
         let json = #"[{"trigger":{"url-filter":"^https?://"},"action":{"type":"block"}},{"trigger":{"url-filter":"^wss?://"},"action":{"type":"block"}},{"trigger":{"url-filter":"^ftp://"},"action":{"type":"block"}}]"#
         let list: WKContentRuleList? = await withCheckedContinuation { cont in
-            WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "loupe-block-remote-v2", encodedContentRuleList: json) { list, _ in
-                cont.resume(returning: list)
+            WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "loupe-block-remote-v2", encodedContentRuleList: json) { list, error in
+                if error != nil { cont.resume(returning: nil) } else { cont.resume(returning: list) }
             }
         }
+        guard let list else { throw RenderError.unreadable("无法启用网页断网规则，已停止显示此页面") }
         ruleList = list
         return list
     }
@@ -119,7 +128,7 @@ enum WebFactory {
 
     /// `fileRoot` limits which local files the page may load; `keepsData` keeps its
     /// localStorage / IndexedDB between launches.
-    static func make(javaScript: Bool, fileRoot: URL? = nil, keepsData: Bool = false) async -> LoupeWebView {
+    static func make(javaScript: Bool, fileRoot: URL? = nil, keepsData: Bool = false) async throws -> LoupeWebView {
         let cfg = WKWebViewConfiguration()
         cfg.setURLSchemeHandler(LoupeSchemeHandler(fileRoot: fileRoot), forURLScheme: "loupe")
         cfg.websiteDataStore = keepsData ? localPagesStore : .nonPersistent()
@@ -127,7 +136,8 @@ enum WebFactory {
         cfg.preferences.javaScriptCanOpenWindowsAutomatically = false
         cfg.preferences.isFraudulentWebsiteWarningEnabled = false
         cfg.mediaTypesRequiringUserActionForPlayback = .all
-        if let rules = await blockRemoteRules() { cfg.userContentController.add(rules) }
+        let rules = try await blockRemoteRules()
+        cfg.userContentController.add(rules)
         let wv = LoupeWebView(frame: .zero, configuration: cfg)
         wv.setValue(false, forKey: "drawsBackground")
         wv.allowsMagnification = true

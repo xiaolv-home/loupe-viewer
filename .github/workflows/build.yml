@@ -1,7 +1,7 @@
 name: build
 
 # 推 main / 提 PR：跑单元测试、构建 Universal 版并打成 DMG。
-# 推 v* 标签：再建 Release，附 DMG 和 SHA256SUMS，说明取 docs/releases/<标签>.md。
+# 推 v* 标签：再由单独的 release 任务建 Release（只有它有 contents: write）。
 on:
   push:
     branches: [main]
@@ -16,7 +16,7 @@ jobs:
   build:
     runs-on: macos-15
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -43,6 +43,25 @@ jobs:
           codesign -dvv "$mnt/Loupe.app" 2>&1 | grep -q "Sealed Resources version=2"
           lipo -archs "$mnt/Loupe.app/Contents/MacOS/Loupe" | grep -q "x86_64 arm64\|arm64 x86_64"
           hdiutil detach -quiet "$mnt"
+          echo "DMG 体积：$(du -h "$dmg" | cut -f1)"
+
+      - name: 渲染器端到端
+        run: python3 scripts/verify-renderers.py
+
+      - name: Intel 切片探测
+        run: |
+          set -euo pipefail
+          bin="build/app.noindex/Loupe.app/Contents/MacOS/Loupe"
+          if ! arch -x86_64 /usr/bin/true; then
+            echo "::warning::此 runner 不能运行 x86_64（没有 Rosetta），跳过 Intel 切片探测"
+            exit 0
+          fi
+          out=$(arch -x86_64 "$bin" --probe fixtures/text/empty.txt)
+          echo "$out"
+          echo "$out" | grep -q '"engine":"TextKit"'
+
+      - name: 公证钩子（无凭据时跳过）
+        run: scripts/notarize.sh
 
       - name: 标签与版本号一致
         if: startsWith(github.ref, 'refs/tags/v')
@@ -56,20 +75,35 @@ jobs:
           path: build/Loupe-*.dmg
           if-no-files-found: error
 
-      # 说明 = docs/releases/<标签>.md（这一版改了什么）+ 固定的安装提示。
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Loupe-dmg
+          path: out
+
+      # 说明 = docs/releases/<标签>.md（这一版改了什么）+ DMG 体积 + 固定的安装提示。
       - name: 建 Release
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p out
-          cp build/Loupe-*.dmg out/
+          dmg=$(ls out/Loupe-*.dmg)
+          size=$(du -h "$dmg" | cut -f1)
           ( cd out && shasum -a 256 ./* > SHA256SUMS.txt && cat SHA256SUMS.txt )
           notes="docs/releases/${GITHUB_REF_NAME}.md"
           [ -f "$notes" ] || echo "::warning::没有 $notes，发布说明只有安装提示"
           {
             if [ -f "$notes" ]; then cat "$notes"; printf '\n---\n\n'; fi
+            echo "DMG 体积：${size}"
+            printf '\n'
             cat <<'NOTE'
           Universal（Apple Silicon + Intel），macOS 14 起。校验和见 SHA256SUMS.txt。
 

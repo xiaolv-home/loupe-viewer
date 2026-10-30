@@ -9,7 +9,14 @@ import LoupeCore
 @MainActor
 final class QuickLookRenderer: Renderer {
     static let engineName = "QuickLook"
-    static func canHandle(_ file: FileContext) -> Bool { true }
+    static func canHandle(_ file: FileContext) -> Bool {
+        switch file.format.family {
+        case .office, .iwork, .quicklook, .svg, .font, .binary, .pdf:
+            return true
+        default:
+            return false
+        }
+    }
     private var preview: QLPreviewView?
 
     required init() {}

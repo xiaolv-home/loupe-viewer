@@ -14,7 +14,7 @@ struct AISettingsView: View {
         Form {
             Section("使用哪种模式") {
                 Picker("模式", selection: $config.mode) {
-                    Text("本地（文件不出本机）").tag(AIConfig.Mode.local)
+                    Text("本地（只连 localhost / 127.0.0.1）").tag(AIConfig.Mode.local)
                     Text("云端 API").tag(AIConfig.Mode.cloud)
                 }
                 .pickerStyle(.radioGroup)
@@ -28,7 +28,7 @@ struct AISettingsView: View {
                     Text(config.localModel.isEmpty ? "未选择" : config.localModel).font(Theme.mono(11.5)).textSelection(.enabled)
                 }
                 if !localStatus.isEmpty { Text(localStatus).font(.system(size: 11)).foregroundStyle(.secondary) }
-                Text("在 AI 面板顶部的模型菜单里选择具体模型。需要模型支持工具调用（Qwen、DeepSeek、GLM、Llama 3.1+ 等都可以）。")
+                Text("只连接 localhost 或 127.0.0.1。局域网或其他服务器请改用「云端 API › 自定义」，否则文件内容会离开本机。需要模型支持工具调用（Qwen、DeepSeek、GLM、Llama 3.1+ 等都可以）。")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             }
             Section("云端 API") {
@@ -47,8 +47,16 @@ struct AISettingsView: View {
                 if !p.keyPage.isEmpty {
                     Link("去「\(p.name)」申请 API Key", destination: URL(string: p.keyPage)!).font(.system(size: 11))
                 }
-                TextField("接口地址", text: Binding(get: { config.cloudBaseURL(p) }, set: { config.cloudBaseURLs[p.id] = $0 }))
-                    .font(Theme.mono(11.5))
+                if p.allowsCustomBaseURL {
+                    TextField("接口地址", text: Binding(get: { config.cloudBaseURL(p) }, set: { config.cloudBaseURLs[p.id] = $0 }))
+                        .font(Theme.mono(11.5))
+                    Text("这个地址会收到 API Key 和你发给 AI 的文件内容。")
+                        .font(.system(size: 11)).foregroundStyle(.secondary)
+                } else {
+                    LabeledContent("接口地址") {
+                        Text(p.baseURL).font(Theme.mono(11.5)).textSelection(.enabled)
+                    }
+                }
                 TextField("模型", text: Binding(get: { config.cloudModel(p) }, set: { config.cloudModels[p.id] = $0 }))
                     .font(Theme.mono(11.5))
                 HStack {

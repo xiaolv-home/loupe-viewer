@@ -4,6 +4,7 @@ import ImageIO
 import IOSurface
 import CoreVideo
 import UniformTypeIdentifiers
+import os
 import LoupeCore
 
 /// A decoded frame ready for display. SDR images live in an IOSurface that Core Animation
@@ -40,7 +41,8 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
     private var props: [String: Any] = [:]
     private var animating = false
     private var isIconFamily = false
-    private var stopAnimation = false
+    /// ImageIO calls the animation block off the main thread. This flag is the only state that block reads.
+    private let animationGate = OSAllocatedUnfairLock(initialState: false)
     private var frameObserver: NSObjectProtocol?
     private weak var host: RenderHost?
     private var file: FileContext?
@@ -220,12 +222,26 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
         return [UTType.gif.identifier, UTType.png.identifier, UTType.webP.identifier, "public.heics"].contains(type)
     }
 
+    private func setAnimationStopped(_ value: Bool) {
+        animationGate.withLock { $0 = value }
+    }
+
     private func startAnimation(_ url: URL) {
         animating = true
-        stopAnimation = false
+        setAnimationStopped(false)
         CGAnimateImageAtURLWithBlock(url as CFURL, nil) { [weak self] _, image, stop in
-            guard let self, !self.stopAnimation else { stop.pointee = true; return }
-            if self.rotation == 0 { self.surface.setImage(image) }
+            guard let self else { stop.pointee = true; return }
+            let stopped = self.animationGate.withLock { $0 }
+            if stopped { stop.pointee = true; return }
+            let frame: CGImage = image
+            DispatchQueue.main.async { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    let stillStopped = self.animationGate.withLock { $0 }
+                    if stillStopped || self.rotation != 0 { return }
+                    self.surface.setImage(frame)
+                }
+            }
         }
     }
 
@@ -274,7 +290,7 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
 
     func rotate(_ d: Int) {
         guard decoded != nil else { return }
-        stopAnimation = true
+        setAnimationStopped(true)
         rotation = (rotation + d + 4) % 4
         Task {
             guard let dec = try? await decode(index: page) else { return }
@@ -299,7 +315,7 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
     }
 
     func cleanup() {
-        stopAnimation = true
+        setAnimationStopped(true)
         if let o = frameObserver { NotificationCenter.default.removeObserver(o) }
         surface.detach()
         decoded = nil

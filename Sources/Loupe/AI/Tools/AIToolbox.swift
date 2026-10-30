@@ -20,6 +20,8 @@ final class AIToolbox {
     let approve: (AIApproval) async -> Bool
     /// Extracted text of files read this run, for paging through long ones.
     private var textCache: [URL: String] = [:]
+    /// A skill was loaded during this request. Commands then need a second confirmation.
+    private var usedSkill = false
 
     init(document: ViewerModel?, window: ViewerWindowController?, skills: [Skill], allowCommands: Bool, vision: Bool = false,
          approve: @escaping (AIApproval) async -> Bool) {
@@ -235,6 +237,7 @@ final class AIToolbox {
 
     private func openFile(_ path: String) -> AIToolOutput {
         let url = AIFiles.resolve(path, base: base)
+        if let why = AIFiles.readable(url) { return .error(why) }
         guard FileManager.default.fileExists(atPath: url.path) else { return .error("文件不存在：\(url.path)") }
         guard let w = window else { return .error("没有可用的窗口") }
         if let existing = w.document(for: url) { w.select(existing) } else { w.addTab(url) }
@@ -263,6 +266,7 @@ final class AIToolbox {
         guard let s = skills.first(where: { $0.name == name }) ?? AISkills.shared.find(name) else {
             return .error("没有这个技能。可用：" + skills.map(\.name).joined(separator: "、"))
         }
+        usedSkill = true
         return AIToolOutput(Self.skillText(s))
     }
 
@@ -280,8 +284,13 @@ final class AIToolbox {
         guard allowCommands else { return .error("用户没有开启「允许 AI 运行终端命令」") }
         guard let cmd = args["command"]?.string, !cmd.trimmingCharacters(in: .whitespaces).isEmpty else { return .error("缺少 command") }
         let cwd = (args["cwd"]?.string).flatMap { $0.isEmpty ? nil : AIFiles.resolve($0, base: base) } ?? base
+        if let why = AIFiles.readable(cwd) { return .error(why) }
         guard await approve(AIApproval(title: "运行终端命令？", detail: "在 \(cwd.path) 中运行：\n\(cmd)")) else {
             return .error("用户拒绝运行这条命令")
+        }
+        if usedSkill {
+            let again = AIApproval(title: "再确认一次：运行这条命令？", detail: "本次对话载入过技能。技能内容未经 Loupe 审核，命令会以你的账户权限执行。\n\(cmd)")
+            guard await approve(again) else { return .error("用户没有再次确认，命令没有运行") }
         }
         return await Task.detached(priority: .userInitiated) { Self.shell(cmd, cwd: cwd) }.value
     }

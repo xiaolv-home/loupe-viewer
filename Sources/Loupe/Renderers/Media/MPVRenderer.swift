@@ -17,6 +17,7 @@ final class MPVRenderer: NSObject, Renderer {
     private weak var host: RenderHost?
     private var file: FileContext?
     private var externalProcess: Process?
+    private var fallbackView: NSView?
     private var mode = "embedded"
     private var subtitleIDs: [Int] = []
     private var videoParams = ""
@@ -27,6 +28,8 @@ final class MPVRenderer: NSObject, Renderer {
         self.file = file
         self.host = host
         guard let lib = MPVLibrary.load() else {
+            // 影音链后面没有十六进制兜底。库缺失时这页就是终点（安装提示），
+            // 所以这里返回视图而不是抛错。渲染中途失败走 onRenderFailure，改开独立窗口。
             mode = "missing"
             let v = NSHostingView(rootView: MPVMissingView(file: file))
             v.sizingOptions = []
@@ -87,13 +90,24 @@ final class MPVRenderer: NSObject, Renderer {
         }
         p.onRenderFailure = { [weak self] in
             MainActor.assumeIsolated {
-                guard let self, let file = self.file else { return }
+                guard let self, let file = self.file, self.mode == "embedded" else { return }
+                self.videoView?.glLayer.player = nil
                 self.player?.destroy()
                 self.player = nil
-                if let v = try? self.externalFallback(file, reason: "嵌入渲染初始化失败") {
-                    self.stage?.removeFromSuperview()
+                do {
+                    let v = try self.externalFallback(file, reason: "嵌入渲染初始化失败")
+                    if let parent = self.stage?.superview {
+                        v.frame = parent.bounds
+                        v.autoresizingMask = [.width, .height]
+                        self.stage?.removeFromSuperview()
+                        parent.addSubview(v)
+                        self.fallbackView = v
+                    }
                     self.host?.showNotice("mpv 嵌入渲染不可用，已改用独立窗口播放。", style: .warning, action: nil)
-                    _ = v
+                    self.host?.rendererDidUpdate()
+                } catch {
+                    let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                    self.host?.showNotice("mpv 嵌入渲染失败：\(msg)", style: .warning, action: nil)
                 }
             }
         }
@@ -202,6 +216,8 @@ final class MPVRenderer: NSObject, Renderer {
         player = nil
         videoView?.glLayer.player = nil
         videoView = nil
+        fallbackView?.removeFromSuperview()
+        fallbackView = nil
         if let p = externalProcess, p.isRunning { p.terminate() }
         externalProcess = nil
     }
