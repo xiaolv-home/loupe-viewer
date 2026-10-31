@@ -330,6 +330,22 @@ extension Workbook {
             }
             return m.r0 == m.r1 && m.c0 == m.c1 ? nil : m
         }
+        s.richText = remap(s.richText)
+        // Conditional formats cover the same cells as before (growing or shrinking with them).
+        for i in s.conditionalFormats.indices {
+            s.conditionalFormats[i].ranges = s.conditionalFormats[i].ranges.compactMap { m in
+                var m = m
+                if rowOp {
+                    guard let (a, b) = op.mapSpan(m.r0, m.r1) else { return nil }
+                    m.r0 = a; m.r1 = b
+                } else {
+                    guard let (a, b) = op.mapSpan(m.c0, m.c1) else { return nil }
+                    m.c0 = a; m.c1 = b
+                }
+                return m
+            }
+        }
+        s.conditionalFormats.removeAll { $0.ranges.isEmpty }
         // Formatting of the neighbour carries over to inserted rows / columns.
         switch op {
         case .insertRows(let at, let n) where at > 0:

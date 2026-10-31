@@ -140,6 +140,10 @@ public struct Sheet: Sendable {
     /// Cells whose text mixes formats (part red, part bold…), keyed like `styleIDs`.
     /// Plain cells are not listed; the cell's own style applies to them.
     public var richText: [Int: [RichRun]] = [:]
+    /// Data bars and colour scales (see ConditionalFormatting.evaluate).
+    public var conditionalFormats: [ConditionalFormat] = []
+    /// Conditional formats Loupe does not draw (cell rules, icon sets…).
+    public var otherConditionalFormats = 0
     /// Charts, pictures and shapes drawn over the cells.
     public var drawings: [SheetDrawing] = []
     /// A chart sheet: the whole sheet is one chart, there are no cells.

@@ -111,9 +111,9 @@ public enum SpreadsheetReader {
         guard !sheets.isEmpty else { throw SpreadsheetError(message: "工作簿中没有工作表") }
         var wb = Workbook(sheets: sheets, source: "Excel 工作簿")
         wb.styles = styles
-        if parts.keys.contains(where: { $0.hasPrefix("xl/worksheets/") }) {
-            let hasCF = parts.contains { $0.key.hasPrefix("xl/worksheets/") && $0.value.range(of: Data("<conditionalFormatting".utf8)) != nil }
-            if hasCF { wb.notes.append("含条件格式（按规则变色），Loupe 暂不显示，可切换「原样」查看") }
+        // Data bars and colour scales are drawn; other rules (cell value, formula, icons) are not.
+        if wb.sheets.contains(where: { $0.otherConditionalFormats > 0 }) {
+            wb.notes.append("含按规则变色的条件格式，Loupe 只画数据条和色阶，其余可切换「原样」查看")
         }
         fillUncachedFormulas(&wb)
         return wb
@@ -455,7 +455,7 @@ final class StylesParser: NSObject, XMLParserDelegate {
 }
 
 /// Streams a worksheet: <row><c r="B3" t="s" s="2"><f>…</f><v>…</v></c></row>.
-private final class SheetXMLParser: NSObject, XMLParserDelegate {
+final class SheetXMLParser: NSObject, XMLParserDelegate {
     let shared: [String]
     let dateStyles: Set<Int>
     var rows: [[CellValue]] = []
@@ -486,10 +486,12 @@ private final class SheetXMLParser: NSObject, XMLParserDelegate {
     var richText: [Int: [RichRun]] = [:]
     private var inline: RichRunReader
     private var inIs = false
+    private var conditional: ConditionalFormatReader
 
     init(shared: [String], sharedRich: [Int: [RichRun]] = [:], dateStyles: Set<Int>, color: @escaping ([String: String]) -> RGBA? = { _ in nil }) {
         self.shared = shared; self.sharedRich = sharedRich; self.dateStyles = dateStyles
         inline = RichRunReader(color: color)
+        conditional = ConditionalFormatReader(color: color)
     }
 
     private func resolvePendingShared() {
@@ -518,6 +520,8 @@ private final class SheetXMLParser: NSObject, XMLParserDelegate {
         s.zoomScale = zoomScale
         s.defaultColumnWidth = defaultColWidth
         s.richText = richText
+        s.conditionalFormats = conditional.rules
+        s.otherConditionalFormats = conditional.unsupported
         // Empty rows still covered by a merged area or sized by hand belong to the layout.
         // A merge that runs to the last Excel row must not materialise a million empty rows.
         let padCap = min(SpreadsheetReader.maxRows - 1, s.rows.count + SpreadsheetReader.maxLayoutPadding)
@@ -544,6 +548,7 @@ private final class SheetXMLParser: NSObject, XMLParserDelegate {
     }
 
     func parser(_ parser: XMLParser, didStartElement name: String, namespaceURI: String?, qualifiedName: String?, attributes a: [String: String] = [:]) {
+        if ConditionalFormatReader.handles(name) { conditional.start(name, a) }
         switch name {
         case "row":
             r = (a["r"].flatMap(Int.init) ?? (nextRow + 1)) - 1
@@ -595,9 +600,11 @@ private final class SheetXMLParser: NSObject, XMLParserDelegate {
 
     func parser(_ parser: XMLParser, foundCharacters s: String) {
         if inV { value += s } else if inF { formula += s } else if inIsT { value += s; if inIs { inline.text(s) } }
+        else { conditional.characters(s) }
     }
 
     func parser(_ parser: XMLParser, didEndElement name: String, namespaceURI: String?, qualifiedName: String?) {
+        if ConditionalFormatReader.handles(name) { conditional.end(name) }
         switch name {
         case "v": inV = false
         case "f": inF = false

@@ -66,6 +66,8 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
     var activeMerges: [Int: Int] = [:]
     var viewRowOf: [Int] = []
     var lookCache: [CellLookKey: CellLook] = [:]
+    /// Data bars and colour-scale fills by cell key (worked out again when values change).
+    var conditional: [Int: ConditionalCell] = [:]
     /// Charts, pictures and shapes over the cells (see SpreadsheetDrawings).
     let drawingPainter = DrawingPainter()
 
@@ -274,6 +276,7 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
         if autoWidthsFor != sheetIndex { rebuildAutoWidths(); autoWidthsFor = sheetIndex }
         rebuildFitHeights()
         lookCache = [:]
+        conditional = ConditionalFormatting.evaluate(sheet)
         // Cell values may have changed: charts read them again.
         drawingPainter.reset()
         rebuildLayout()
@@ -578,6 +581,7 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
                      InfoItem("当前表", "\(sheet.name) · \(Fmt.number(sheet.rows.count)) 行 × \(sheet.columnCount) 列")]
         if !sheet.formulas.isEmpty { items.append(InfoItem("公式单元格", Fmt.number(sheet.formulas.count))) }
         if !sheet.merges.isEmpty { items.append(InfoItem("合并单元格", Fmt.number(sheet.merges.count))) }
+        if !sheet.conditionalFormats.isEmpty { items.append(InfoItem("条件格式", "\(Fmt.number(sheet.conditionalFormats.count)) 条（数据条 / 色阶）")) }
         items.append(InfoItem("说明", "筛选、排序、隐藏只影响显示；编辑后 ⌘S 才会写回原文件"))
         return [InfoSection("表格", items)]
     }

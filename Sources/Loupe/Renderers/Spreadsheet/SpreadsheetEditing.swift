@@ -108,6 +108,7 @@ extension SpreadsheetRenderer {
             reloadSheet()
         } else {
             lookCache = [:]
+            conditional = ConditionalFormatting.evaluate(sheet)
             grid.redrawAll()
         }
         gridSelect(rects, active: active, anchor: anchor)

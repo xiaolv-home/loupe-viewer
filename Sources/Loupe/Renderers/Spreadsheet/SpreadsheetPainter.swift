@@ -59,7 +59,7 @@ extension SpreadsheetRenderer {
         if flags & 4 != 0 { fill = Theme.ink.withAlphaComponent(0.045) }
         var textColor: NSColor = Theme.ink
         if let fc = colorOverride ?? style?.fontColor {
-            textColor = (fillRGBA == nil && Self.luminance(fc) < 0.25) ? Theme.ink : Self.color(fc)
+            textColor = fontColor(fc, onFill: fillRGBA != nil)
         } else if let f = fillRGBA {
             textColor = Self.luminance(f) > 0.55 ? NSColor(white: 0.1, alpha: 1) : .white
         }
@@ -150,14 +150,16 @@ extension SpreadsheetRenderer {
                 if !inDirty && (value.isEmpty || !isText(value)) { continue }
                 if value.isEmpty && s.styleIDs[key] == nil && query.headerRowIndex != sr { continue }
                 let formatted = workbook.formatted(sheetIndex, sr, c)
-                let lk = look(sr, c, value: value, colorOverride: formatted.color)
+                let cf = conditional[key]
+                let lk = conditionalLook(look(sr, c, value: value, colorOverride: formatted.color), cf, sr, c)
                 let rect = NSRect(x: L.xs[i], y: ry, width: L.xs[i + 1] - L.xs[i], height: rh)
                 if inDirty {
                     if let f = lk.fill { f.setFill(); rect.fill() }
+                    if let bar = cf?.bar { paintBar(bar, in: rect) }
                     if !lk.borders.isEmpty { borders.append((rect, lk.borders, lk.borderColor)) }
                 }
                 var text = formatted.text
-                if text.isEmpty { continue }
+                if text.isEmpty || cf?.showValue == false { continue }
                 if !lk.wraps { text = text.replacingOccurrences(of: "\n", with: " ") }
                 var clip = rect
                 // Text overflows into empty neighbours (left-aligned to the right, right-aligned
@@ -211,9 +213,11 @@ extension SpreadsheetRenderer {
             let sr = mv.m.r0, c = mv.m.c0
             let value = s.cell(sr, c)
             let formatted = workbook.formatted(sheetIndex, sr, c)
-            let lk = look(sr, c, value: value, colorOverride: formatted.color)
+            let cf = conditional[Sheet.key(sr, c)]
+            let lk = conditionalLook(look(sr, c, value: value, colorOverride: formatted.color), cf, sr, c)
             (lk.fill ?? Theme.sheet).setFill()
             rect.fill()
+            if let bar = cf?.bar { paintBar(bar, in: rect) }
             if s.showGridLines && lk.fill == nil {
                 Theme.hairline.setFill()
                 NSRect(x: rect.maxX - 0.5, y: rect.minY, width: 0.5, height: rect.height).fill()
@@ -222,7 +226,7 @@ extension SpreadsheetRenderer {
             if !lk.borders.isEmpty { borders.append((rect, lk.borders, lk.borderColor)) }
             var text = formatted.text
             if !lk.wraps { text = text.replacingOccurrences(of: "\n", with: " ") }
-            if !text.isEmpty { texts.append(TextItem(text: text, look: lk, rect: rect.insetBy(dx: pad, dy: 0), clip: rect, rich: richRuns(sr, c, value))) }
+            if !text.isEmpty && cf?.showValue != false { texts.append(TextItem(text: text, look: lk, rect: rect.insetBy(dx: pad, dy: 0), clip: rect, rich: richRuns(sr, c, value))) }
         }
 
         // 4. Text.
@@ -278,6 +282,67 @@ extension SpreadsheetRenderer {
 
     private func isText(_ v: CellValue) -> Bool { if case .text = v { return true }; return false }
 
+    /// A font colour as drawn. Near-black greys on no fill follow the theme, so they stay
+    /// readable in dark mode; real colours (red, dark blue…) keep their hue, lifted a little
+    /// in dark mode.
+    func fontColor(_ c: RGBA, onFill: Bool) -> NSColor {
+        guard !onFill else { return Self.color(c) }
+        let lum = Self.luminance(c)
+        if lum < 0.25 && Int(max(c.r, c.g, c.b)) - Int(min(c.r, c.g, c.b)) < 48 { return Theme.ink }
+        if isDark && lum < 0.3 { return Self.color(c).blended(withFraction: 0.35, of: .white) ?? Self.color(c) }
+        return Self.color(c)
+    }
+
+    /// A cell's look under a colour scale: the scale's fill, with text that stays readable on it.
+    private func conditionalLook(_ lk: CellLook, _ cf: ConditionalCell?, _ sr: Int, _ c: Int) -> CellLook {
+        guard let f = cf?.fill else { return lk }
+        var lk = lk
+        lk.fill = Self.color(f)
+        if workbook.style(sheetIndex, sr, c)?.fontColor == nil {
+            lk.attrs[.foregroundColor] = Self.luminance(f) > 0.55 ? NSColor(white: 0.1, alpha: 1) : NSColor.white
+        }
+        return lk
+    }
+
+    /// A data bar as Excel 2010 draws it: fading from its colour (or solid), with an optional
+    /// border, and a dashed axis when the range holds negative and positive values.
+    private func paintBar(_ bar: ConditionalCell.Bar, in cell: NSRect) {
+        let area = cell.insetBy(dx: 2 * zoom, dy: 2 * zoom)
+        guard area.width > 1, area.height > 1 else { return }
+        var from = bar.from, to = bar.to, axis = bar.axis
+        if bar.style.rightToLeft { (from, to) = (1 - to, 1 - from); axis = axis.map { 1 - $0 } }
+        let rect = NSRect(x: area.minX + area.width * from, y: area.minY, width: max(0, area.width * (to - from)), height: area.height)
+        let base = bar.negative ? (bar.style.negativeColor ?? RGBA(r: 255, g: 0, b: 0, a: 255)) : bar.style.color
+        let color = Self.color(base)
+        if rect.width >= 0.5 {
+            if bar.style.gradient {
+                // Fades towards the sheet, away from the axis (or the start).
+                let fadeEnd = color.blended(withFraction: 0.9, of: Theme.sheet) ?? color
+                let leftward = bar.negative != bar.style.rightToLeft
+                NSGradient(starting: color, ending: fadeEnd)?.draw(in: rect, angle: leftward ? 180 : 0)
+            } else {
+                color.setFill()
+                rect.fill()
+            }
+            if let b = bar.style.border {
+                Self.color(bar.negative ? (bar.style.negativeColor ?? b) : b).setStroke()
+                let p = NSBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5))
+                p.lineWidth = 1
+                p.stroke()
+            }
+        }
+        if let a = axis {
+            let x = (area.minX + area.width * a).rounded() + 0.5
+            let p = NSBezierPath()
+            p.move(to: NSPoint(x: x, y: cell.minY))
+            p.line(to: NSPoint(x: x, y: cell.maxY))
+            p.setLineDash([2, 2], count: 2, phase: 0)
+            p.lineWidth = 1
+            Self.color(bar.style.axisColor ?? RGBA(r: 0, g: 0, b: 0, a: 255)).setStroke()
+            p.stroke()
+        }
+    }
+
     /// Rich-text runs on top of the cell's own look: each run overrides only what it sets.
     private func attributed(_ runs: [RichRun], _ lk: CellLook) -> NSAttributedString {
         let out = NSMutableAttributedString()
@@ -296,7 +361,7 @@ extension SpreadsheetRenderer {
             attrs[.font] = font
             if let c = run.color {
                 // Same rule as whole cells: near-black on no fill follows the theme (dark mode).
-                attrs[.foregroundColor] = lk.fill == nil && Self.luminance(c) < 0.25 ? Theme.ink : Self.color(c)
+                attrs[.foregroundColor] = fontColor(c, onFill: lk.fill != nil)
             }
             if let u = run.underline { attrs[.underlineStyle] = u ? NSUnderlineStyle.single.rawValue : nil }
             if let st = run.strike { attrs[.strikethroughStyle] = st ? NSUnderlineStyle.single.rawValue : nil }
