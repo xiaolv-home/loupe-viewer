@@ -18,6 +18,10 @@ final class MPVGLLayer: CAOpenGLLayer {
         isAsynchronous = false
         needsDisplayOnBoundsChange = true
         backgroundColor = NSColor.black.cgColor
+        // Untagged GL output is taken as the display's own colours, which oversaturates video on
+        // wide-gamut screens. mpv renders into Display P3 (see MPVPlayer); say so, and macOS
+        // converts it for whatever screen the window is on.
+        colorspace = CGColorSpace(name: CGColorSpace.displayP3)
         let attempts: [[CGLPixelFormatAttribute]] = [
             [kCGLPFAOpenGLProfile, CGLPixelFormatAttribute(kCGLOGLPVersion_3_2_Core.rawValue), kCGLPFAAccelerated,
              kCGLPFADoubleBuffer, kCGLPFAAllowOfflineRenderers, _CGLPixelFormatAttribute(rawValue: 0)],
