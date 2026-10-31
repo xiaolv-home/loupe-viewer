@@ -25,7 +25,13 @@ final class MPVPlayer: @unchecked Sendable {
             ("input-default-bindings", "no"), ("input-vo-keyboard", "no"), ("osc", "no"), ("terminal", "no"),
             ("config", "no"), ("load-scripts", "no"), ("ytdl", "no"), ("audio-display", "no"),
             ("sub-auto", "fuzzy"), ("sub-font-size", "44"), ("sub-border-size", "2.5"), ("sub-codepage", "auto"),
-            ("screenshot-format", "png"), ("demuxer-max-bytes", "150MiB"), ("cache", "no")
+            ("screenshot-format", "png"), ("demuxer-max-bytes", "150MiB"), ("cache", "no"),
+            // Picture quality: mpv's own high-quality preset (sharpest scaler, HDR tone mapping
+            // that measures each frame's real peak) — no debanding, which would soften detail.
+            ("profile", "high-quality"),
+            // The picture is drawn in Display P3 with the sRGB curve, the space the layer is
+            // tagged with (MPVGLLayer), so macOS colour-manages it like any other app's video.
+            ("target-prim", "display-p3"), ("target-trc", "srgb")
         ]
         for (k, v) in opts { _ = api.setOption(h, k, v) }
         guard api.initialize(h) >= 0 else { api.terminateDestroy(h); return nil }

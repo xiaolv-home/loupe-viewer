@@ -243,6 +243,9 @@ final class MPVRenderer: NSObject, Renderer {
         if model.duration > 0 { items.append(InfoItem("时长", Fmt.duration(model.duration))) }
         if !videoParams.isEmpty { items.append(InfoItem("流", videoParams)) }
         if let hw = player?.string("hwdec-current"), !hw.isEmpty { items.append(InfoItem("硬件解码", hw == "no" ? "未启用" : hw)) }
+        if let scale = player?.string("scale"), !scale.isEmpty {
+            items.append(InfoItem("画质", "高画质预设 · 放大 \(scale) · 输出 Display P3（系统色彩管理）"))
+        }
         return [InfoSection("影音", items)]
     }
 }
