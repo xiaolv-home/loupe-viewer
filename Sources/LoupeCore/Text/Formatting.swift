@@ -5,6 +5,8 @@ public enum Fmt {
         let f = ByteCountFormatter()
         f.countStyle = .file
         f.allowedUnits = [.useBytes, .useKB, .useMB, .useGB, .useTB]
+        // "Zero bytes" is spelled out (in English when the system is): keep it a number.
+        f.allowsNonnumericFormatting = false
         return f.string(fromByteCount: n).replacingOccurrences(of: "字节", with: "B")
     }
 

@@ -120,6 +120,44 @@ final class DebugHarness {
                 wc.browser.goUp()
                 await sleep(0.5)
                 print("BROWSE", wc.browser.dir?.path ?? "-", wc.browser.items.prefix(6).map { ($0.isFolder ? "📁" : "") + $0.name })
+            case let c where c.hasPrefix("keys:"):
+                // Real key presses to the key window (a popover's, when one is open): keys:down,down,return
+                guard let w = NSApp.keyWindow ?? wc.window else { break }
+                let codes: [String: (UInt16, String)] = ["up": (126, "\u{F700}"), "down": (125, "\u{F701}"), "left": (123, "\u{F702}"),
+                                                          "right": (124, "\u{F703}"), "return": (36, "\r")]
+                print("KEYS first responder", w.firstResponder.map { String(describing: type(of: $0)) } ?? "nil")
+                for k in c.dropFirst(5).split(separator: ",") {
+                    guard let (code, chars) = codes[String(k)] else { continue }
+                    for t in [NSEvent.EventType.keyDown, .keyUp] {
+                        if let e = NSEvent.keyEvent(with: t, location: .zero, modifierFlags: code >= 123 ? [.numericPad, .function] : [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                                    windowNumber: w.windowNumber, context: nil, characters: chars, charactersIgnoringModifiers: chars,
+                                                    isARepeat: false, keyCode: code) { NSApp.sendEvent(e) }
+                    }
+                    await sleep(0.4)
+                }
+            case let c where c.hasPrefix("type:"):
+                // Types text into whatever has keyboard focus.
+                guard let w = NSApp.keyWindow ?? wc.window else { break }
+                print("TYPE into", String(describing: type(of: w)), w.firstResponder.map { String(describing: type(of: $0)) } ?? "nil")
+                for ch in c.dropFirst(5) {
+                    for t in [NSEvent.EventType.keyDown, .keyUp] {
+                        if let e = NSEvent.keyEvent(with: t, location: .zero, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                                    windowNumber: w.windowNumber, context: nil, characters: String(ch),
+                                                    charactersIgnoringModifiers: String(ch), isARepeat: false, keyCode: 0) { NSApp.sendEvent(e) }
+                    }
+                }
+                await sleep(0.3)
+            case "focuslist":
+                // Gives the sidebar list keyboard focus, as clicking into it does.
+                func find(_ v: NSView) -> NSView? {
+                    if String(describing: type(of: v)).contains("OutlineListView") { return v }
+                    for sub in v.subviews { if let f = find(sub) { return f } }
+                    return nil
+                }
+                if let w = wc.window, let root = w.contentView?.superview, let list = find(root) { w.makeFirstResponder(list) }
+            case "where":
+                await sleep(0.8)
+                print("WHERE", wc.browser.dir?.path ?? "-")
             case "activate":
                 NSApp.activate(ignoringOtherApps: true)
                 wc.window?.makeKeyAndOrderFront(nil)
@@ -134,12 +172,14 @@ final class DebugHarness {
                 let p = NSPoint(x: n[0], y: w.frame.height - n[1])
                 let hit = w.contentView?.superview?.hitTest(w.contentView!.superview!.convert(p, from: nil))
                 print("CLICK key=\(w.isKeyWindow) active=\(NSApp.isActive) at", p, "hit", hit.map { String(describing: type(of: $0)) } ?? "nil")
-                for t in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
-                    if let e = NSEvent.mouseEvent(with: t, location: p, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-                                                  windowNumber: w.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1) {
-                        NSApp.sendEvent(e)
-                    }
+                // The mouse-up waits in the queue, as a real one would: controls that track the
+                // mouse (tables, buttons) take it from there while handling the mouse-down.
+                func ev(_ t: NSEvent.EventType) -> NSEvent? {
+                    NSEvent.mouseEvent(with: t, location: p, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                       windowNumber: w.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)
                 }
+                if let up = ev(.leftMouseUp) { NSApp.postEvent(up, atStart: false) }
+                if let down = ev(.leftMouseDown) { NSApp.sendEvent(down) }
                 await sleep(0.6)
                 print("BROWSE", wc.browser.dir?.path ?? "-", "| tabs", wc.tabs.docs.map { $0.file?.name ?? "首页" })
             case "tabs":

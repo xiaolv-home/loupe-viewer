@@ -17,12 +17,10 @@ private struct SidebarContent: View {
     @State private var filter = ""
     @State private var selection: URL?
     @State private var cameFrom: URL?
-    /// Set while the selection is moved by code (following the open file, or the folder you came
-    /// up from) so that it is not mistaken for a click.
-    @State private var programmatic = false
-    /// The last row opened and when, so one click reported twice (selection change and tap)
-    /// opens it once.
-    @State private var lastActivation: (url: URL, at: Date)?
+    /// A folder just opened whose list has not arrived yet.
+    @State private var arrived: URL?
+    /// The + button's name field is showing.
+    @State private var naming = false
 
     var filtered: [FolderBrowser.Item] {
         guard !filter.isEmpty else { return browser.items }
@@ -40,11 +38,6 @@ private struct SidebarContent: View {
                 ForEach(filtered) { item in
                     SidebarRow(item: item)
                         .tag(item.url)
-                        // Clicking the row that is already selected does not change the selection,
-                        // so the list reports nothing: open it from the click itself.
-                        .simultaneousGesture(TapGesture().onEnded {
-                            if selection == item.url { activate(item.url) }
-                        })
                         .contextMenu {
                             if item.isFolder {
                                 Button("打开文件夹") { browser.show(item.url) }
@@ -57,12 +50,15 @@ private struct SidebarContent: View {
                 }
             }
             .listStyle(.sidebar)
-            .onChange(of: selection) { _, u in
-                if programmatic { programmatic = false; return }
-                // A click opens; arrow keys only move the highlight (Return opens).
-                guard let u, let t = NSApp.currentEvent?.type, t == .leftMouseDown || t == .leftMouseUp else { return }
+            // Every click on a row opens it, anywhere in its highlight and whether or not it is
+            // already selected. The list's own selection change cannot tell a click from the
+            // arrow keys, misses clicks on the selected row and can arrive after the click.
+            .background(ListRowClicks { row in
+                guard filtered.indices.contains(row) else { return }
+                let u = filtered[row].url
+                select(u)
                 activate(u)
-            }
+            })
             .onKeyPress(.return) { if let u = selection { activate(u) }; return .handled }
             .onKeyPress(.rightArrow) {
                 guard let u = selection, isFolder(u) else { return .ignored }
@@ -78,10 +74,16 @@ private struct SidebarContent: View {
         }
         .onAppear { select(model.file?.url) }
         .onChange(of: model.file?.url) { _, u in select(u) }
-        .onChange(of: browser.dir) { _, _ in
+        .onChange(of: browser.dir) { _, d in
             filter = ""
+            arrived = d
+        }
+        .onChange(of: browser.items) { _, items in
+            // The new folder's list comes a moment after the folder itself.
+            guard arrived != nil, arrived == browser.dir else { return }
+            arrived = nil
             // Going up selects the folder you came from, like Finder.
-            if let c = cameFrom, browser.items.contains(where: { $0.url == c }) { select(c) } else { select(model.file?.url) }
+            if let c = cameFrom, items.contains(where: { $0.url == c }) { select(c) } else { select(model.file?.url) }
             cameFrom = nil
         }
     }
@@ -123,14 +125,27 @@ private struct SidebarContent: View {
             .help(browser.dir?.path.replacingOccurrences(of: NSHomeDirectory(), with: "~") ?? "")
             Spacer(minLength: 2)
             Text("\(browser.items.count)").font(Theme.mono(10)).foregroundStyle(.secondary)
+            Button { naming = true } label: {
+                Image(systemName: "plus").font(.system(size: 12, weight: .semibold)).frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!browser.canCreateFiles)
+            .help("在这个文件夹里新建 Markdown 文档")
+            .popover(isPresented: $naming, arrowEdge: .bottom) {
+                NewMarkdownForm(folder: browser.dir?.lastPathComponent ?? "") { name in
+                    let url = try browser.createMarkdown(named: name)
+                    naming = false
+                    select(url)
+                    model.openInNewTab(url)
+                } cancel: { naming = false }
+            }
         }
         .padding(.leading, 8).padding(.trailing, 14).padding(.top, 10).padding(.bottom, 6)
     }
 
     private func select(_ u: URL?) {
-        guard selection != u else { return }
-        programmatic = true
-        selection = u
+        if selection != u { selection = u }
     }
 
     private func isFolder(_ u: URL) -> Bool { browser.items.first { $0.url == u }?.isFolder == true }
@@ -142,8 +157,6 @@ private struct SidebarContent: View {
 
     /// Folders open in place; files open in a tab (⌥-click: in this tab, for quick browsing).
     private func activate(_ u: URL) {
-        if let last = lastActivation, last.url == u, Date().timeIntervalSince(last.at) < 0.4 { return }
-        lastActivation = (u, Date())
         if isFolder(u) {
             browser.show(u)
         } else if u != model.file?.url {
@@ -161,17 +174,113 @@ private struct SidebarContent: View {
     }
 }
 
+/// Names a new Markdown document: Return makes it, Esc gives up.
+private struct NewMarkdownForm: View {
+    let folder: String
+    let create: (String) throws -> Void
+    let cancel: () -> Void
+    @State private var name = "未命名"
+    @State private var error: String?
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("在「\(folder)」里新建 Markdown").font(.system(size: 12, weight: .semibold))
+            HStack(spacing: 4) {
+                TextField("文件名", text: $name)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focused)
+                    .onSubmit(submit)
+                    .frame(width: 180)
+                Text(".md").font(Theme.mono(11)).foregroundStyle(.secondary)
+            }
+            if let error { Text(error).font(.system(size: 11)).foregroundStyle(.red) }
+            HStack {
+                Spacer()
+                Button("取消", action: cancel).keyboardShortcut(.cancelAction)
+                Button("新建", action: submit).keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(12)
+        .onAppear { focused = true }
+    }
+
+    private func submit() {
+        do { try create(name) } catch { self.error = "没能新建：\(error.localizedDescription)" }
+    }
+}
+
+/// Reports which row of the enclosing list a click lands on, as the mouse goes down. It watches
+/// the window's clicks instead of the rows, because a row's content does not reach the ends of
+/// its highlight.
+private struct ListRowClicks: NSViewRepresentable {
+    let onClick: (Int) -> Void
+
+    func makeNSView(context: Context) -> Catcher { Catcher() }
+    func updateNSView(_ v: Catcher, context: Context) { v.onClick = onClick }
+
+    final class Catcher: NSView {
+        var onClick: ((Int) -> Void)?
+        private var monitor: Any?
+        private weak var table: NSTableView?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] e in
+                self?.handle(e)
+                return e
+            }
+        }
+
+        override func removeFromSuperview() {
+            if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
+            super.removeFromSuperview()
+        }
+
+        private func handle(_ e: NSEvent) {
+            // One plain click: a double click's second press lands in the folder just opened,
+            // and ⌃-click is the context menu.
+            guard e.clickCount == 1, !e.modifierFlags.contains(.control), let table = findTable(), e.window === table.window else { return }
+            let p = table.convert(e.locationInWindow, from: nil)
+            guard table.visibleRect.contains(p) else { return }
+            let row = table.row(at: p)
+            guard row >= 0 else { return }
+            // After the list has handled the press (and selected the row).
+            DispatchQueue.main.async { [weak self] in self?.onClick?(row) }
+        }
+
+        /// The list beside this view: the nearest ancestor's table.
+        private func findTable() -> NSTableView? {
+            if let t = table, t.window === window { return t }
+            func search(_ v: NSView) -> NSTableView? {
+                if let t = v as? NSTableView { return t }
+                for sub in v.subviews { if let t = search(sub) { return t } }
+                return nil
+            }
+            var v: NSView? = superview
+            while let cur = v {
+                if let t = search(cur) { table = t; return t }
+                v = cur.superview
+            }
+            return nil
+        }
+    }
+}
+
 private struct SidebarRow: View {
     let item: FolderBrowser.Item
     var body: some View {
         HStack(spacing: 7) {
             Image(nsImage: IconCache.icon(for: item)).resizable().frame(width: 16, height: 16)
             Text(item.name).font(.system(size: 12)).lineLimit(1).truncationMode(.middle)
+            Spacer(minLength: 0)
             if item.isFolder {
-                Spacer(minLength: 0)
                 Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold)).foregroundStyle(.tertiary)
             }
         }
+
     }
 }
 

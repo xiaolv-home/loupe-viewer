@@ -38,15 +38,16 @@ final class FolderBrowser: ObservableObject {
     func reload() {
         guard let d = dir else { return }
         let showHidden = AppSettings.shared.showHiddenSiblings
-        // Local folders list instantly (no blank moment); network ones off the main thread.
-        if (try? d.resourceValues(forKeys: [.volumeIsLocalKey]).volumeIsLocal) == true {
-            items = Self.list(d, showHidden: showHidden)
-            return
-        }
+        // Listed off the main thread: macOS can hold a listing of 文稿 / 桌面 / 下载 until you
+        // answer its permission prompt, and the window must not freeze meanwhile. The old list
+        // stays until the new one is ready, so there is no blank moment.
         Task { [weak self] in
-            let list = await Task.detached(priority: .userInitiated) { Self.list(d, showHidden: showHidden) }.value
+            let (list, writable) = await Task.detached(priority: .userInitiated) {
+                (Self.list(d, showHidden: showHidden), FileManager.default.isWritableFile(atPath: d.path))
+            }.value
             guard let self, self.dir == d else { return }
             self.items = list
+            self.canCreateFiles = writable
         }
     }
 
@@ -56,6 +57,30 @@ final class FolderBrowser: ObservableObject {
     }
 
     func goUp() { if let p = parent { show(p) } }
+
+    /// Whether new files can be made here (the sidebar's + button); found with the listing.
+    @Published private(set) var canCreateFiles = false
+
+    /// Makes an empty Markdown file in this folder ("名字.md", or "名字 2.md" when taken) and
+    /// lists it.
+    func createMarkdown(named raw: String) throws -> URL {
+        guard let d = dir else { throw CocoaError(.fileNoSuchFile) }
+        var name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: CharacterSet(charactersIn: "/:\\")).joined()
+        if name.lowercased().hasSuffix(".md") { name = String(name.dropLast(3)).trimmingCharacters(in: .whitespaces) }
+        while name.hasPrefix(".") { name.removeFirst() }
+        if name.isEmpty { name = "未命名" }
+        let fm = FileManager.default
+        var url = d.appendingPathComponent(name + ".md")
+        var n = 2
+        while fm.fileExists(atPath: url.path) {
+            url = d.appendingPathComponent("\(name) \(n).md")
+            n += 1
+        }
+        try Data().write(to: url, options: .withoutOverwriting)
+        reload()
+        return url
+    }
 
     /// The folder and every folder above it, innermost first (for the path menu).
     var ancestry: [URL] {
