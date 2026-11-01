@@ -197,6 +197,10 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
         }
     }
 
+    /// While writing, ←/→ move the caret. The editor is a web page, which the app's file
+    /// switching shortcut does not recognise as a text field (源码 mode is one already).
+    var wantsArrowKeys: Bool { mode == Self.writeMode }
+
     var hasUnsavedChanges: Bool { !isDraft && currentSource != savedText }
 
     func saveChanges(completion: @escaping (Bool) -> Void) {

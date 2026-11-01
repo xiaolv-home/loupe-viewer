@@ -121,7 +121,8 @@ final class DebugHarness {
                 await sleep(0.5)
                 print("BROWSE", wc.browser.dir?.path ?? "-", wc.browser.items.prefix(6).map { ($0.isFolder ? "📁" : "") + $0.name })
             case let c where c.hasPrefix("keys:"):
-                // Real key presses to the key window (a popover's, when one is open): keys:down,down,return
+                // Real key presses to the key window (a popover's, when one is open): keys:down,down,return.
+                // Queued, not sent, so the app's key monitors see them as they see a keyboard.
                 guard let w = NSApp.keyWindow ?? wc.window else { break }
                 let codes: [String: (UInt16, String)] = ["up": (126, "\u{F700}"), "down": (125, "\u{F701}"), "left": (123, "\u{F702}"),
                                                           "right": (124, "\u{F703}"), "return": (36, "\r")]
@@ -131,7 +132,7 @@ final class DebugHarness {
                     for t in [NSEvent.EventType.keyDown, .keyUp] {
                         if let e = NSEvent.keyEvent(with: t, location: .zero, modifierFlags: code >= 123 ? [.numericPad, .function] : [], timestamp: ProcessInfo.processInfo.systemUptime,
                                                     windowNumber: w.windowNumber, context: nil, characters: chars, charactersIgnoringModifiers: chars,
-                                                    isARepeat: false, keyCode: code) { NSApp.sendEvent(e) }
+                                                    isARepeat: false, keyCode: code) { NSApp.postEvent(e, atStart: false) }
                     }
                     await sleep(0.4)
                 }
@@ -157,7 +158,8 @@ final class DebugHarness {
                 if let w = wc.window, let root = w.contentView?.superview, let list = find(root) { w.makeFirstResponder(list) }
             case "where":
                 await sleep(0.8)
-                print("WHERE", wc.browser.dir?.path ?? "-")
+                print("WHERE", wc.browser.dir?.path ?? "-", "file=\(wc.model.file?.name ?? "-")",
+                      "unsaved=\(wc.model.renderer?.hasUnsavedChanges == true)", "sheet=\(wc.window?.attachedSheet != nil)")
             case "activate":
                 NSApp.activate(ignoringOtherApps: true)
                 wc.window?.makeKeyAndOrderFront(nil)
