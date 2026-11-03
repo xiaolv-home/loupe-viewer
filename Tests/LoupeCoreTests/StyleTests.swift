@@ -18,6 +18,18 @@ struct NumberFormatTests {
         #expect(f(1234567, "#,##0,\"千\"") == "1,235千")
     }
 
+    @Test("数字中间夹文字：Excel 的万元写法，引号里的点不是小数点")
+    func digitsWithLiterals() {
+        let wan = "0\".\"0,\"万\""
+        #expect(f(4713865.43, wan) == "471.4万")
+        #expect(f(586724600, wan) == "58672.5万")
+        #expect(f(5000, wan) == "0.5万")
+        #expect(f(0, wan) == "0.0万")
+        #expect(f(-1234567, wan) == "-123.5万")
+        #expect(f(12345678, "0!.0,\"万\"") == "1234.6万")
+        #expect(f(12345678, "0!.0000\"万\"") == "1234.5678万")
+    }
+
     @Test("正负零分段与颜色")
     func sections() {
         let neg = NumberFormat.format(.number(-0.052), code: "0.0%;[Red]-0.0%")

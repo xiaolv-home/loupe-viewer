@@ -303,6 +303,8 @@ public enum NumberFormat {
             let exp = v == 0 ? 0 : Int(floor(log10(abs(v))))
             let m = v / pow(10, Double(exp))
             text = String(format: "%.\(decimals)f", m) + "E" + (exp < 0 ? "-" : "+") + String(format: "%0\(expDigits)d", abs(exp))
+        } else if pat.contains(where: { "\"\\!".contains($0) }) {
+            text = formatDigitsWithLiterals(v, pat)
         } else {
             let parts = pat.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
             let intPart = String(parts[0]), frac = parts.count > 1 ? String(parts[1]) : ""
@@ -321,6 +323,70 @@ public enum NumberFormat {
             text = s
         }
         return literal(prefix, replacingAtWith: "") + text + literal(suffix, replacingAtWith: "")
+    }
+
+    /// A digit pattern with text between placeholders, e.g. Excel's 万 trick `0"."0,`: the quoted
+    /// "." is text, not a decimal point, so both 0s are integer digits (4714 shows as 471.4).
+    /// Digits fill placeholders from the right; the leftmost placeholder takes any overflow.
+    static func formatDigitsWithLiterals(_ value: Double, _ pat: String) -> String {
+        enum Token { case digit(Character), literal(String), point }
+        var tokens: [Token] = []
+        var chars = Array(pat)[...]
+        while let ch = chars.popFirst() {
+            switch ch {
+            case "\"":
+                var s = ""
+                while let c = chars.popFirst(), c != "\"" { s.append(c) }
+                tokens.append(.literal(s))
+            case "\\", "!":
+                if let c = chars.popFirst() { tokens.append(.literal(String(c))) }
+            case "0", "#", "?": tokens.append(.digit(ch))
+            case ".": tokens.append(.point)
+            case ",": break
+            default: tokens.append(.literal(String(ch)))
+            }
+        }
+        let pointAt = tokens.firstIndex { if case .point = $0 { return true }; return false }
+        let intTokens = pointAt.map { Array(tokens[..<$0]) } ?? tokens
+        let fracTokens = pointAt.map { Array(tokens[($0 + 1)...]) } ?? []
+        let fracCount = fracTokens.filter { if case .digit = $0 { return true }; return false }.count
+        let scaled = (abs(value) * pow(10, Double(fracCount))).rounded(.toNearestOrAwayFromZero)
+        var digits = String(format: "%.0f", scaled)
+        if digits.count <= fracCount { digits = String(repeating: "0", count: fracCount - digits.count + 1) + digits }
+        var intDigits = Array(digits.dropLast(fracCount))
+        if intDigits == ["0"] { intDigits = [] }
+        let fracDigits = Array(digits.suffix(fracCount))
+
+        let leftmost = intTokens.firstIndex { if case .digit = $0 { return true }; return false }
+        var pieces: [String] = []
+        for (index, token) in intTokens.enumerated().reversed() {
+            switch token {
+            case .literal(let s): pieces.append(s)
+            case .point: break
+            case .digit(let p):
+                if index == leftmost {
+                    pieces.append(intDigits.isEmpty ? (p == "0" ? "0" : p == "?" ? " " : "") : String(intDigits))
+                    intDigits = []
+                } else if let d = intDigits.popLast() {
+                    pieces.append(String(d))
+                } else {
+                    pieces.append(p == "0" ? "0" : p == "?" ? " " : "")
+                }
+            }
+        }
+        var out = pieces.reversed().joined()
+        if pointAt != nil {
+            out += "."
+            var next = fracDigits[...]
+            for token in fracTokens {
+                switch token {
+                case .literal(let s): out += s
+                case .point: break
+                case .digit: out += next.popFirst().map(String.init) ?? "0"
+                }
+            }
+        }
+        return (value < 0 && scaled != 0 ? "-" : "") + out
     }
 
     static func formatDate(_ serial: Double, _ sec: String, elapsed: Bool) -> String {
