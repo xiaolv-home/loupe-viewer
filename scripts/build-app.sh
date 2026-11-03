@@ -4,6 +4,7 @@
 #   release – Universal (arm64 + x86_64), optimised, stripped, ad-hoc signed
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source scripts/sdk.sh
 CONFIG="${1:-debug}"
 # A ".noindex" folder keeps Spotlight (and so Launchpad / Apps) from listing this
 # build next to the installed /Applications/Loupe.app.

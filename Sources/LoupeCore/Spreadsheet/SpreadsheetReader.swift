@@ -65,7 +65,8 @@ public enum SpreadsheetReader {
         guard let wbData = parts["xl/workbook.xml"] else { throw SpreadsheetError(message: "不是有效的 xlsx 文件（缺少 workbook.xml）") }
 
         let rels = parts["xl/_rels/workbook.xml.rels"].map { RelsParser.parse($0) } ?? [:]
-        let sheetsMeta = WorkbookParser.parse(wbData)
+        let book = WorkbookParser.parsed(wbData)
+        let sheetsMeta = book.sheets
         let theme = parts["xl/theme/theme1.xml"].map { ThemeParser.parse($0) } ?? ThemeParser.officeDefault
         let stylesParser = parts["xl/styles.xml"].map { StylesParser.parsed($0, theme: theme) } ?? StylesParser(theme: theme)
         let styles = stylesParser.xfs.isEmpty ? [CellStyle()] : stylesParser.xfs
@@ -76,7 +77,9 @@ public enum SpreadsheetReader {
         let dateStyles = Set(styles.indices.filter { styles[$0].numberFormat.map(StylesParser.isDateFormat) ?? false })
 
         var sheets: [Sheet] = []
+        var active = 0
         for (i, meta) in sheetsMeta.enumerated() {
+            if i == book.activeTab { active = sheets.count }
             var target = rels[meta.rid] ?? "worksheets/sheet\(i + 1).xml"
             if target.hasPrefix("/") { target.removeFirst() } else { target = "xl/" + target }
             target = target.replacingOccurrences(of: "xl/./", with: "xl/")
@@ -87,6 +90,7 @@ public enum SpreadsheetReader {
                 sh.showGridLines = false
                 sh.drawings = OfficeDrawings.sheetDrawings(sheetXML: d, sheetPath: target, theme: DrawingTheme(colors: theme), parts: rawParts)
                 OfficeDrawings.fitChartSheet(&sh)
+                sh.isHidden = meta.hidden
                 sheets.append(sh)
                 continue
             }
@@ -96,6 +100,7 @@ public enum SpreadsheetReader {
             sh.sourcePart = target
             sh.drawings = OfficeDrawings.sheetDrawings(sheetXML: d, sheetPath: target, theme: DrawingTheme(colors: theme), parts: rawParts)
             OfficeDrawings.makeRoom(for: &sh)
+            sh.isHidden = meta.hidden
             sheets.append(sh)
         }
         if sheets.isEmpty {
@@ -110,6 +115,7 @@ public enum SpreadsheetReader {
         }
         guard !sheets.isEmpty else { throw SpreadsheetError(message: "工作簿中没有工作表") }
         var wb = Workbook(sheets: sheets, source: "Excel 工作簿")
+        wb.activeSheet = sheets.indices.contains(active) ? active : 0
         wb.styles = styles
         // Data bars and colour scales are drawn; other rules (cell value, formula, icons) are not.
         if wb.sheets.contains(where: { $0.otherConditionalFormats > 0 }) {
@@ -124,11 +130,8 @@ public enum SpreadsheetReader {
     public static func savedZoom(xlsx url: URL) -> Double? {
         guard let parts = try? ArchiveReader.extractAll(url: url, matching: { $0 == "xl/workbook.xml" || $0 == "xl/_rels/workbook.xml.rels" }),
               let wbData = parts["xl/workbook.xml"] else { return nil }
-        let sheets = WorkbookParser.parse(wbData)
-        let wbText = String(decoding: wbData.prefix(8192), as: UTF8.self)
-        var active = 0
-        if let r = wbText.range(of: #"activeTab="(\d+)""#, options: .regularExpression),
-           let n = Int(wbText[r].filter(\.isNumber)) { active = n }
+        let book = WorkbookParser.parsed(wbData)
+        let sheets = book.sheets, active = book.activeTab
         guard sheets.indices.contains(active) else { return nil }
         let rels = parts["xl/_rels/workbook.xml.rels"].map { RelsParser.parse($0) } ?? [:]
         var target = rels[sheets[active].rid] ?? "worksheets/sheet\(active + 1).xml"
@@ -213,15 +216,19 @@ private final class RelsParser: NSObject, XMLParserDelegate {
 }
 
 private final class WorkbookParser: NSObject, XMLParserDelegate {
-    var sheets: [(name: String, rid: String)] = []
-    static func parse(_ d: Data) -> [(name: String, rid: String)] {
-        let p = WorkbookParser(); let x = XMLParser(data: d); x.delegate = p; x.parse(); return p.sheets
+    struct Entry { var name: String; var rid: String; var hidden: Bool }
+    var sheets: [Entry] = []
+    /// Index into every sheet of the file, hidden ones included.
+    var activeTab = 0
+    static func parsed(_ d: Data) -> WorkbookParser {
+        let p = WorkbookParser(); let x = XMLParser(data: d); x.delegate = p; x.parse(); return p
     }
     func parser(_ parser: XMLParser, didStartElement name: String, namespaceURI: String?, qualifiedName: String?, attributes a: [String: String] = [:]) {
+        if name == "workbookView", let n = a["activeTab"].flatMap(Int.init) { activeTab = n; return }
         guard name == "sheet" else { return }
         let rid = a["r:id"] ?? a.first(where: { $0.key.hasSuffix(":id") })?.value ?? ""
-        if a["state"] == "veryHidden" { return }
-        sheets.append((a["name"] ?? "Sheet\(sheets.count + 1)", rid))
+        let state = a["state"] ?? "visible"
+        sheets.append(Entry(name: a["name"] ?? "Sheet\(sheets.count + 1)", rid: rid, hidden: state == "hidden" || state == "veryHidden"))
     }
 }
 

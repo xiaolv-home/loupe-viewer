@@ -234,3 +234,41 @@ struct SpreadsheetReaderTests {
         }
     }
 }
+
+/// 原文件隐藏的工作表 Loupe 也隐藏（可以手动显示），并从文件的当前工作表打开。
+@Suite("隐藏的工作表")
+struct HiddenSheetTests {
+    /// 四张表：第 2 张隐藏、第 3 张深度隐藏，打开在第 4 张。
+    static func file() throws -> URL {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("loupe-hidden-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let plain = dir.appendingPathComponent("plain.xlsx")
+        try XLSXWriter.write(sheets: ["概览", "底稿", "参数", "看板"].map { (name: $0, rows: [[.text($0)]], formulas: [:]) }, to: plain)
+        let unpacked = dir.appendingPathComponent("x")
+        for (path, data) in try ArchiveReader.extractAll(url: plain, matching: { _ in true }) {
+            var data = data
+            if path == "xl/workbook.xml" {
+                data = Data(String(decoding: data, as: UTF8.self)
+                    .replacingOccurrences(of: "<sheets>", with: "<bookViews><workbookView activeTab=\"3\"/></bookViews><sheets>")
+                    .replacingOccurrences(of: "name=\"底稿\"", with: "name=\"底稿\" state=\"hidden\"")
+                    .replacingOccurrences(of: "name=\"参数\"", with: "name=\"参数\" state=\"veryHidden\"").utf8)
+            }
+            let u = unpacked.appendingPathComponent(path)
+            try FileManager.default.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try data.write(to: u)
+        }
+        let out = dir.appendingPathComponent("hidden.xlsx")
+        try Zip.pack(directory: unpacked, to: out)
+        return out
+    }
+
+    @Test("隐藏、深度隐藏都读进来并标上；当前工作表按文件里的 activeTab")
+    func readsVisibility() throws {
+        let wb = try SpreadsheetReader.readXLSX(url: Self.file())
+        #expect(wb.sheets.map(\.name) == ["概览", "底稿", "参数", "看板"])
+        #expect(wb.sheets.map(\.isHidden) == [false, true, true, false])
+        #expect(wb.activeSheet == 3)
+        // 深度隐藏的表也算进下标，引用它的公式能算出来。
+        #expect(FormulaEngine.evaluate("=参数!A1", in: FormulaContext(workbook: wb, sheet: 0)).cell == .text("参数"))
+    }
+}

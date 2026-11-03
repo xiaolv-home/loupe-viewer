@@ -22,6 +22,8 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
 
     // Published UI state
     @Published var sheetIndex = 0
+    /// Sheets the file hides get a tab only after the reader asks for them, as in Excel.
+    @Published var showHiddenSheets = false
     @Published var formulaText = ""
     @Published var resultText = ""
     @Published var resultIsError = false
@@ -160,9 +162,13 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
             q.hiddenColumns = s.hiddenColumns
             return q
         }
-        sheetIndex = wb.sheets.firstIndex { !$0.rows.isEmpty } ?? 0
+        // Open where the file opens (its active tab), unless that one is hidden or blank.
+        let shown = wb.sheets.indices.filter { !wb.sheets[$0].isHidden }
+        sheetIndex = ([wb.activeSheet] + shown).first { i in
+            shown.contains(i) && (!wb.sheets[i].rows.isEmpty || wb.sheets[i].isChartSheet)
+        } ?? shown.first ?? 0
         workbookLoaded = true
-        originalSheetZoom = CGFloat(wb.sheets.first?.zoomScale ?? 100) / 100
+        originalSheetZoom = CGFloat(wb.sheets[sheetIndex].zoomScale) / 100
         reloadSheet(resetSelection: true)
         adoptSavedZoom()
     }
@@ -303,8 +309,18 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
         grid.reload()
     }
 
+    /// Sheets with a tab right now.
+    var tabSheets: [Int] { workbook.sheets.indices.filter { showHiddenSheets || !workbook.sheets[$0].isHidden } }
+    var hiddenSheetCount: Int { workbook.sheets.filter(\.isHidden).count }
+
+    func setShowHiddenSheets(_ on: Bool) {
+        showHiddenSheets = on
+        if !on, sheet.isHidden, let first = tabSheets.first { switchSheet(first) }
+    }
+
     func switchSheet(_ i: Int) {
         guard workbook.sheets.indices.contains(i), i != sheetIndex else { return }
+        if workbook.sheets[i].isHidden { showHiddenSheets = true }
         endEditing(commit: true)
         sheetIndex = i
         reloadSheet(resetSelection: true)

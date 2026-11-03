@@ -148,6 +148,9 @@ public struct Sheet: Sendable {
     public var drawings: [SheetDrawing] = []
     /// A chart sheet: the whole sheet is one chart, there are no cells.
     public var isChartSheet = false
+    /// Hidden in the file (Excel's 隐藏, or 深度隐藏 that only code can show). Loupe hides it
+    /// too, until the reader asks to see hidden sheets.
+    public var isHidden = false
 
     public init(name: String, rows: [[CellValue]], formulas: [Int: String] = [:]) {
         self.name = name
@@ -215,6 +218,8 @@ public struct Workbook: Sendable {
     public var notes: [String] = []
     /// How a delimited source was written, so saving keeps the same bytes conventions.
     public var csv: CSVFormat?
+    /// The sheet the file opens on (Excel's active tab).
+    public var activeSheet = 0
     public init(sheets: [Sheet], source: String) { self.sheets = sheets; self.source = source }
 
     public func style(_ sheet: Int, _ r: Int, _ c: Int) -> CellStyle? {

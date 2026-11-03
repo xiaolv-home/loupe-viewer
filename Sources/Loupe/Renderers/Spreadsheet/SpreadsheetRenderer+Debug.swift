@@ -63,6 +63,8 @@ extension SpreadsheetRenderer: DebugScriptable {
         case "fill": r.calcText = arg; r.fillComputedColumn(); await pause(1.5)
         case "search": r.searchText = arg; r.runSearch(); print("SHEET search", r.searchInfo, r.address)
         case "tab": r.switchSheet(Int(arg) ?? 0)
+        case "hiddensheets": r.setShowHiddenSheets(arg == "on")
+        case "tabs": print("SHEET tabs", r.tabSheets.map { r.workbook.sheets[$0].name + (r.workbook.sheets[$0].isHidden ? "(隐)" : "") }, "current", r.sheet.name, "hidden", r.hiddenSheetCount)
         case "hidecol": r.hideColumns([Int(arg) ?? 0])
         case "hiderows": r.hideSelectedRows()
         case "header": r.setHeaderRow(arg == "on")

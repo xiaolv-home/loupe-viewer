@@ -89,7 +89,7 @@ extension SpreadsheetRenderer: AIDocumentTools {
     private func overview() -> AIToolOutput {
         var out: [String] = []
         out.append("文件「\(file?.name ?? "")」共 \(workbook.sheets.count) 张工作表：" + workbook.sheets.enumerated().map { i, s in
-            "\(s.name)（\(Fmt.number(s.rows.count)) 行 × \(s.columnCount) 列）" + (i == sheetIndex ? "←当前" : "")
+            "\(s.name)（\(Fmt.number(s.rows.count)) 行 × \(s.columnCount) 列\(s.isHidden ? "，原文件中隐藏" : "")）" + (i == sheetIndex ? "←当前" : "")
         }.joined(separator: "；"))
         let s = sheet
         let first = query.firstDataRow

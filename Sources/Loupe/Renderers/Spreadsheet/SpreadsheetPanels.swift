@@ -158,32 +158,52 @@ struct BarTextButton: View {
 struct SheetTabs: View {
     @ObservedObject var r: SpreadsheetRenderer
     var body: some View {
-        if r.workbook.sheets.count > 1 {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 2) {
-                    ForEach(Array(r.workbook.sheets.enumerated()), id: \.offset) { i, s in
-                        Button { r.switchSheet(i) } label: {
-                            HStack(spacing: 5) {
-                                Text(s.name).font(.system(size: 11.5, weight: i == r.sheetIndex ? .semibold : .regular))
-                                Text("\(s.rows.count)").font(.system(size: 9.5, design: .monospaced)).foregroundStyle(.tertiary)
-                            }
-                            .padding(.horizontal, 12).frame(height: 26)
-                            .foregroundStyle(i == r.sheetIndex ? Color.primary : Color.secondary)
-                            .background(i == r.sheetIndex ? Color(nsColor: Theme.sheet) : Color.primary.opacity(0.04))
-                            .overlay(alignment: .top) {
-                                if i == r.sheetIndex { Rectangle().fill(Theme.ember).frame(height: 2) }
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
+        let tabs = r.tabSheets, hidden = r.hiddenSheetCount
+        if tabs.count > 1 || hidden > 0 {
+            HStack(spacing: 0) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 2) {
+                        ForEach(tabs, id: \.self) { i in tab(i, r.workbook.sheets[i]) }
                     }
+                    .padding(.horizontal, 8)
                 }
-                .padding(.horizontal, 8)
+                if hidden > 0 {
+                    Button { r.setShowHiddenSheets(!r.showHiddenSheets) } label: {
+                        Label(r.showHiddenSheets ? "收起隐藏的工作表" : "显示隐藏的 \(hidden) 张", systemImage: r.showHiddenSheets ? "eye.slash" : "eye")
+                            .font(.system(size: 11, weight: .semibold))
+                            .padding(.horizontal, 10).frame(height: 26)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Theme.ember)
+                    .help(r.showHiddenSheets ? "隐藏原文件里隐藏的工作表" : "原文件隐藏了 \(hidden) 张工作表，点一下把它们也列出来")
+                }
             }
             .frame(height: 30)
             .background(Color.primary.opacity(0.03))
             .overlay(alignment: .top) { Rectangle().fill(Color(nsColor: Theme.hairline)).frame(height: 0.5) }
         }
+    }
+
+    private func tab(_ i: Int, _ s: Sheet) -> some View {
+        let current = i == r.sheetIndex
+        return Button { r.switchSheet(i) } label: {
+            HStack(spacing: 5) {
+                if s.isHidden { Image(systemName: "eye.slash").font(.system(size: 9.5)) }
+                Text(s.name).font(.system(size: 11.5, weight: current ? .semibold : .regular)).italic(s.isHidden)
+                Text("\(s.rows.count)").font(.system(size: 9.5, design: .monospaced)).foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 12).frame(height: 26)
+            .foregroundStyle(current ? Color.primary : Color.secondary)
+            .opacity(s.isHidden && !current ? 0.7 : 1)
+            .background(current ? Color(nsColor: Theme.sheet) : Color.primary.opacity(0.04))
+            .overlay(alignment: .top) {
+                if current { Rectangle().fill(Theme.ember).frame(height: 2) }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(s.isHidden ? "「\(s.name)」在原文件里是隐藏的" : s.name)
     }
 }
 
