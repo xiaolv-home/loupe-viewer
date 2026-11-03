@@ -11,11 +11,16 @@ CONFIG="${1:-debug}"
 APP="build/app.noindex/Loupe.app"
 
 if [[ "$CONFIG" == "release" ]]; then
+  # Newer SwiftPM writes every triple to the same folder, so copy each slice out before
+  # building the next one.
+  mkdir -p build/slices.noindex
   for arch in arm64 x86_64; do
-    swift build -c release --triple "${arch}-apple-macosx14.0" -Xswiftc -Osize
+    flags=(-c release --triple "${arch}-apple-macosx14.0" -Xswiftc -Osize)
+    swift build "${flags[@]}"
+    cp "$(swift build "${flags[@]}" --show-bin-path)/Loupe" "build/slices.noindex/Loupe-$arch"
   done
-  BIN_ARM=".build/arm64-apple-macosx/release/Loupe"
-  BIN_X86=".build/x86_64-apple-macosx/release/Loupe"
+  BIN_ARM="build/slices.noindex/Loupe-arm64"
+  BIN_X86="build/slices.noindex/Loupe-x86_64"
 else
   swift build
   BIN_NATIVE="$(swift build --show-bin-path)/Loupe"
