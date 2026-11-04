@@ -279,6 +279,28 @@ final class DebugHarness {
                 while wc.ai.running && Date().timeIntervalSince(started) < 900 { await sleep(0.5) }
                 for item in wc.ai.items { print("AI " + item.debugLine) }
                 print(String(format: "AI done in %.0fs", Date().timeIntervalSince(started)))
+            case let c where c.hasPrefix("aistart:"):
+                // Sends a request and moves on while it is still answering.
+                wc.ai.send(String(c.dropFirst("aistart:".count)))
+            case let c where c.hasPrefix("wait:"): await sleep(Double(c.dropFirst("wait:".count)) ?? 1)
+            case "aiscroll": printAIScroll(wc)
+            case let c where c.hasPrefix("aiwheel:"):
+                // aiwheel:<points>, negative scrolls up. A made-up wheel event has no window, so it can't
+                // pass the check for which view the pointer is over: this does the rest as a real one would.
+                if let sv = wc.ai.scrollFollow.scrollView, let dy = Int32(c.dropFirst("aiwheel:".count)),
+                   let cg = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: -dy, wheel2: 0, wheel3: 0),
+                   let e = NSEvent(cgEvent: cg) {
+                    wc.ai.scrollFollow.wheelMoved(deltaY: e.scrollingDeltaY)
+                    sv.scrollWheel(with: e)
+                }
+                await sleep(0.3)
+                printAIScroll(wc)
+            case let c where c.hasPrefix("aidrag:"):
+                // aidrag:<points>,<seconds> drags the scroller's knob through the scroller's own
+                // tracking loop, negative up, printing where the view is on each step of the way.
+                let p = c.dropFirst("aidrag:".count).split(separator: ",").compactMap { Double($0) }
+                if p.count == 2 { dragAIScroller(wc, points: p[0], seconds: p[1]) }
+                printAIScroll(wc)
             case "aisettings": AppDelegate.showAISettings(); await sleep(0.5); captureOverride = NSApp.windows.first { $0.title == "设置" }
             case let c where c.hasPrefix("skillswindow"):
                 AISkillsWindow.show(market: c.hasSuffix(":market"))
@@ -290,6 +312,43 @@ final class DebugHarness {
             }
             await sleep(0.4)
         }
+    }
+
+    private func printAIScroll(_ wc: ViewerWindowController) {
+        let f = wc.ai.scrollFollow
+        guard let sv = f.scrollView else { print("AISCROLL no scroll view"); return }
+        print(String(format: "AISCROLL y=%.0f toBottom=%.0f following=%@ items=%d flipped=%@",
+                     sv.contentView.bounds.minY, f.distanceToBottom, "\(f.following)", wc.ai.items.count, "\(sv.documentView?.isFlipped ?? false)"))
+    }
+
+    /// Runs the scroller's own mouse tracking with mouse events posted over time, so the app keeps
+    /// streaming underneath it just as it does under a real drag.
+    private func dragAIScroller(_ wc: ViewerWindowController, points: Double, seconds: Double) {
+        guard let sv = wc.ai.scrollFollow.scrollView, let scroller = sv.verticalScroller, let window = sv.window else { return }
+        let knob = scroller.rect(for: .knob)
+        let start = scroller.convert(NSPoint(x: knob.midX, y: knob.midY), to: nil)
+        func event(_ type: NSEvent.EventType, _ dy: Double) -> NSEvent? {
+            NSEvent.mouseEvent(with: type, location: NSPoint(x: start.x, y: start.y - dy), modifierFlags: [],
+                               timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                               context: nil, eventNumber: 0, clickCount: 1, pressure: 1)
+        }
+        let steps = 20
+        var step = 0
+        let timer = Timer(timeInterval: seconds / Double(steps), repeats: true) { t in
+            MainActor.assumeIsolated {
+                step += 1
+                if step <= steps, let e = event(.leftMouseDragged, points * Double(step) / Double(steps)) {
+                    window.postEvent(e, atStart: false)
+                }
+                print(String(format: "DRAG step=%d y=%.0f", step, sv.contentView.bounds.minY))
+                if step == steps + 10 {
+                    if let e = event(.leftMouseUp, points) { window.postEvent(e, atStart: false) }
+                    t.invalidate()
+                }
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        if let down = event(.leftMouseDown, 0) { scroller.mouseDown(with: down) }
     }
 
     private func printTabs(_ wc: ViewerWindowController) {

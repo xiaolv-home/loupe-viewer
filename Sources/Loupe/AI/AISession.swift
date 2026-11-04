@@ -32,6 +32,8 @@ final class AISession: ObservableObject {
     /// When the current run started (the panel shows how long it has been going).
     @Published private(set) var runStarted: Date?
     weak var window: ViewerWindowController?
+    /// Whether the transcript is keeping up with new output.
+    let scrollFollow = AIScrollFollow()
 
     fileprivate(set) var history: [AIMessage] = []
     /// The saved conversation this is (nil until the first message).
