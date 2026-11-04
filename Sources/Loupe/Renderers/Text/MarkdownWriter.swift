@@ -111,6 +111,9 @@ final class MarkdownWriter: NSObject {
                 onChange?(s)
             }
         case "toggleSource": onToggleSource?()
+        case "copy":
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(body["text"] as? String ?? "", forType: .string)
         case "link": if let h = body["href"] as? String { onLink?(h) }
         case "image":
             guard let name = body["name"] as? String, let b64 = body["data"] as? String, let data = Data(base64Encoded: b64) else { return nil }

@@ -180,6 +180,17 @@
     document.addEventListener(type, () => { if (editor) scheduleChange(); }, true);
   }
 
+  // Vditor's copy button copies from a hidden box, which is empty by the time it is clicked, so
+  // nothing reached the clipboard. Hand the code block's text to the app instead.
+  document.addEventListener("click", (e) => {
+    const button = e.target.closest(".vditor-copy span");
+    if (!button) return;
+    e.stopPropagation();
+    const code = button.closest("pre").querySelector("code");
+    post({ type: "copy", text: code.textContent.replace(/\u00a0/g, " ").replace(/\n$/, "") });
+    button.setAttribute("aria-label", "已复制");
+  }, true);
+
   // MARK: The app's side
 
   window.loupeWriter = {
