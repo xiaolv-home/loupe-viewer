@@ -17,8 +17,8 @@ enum MarkdownDrafts {
         url.standardizedFileURL.deletingLastPathComponent().path == root.path
     }
 
-    /// An empty 未命名 N.md.
-    static func create() throws -> URL {
+    /// A new draft: empty and called 未命名 N.md, or holding a template's text under its name.
+    static func create(named name: String = "未命名", content: String = "") throws -> URL {
         let fm = FileManager.default
         try fm.createDirectory(at: root, withIntermediateDirectories: true)
         // Empty drafts left behind (the app quit unexpectedly) are not worth keeping.
@@ -27,12 +27,12 @@ enum MarkdownDrafts {
             try? fm.removeItem(at: f)
         }
         var n = 1
-        var url = root.appendingPathComponent("未命名.md")
+        var url = root.appendingPathComponent("\(name).md")
         while fm.fileExists(atPath: url.path) {
             n += 1
-            url = root.appendingPathComponent("未命名 \(n).md")
+            url = root.appendingPathComponent("\(name) \(n).md")
         }
-        try Data().write(to: url)
+        try Data(content.utf8).write(to: url)
         return url
     }
 

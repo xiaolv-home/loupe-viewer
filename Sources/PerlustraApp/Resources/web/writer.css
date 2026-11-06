@@ -30,6 +30,7 @@
   --code-type: #0F766E;
   --code-meta: #7C3AED;
   --find: rgba(255, 196, 0, .4);
+  --blank: rgba(217, 72, 28, .12);
   --find-current: rgba(255, 140, 0, .75);
   --serif: ui-serif, "New York", "Songti SC", "STSong", Georgia, serif;
   --serif-bold: "Perlustra CJK Bold", ui-serif, "New York", Georgia, serif;
@@ -60,6 +61,7 @@
     --code-type: #7DD3C0;
     --code-meta: #C9B8FF;
     --find: rgba(255, 196, 107, .32);
+    --blank: rgba(255, 122, 69, .17);
     --find-current: rgba(255, 150, 60, .8);
   }
 }
@@ -126,6 +128,7 @@ html, body { margin: 0; height: 100%; background: var(--paper); }
 /* The app's own marks in the text (nothing is added to the document for these). */
 ::highlight(perlustra-find) { background-color: var(--find); }
 ::highlight(perlustra-find-current) { background-color: var(--find-current); }
+::highlight(perlustra-blank) { background-color: var(--blank); color: var(--ember); }
 ::highlight(perlustra-underline) { text-decoration: underline; text-decoration-color: currentColor; }
 
 /* Code blocks: one box, the same whether the caret is in it or not. You type in the source itself

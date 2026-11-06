@@ -158,34 +158,8 @@ import PerlustraCore
                     await sleep(0.8)
                 case "inspector": wc.toggleInfoPanel(nil); await sleep(0.5)
                 case "sidebar": wc.toggleFileSidebar(nil); await sleep(0.5)
-                case let c where c.hasPrefix("homelens:"):
-                    let at = c.dropFirst(9).split(separator: ",").compactMap { Float($0) }
-                    if at.count == 2, let canvas = guillocheCanvas(in: wc.window?.contentView) {
-                        canvas.follow(SIMD2(at[0], at[1]))
-                        await sleep(0.05)
-                        canvas.finishMotion()
-                    }
-                case "homerest":
-                    guillocheCanvas(in: wc.window?.contentView)?.pointerLeft()
-                case "homefront":
-                    // Comes forward without taking the keyboard, to see frames really reach the screen.
-                    wc.window?.orderFrontRegardless()
-                    await sleep(2.2)
-                    let canvas = guillocheCanvas(in: wc.window?.contentView)
-                    print("HOMEFRONT frames", canvas?.framesDrawn ?? -1, "visible", wc.window?.occlusionState.contains(.visible) ?? false)
-                    canvas?.follow(SIMD2(700, 120))
-                    await sleep(0.9)
-                    print("HOMEFRONT after pointer frames", canvas?.framesDrawn ?? -1)
-                    await sleep(0.5)
-                    let settled = canvas?.framesDrawn ?? -1
-                    await sleep(0.5)
-                    print("HOMEFRONT idle frames", settled, canvas?.framesDrawn ?? -1)
-                case "homestill":
-                    guillocheCanvas(in: wc.window?.contentView)?.finishMotion()
-                case let c where c.hasPrefix("homepng:"):
-                    let canvas = guillocheCanvas(in: wc.window?.contentView)
-                    canvas?.finishMotion()
-                    canvas?.writeStill(to: URL(fileURLWithPath: String(c.dropFirst(8))))
+                case let c where c.hasPrefix("home") || c.hasPrefix("template"):
+                    await runHomeCommand(c, wc)
                 case let c where c.hasPrefix("addtab:"):
                     wc.addTab(URL(fileURLWithPath: String(c.dropFirst("addtab:".count))))
                     await sleep(0.8)
@@ -379,13 +353,6 @@ import PerlustraCore
             print(
                 "TABS count=\(titles.count) windows=\(AppDelegate.shared?.windows.count ?? 0) titles=\(titles) current=\(wc.model.file?.name ?? "首页") folder=\(wc.browser.dir?.path ?? "-")"
             )
-        }
-
-        func guillocheCanvas(in view: NSView?) -> GuillocheCanvasView? {
-            guard let view else { return nil }
-            if let found = view as? GuillocheCanvasView, !found.isHiddenOrHasHiddenAncestor { return found }
-            for sub in view.subviews { if let found = guillocheCanvas(in: sub) { return found } }
-            return nil
         }
 
         func snapshot(_ urls: [URL], _ wc: ViewerWindowController, _ dir: URL) async {

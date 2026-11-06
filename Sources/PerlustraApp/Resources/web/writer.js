@@ -83,6 +83,7 @@
       link: { isOpen: false, click: (el) => post({ type: "link", href: el.getAttribute("href") || el.textContent }) },
       input: () => { scheduleChange(); refreshMarks(); },
       after: () => {
+        refreshMarks();
         applyTheme();
         caretToStart();
         refreshMarks();
@@ -272,14 +273,68 @@
     highlights.set("perlustra-underline", new Highlight(...ranges));
   }
 
-  let marksFrame = 0;
+  // Places to fill in, written 〔like this〕; MarkdownTemplate.blanks finds them the same way.
+  const blankPattern = /〔[^〔〕\n]{1,60}〕/g;
+
+  /// The places still to fill in on the page, as ranges in document order.
+  function blankRanges() {
+    const root = area();
+    if (!root || !root.textContent.includes("〔")) return [];
+    const ranges = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.nodeValue.includes("〔") || node.parentElement.closest(".vditor-ir__preview")) continue;
+      for (const match of node.nodeValue.matchAll(blankPattern)) {
+        if (/^〔\d+〕$/.test(match[0])) continue;
+        const r = document.createRange();
+        r.setStart(node, match.index);
+        r.setEnd(node, match.index + match[0].length);
+        ranges.push(r);
+      }
+    }
+    return ranges;
+  }
+
+  function refreshBlanks() {
+    if (highlights) highlights.set("perlustra-blank", new Highlight(...blankRanges()));
+  }
+
+  /// Selects the next or previous place to fill in, so typing replaces it. False if none are left.
+  function stepToBlank(backwards) {
+    const ranges = blankRanges();
+    if (!ranges.length) return false;
+    const sel = window.getSelection();
+    const root = area();
+    const here = sel.rangeCount && root.contains(sel.anchorNode) ? sel.getRangeAt(0) : null;
+    // Range comparison: START_TO_END is this range's end against the other's start, END_TO_START
+    // this range's start against the other's end.
+    const isAfter = (r) => r.compareBoundaryPoints(Range.END_TO_START, here) >= 0;
+    const isBefore = (r) => r.compareBoundaryPoints(Range.START_TO_END, here) <= 0;
+    let target;
+    if (!here) target = backwards ? ranges[ranges.length - 1] : ranges[0];
+    else if (backwards) target = ranges.filter(isBefore).pop() || ranges[ranges.length - 1];
+    else target = ranges.find(isAfter) || ranges[0];
+    root.focus();
+    sel.removeAllRanges();
+    sel.addRange(target);
+    const box = target.getBoundingClientRect(), view = root.getBoundingClientRect();
+    if (box.top < view.top + 40 || box.bottom > view.bottom - 40) root.scrollTop += box.top - (view.top + view.height * 0.38);
+    return true;
+  }
+
+  let marksFrame = 0, marksTimer = 0;
   function refreshMarks() {
-    cancelAnimationFrame(marksFrame);
-    marksFrame = requestAnimationFrame(() => {
+    const refresh = () => {
       refreshModes();
       refreshOutline();
       refreshUnderlines();
-    });
+      refreshBlanks();
+    };
+    cancelAnimationFrame(marksFrame);
+    clearTimeout(marksTimer);
+    // A covered window gets no animation frames, and its marks should still be right when it shows.
+    if (document.hidden) marksTimer = setTimeout(refresh, 16);
+    else marksFrame = requestAnimationFrame(refresh);
   }
 
   let selectedChars = 0, selectionTimer = null;
@@ -575,6 +630,11 @@
       post({ type: "toggleMode", name: code === "F8" ? "focus" : "typewriter" });
       return;
     }
+    if (code === "Tab" && !cmd && !ctrl && !alt && !e.isComposing && stepToBlank(shift)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
     if (code === "Enter" && !cmd && !ctrl && !alt && !shift && !e.isComposing) indentAfterEnter();
     // Typing a mark over selected text puts it around the text (Typora's auto-pairing).
     const pair = PAIRS[e.key];
@@ -634,7 +694,7 @@
   window.perlustraWriter = {
     load(markdown, m, outline) { create(markdown, m || "ir", outline); return true; },
     value() { return editor ? editor.getValue() : ""; },
-    setValue(markdown) { if (editor) { editor.setValue(markdown, false); scheduleChange(); } return true; },
+    setValue(markdown) { if (editor) { editor.setValue(markdown, false); scheduleChange(); refreshMarks(); } return true; },
     setMode(m, outline) { const v = this.value(); create(v, m, outline); return true; },
     command(name) { if (commands[name]) { commands[name](); scheduleChange(); return true; } return false; },
     focus() { if (editor) editor.focus(); return true; },

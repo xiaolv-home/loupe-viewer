@@ -171,7 +171,19 @@ enum WebFactory {
         wv.setValue(false, forKey: "drawsBackground")
         wv.allowsMagnification = true
         wv.allowsBackForwardNavigationGestures = false
+        keepPainting(wv)
         return wv
+    }
+
+    /// A covered window stops painting web pages, which would leave automated screenshots blank.
+    static func keepPainting(_ view: WKWebView) {
+        #if DEBUG
+            let selector = NSSelectorFromString("_setWindowOcclusionDetectionEnabled:")
+            if AppEnvironment.isScripted, view.responds(to: selector) {
+                typealias Setter = @convention(c) (AnyObject, Selector, Bool) -> Void
+                unsafeBitCast(view.method(for: selector), to: Setter.self)(view, selector, false)
+            }
+        #endif
     }
 }
 

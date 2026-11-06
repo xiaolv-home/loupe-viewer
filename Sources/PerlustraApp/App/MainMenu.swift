@@ -33,6 +33,7 @@ enum MainMenu {
         recent.delegate = delegate
         recentItem.submenu = recent
         add(file, "新建 Markdown 文档", #selector(AppDelegate.newMarkdownDocument(_:)), "n", target: delegate)
+        add(file, "从模版新建…", #selector(AppDelegate.showTemplates(_:)), "n", [.command, .option], target: delegate)
         add(file, "新建窗口", #selector(AppDelegate.newViewerWindow(_:)), "n", [.command, .shift], target: delegate)
         add(file, "新建标签页", #selector(NSResponder.newWindowForTab(_:)), "t")
         file.addItem(.separator())

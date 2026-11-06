@@ -69,6 +69,9 @@ struct HomeView: View {
                 HomeButton(title: "新建文稿", key: "⌘N", isPrimary: false) {
                     NSApp.sendAction(#selector(AppDelegate.newMarkdownDocument(_:)), to: AppDelegate.shared, from: nil)
                 }
+                HomeButton(title: "模版库", key: "", isPrimary: false) {
+                    NSApp.sendAction(#selector(AppDelegate.showTemplates(_:)), to: AppDelegate.shared, from: nil)
+                }
             }
             .padding(.top, 26)
             .reveal(shown, 2)
@@ -183,8 +186,10 @@ private struct HomeButton: View {
         Button(action: action) {
             HStack(spacing: 9) {
                 Text(title).font(.system(size: 13, weight: .semibold))
-                Text(key).font(.system(size: 10.5, weight: .medium, design: .rounded))
-                    .opacity(isPrimary ? 0.78 : 0.55)
+                if !key.isEmpty {
+                    Text(key).font(.system(size: 10.5, weight: .medium, design: .rounded))
+                        .opacity(isPrimary ? 0.78 : 0.55)
+                }
             }
             .foregroundStyle(isPrimary ? Color.white : Color.primary)
             .padding(.horizontal, 15).frame(height: 34)

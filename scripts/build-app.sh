@@ -39,6 +39,7 @@ printf 'APPL????' > "$APP/Contents/PkgInfo"
 if [[ -f Resources/AppIcon.icns ]]; then cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"; fi
 rsync -a --delete --exclude '.DS_Store' Sources/PerlustraApp/Resources/web/ "$APP/Contents/Resources/web/"
 rsync -a --delete --exclude '.DS_Store' Sources/PerlustraApp/Resources/skills/ "$APP/Contents/Resources/skills/"
+rsync -a --delete --exclude '.DS_Store' Sources/PerlustraApp/Resources/templates/ "$APP/Contents/Resources/templates/"
 # The app redistributes the vendored web libraries: ship the licence texts with it.
 cp LICENSE NOTICE "$APP/Contents/Resources/"
 

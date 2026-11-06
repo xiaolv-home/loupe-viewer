@@ -171,6 +171,20 @@ final class AppDelegate: NSObject, AppActions, NSApplicationDelegate, NSMenuDele
     /// ⌘N: a new Markdown document (a draft until its first save), in a new tab.
     @objc func newMarkdownDocument(_ sender: Any?) {
         guard let url = try? MarkdownDrafts.create() else { return }
+        openDraft(url)
+    }
+
+    /// 模版库: choosing a template starts a new document from it.
+    @objc func showTemplates(_ sender: Any?) {
+        TemplatesWindow.show { [weak self] template in
+            guard let url = try? MarkdownDrafts.create(named: template.title.replacingOccurrences(of: "/", with: "-"), content: template.document()) else {
+                return
+            }
+            self?.openDraft(url)
+        }
+    }
+
+    private func openDraft(_ url: URL) {
         if let wc = NSApp.keyWindow?.windowController as? ViewerWindowController ?? windows.first {
             wc.showWindow(nil)
             if wc.tabs.docs.count == 1 && wc.model.file == nil { wc.open(url) } else { wc.addTab(url) }
