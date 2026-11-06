@@ -42,7 +42,9 @@ extension SpreadsheetRenderer {
         perform([.insertRows(at: at, count: n)], name: "插入行")
         // Select the new rows.
         if let a = viewRow(ofSheetRow: at), let b = viewRow(ofSheetRow: at + n - 1), let first = layout.cols.first, let last = layout.cols.last {
-            gridSelect([GridRect(GridPoint(row: a, col: first), GridPoint(row: b, col: last))], active: GridPoint(row: a, col: active.col), anchor: GridPoint(row: a, col: first))
+            gridSelect(
+                [GridRect(GridPoint(row: a, col: first), GridPoint(row: b, col: last))], active: GridPoint(row: a, col: active.col),
+                anchor: GridPoint(row: a, col: first))
         }
     }
 
@@ -54,8 +56,9 @@ extension SpreadsheetRenderer {
         let at = right ? last + 1 : first
         perform([.insertColumns(at: at, count: n)], name: "插入列")
         if !visible.isEmpty {
-            gridSelect([GridRect(GridPoint(row: 0, col: at), GridPoint(row: visible.count - 1, col: at + n - 1))],
-                       active: GridPoint(row: active.row, col: at), anchor: GridPoint(row: 0, col: at))
+            gridSelect(
+                [GridRect(GridPoint(row: 0, col: at), GridPoint(row: visible.count - 1, col: at + n - 1))],
+                active: GridPoint(row: active.row, col: at), anchor: GridPoint(row: 0, col: at))
         }
     }
 
@@ -132,7 +135,11 @@ extension SpreadsheetRenderer {
         registerUndo(restoring: before, name: "合并单元格")
         markDirty()
         reloadSheet()
-        if let vr = viewRow(ofSheetRow: m.r0) { gridSelect([GridRect(GridPoint(row: vr, col: m.c0), GridPoint(row: vr, col: m.c0))], active: GridPoint(row: vr, col: m.c0), anchor: GridPoint(row: vr, col: m.c0)) }
+        if let vr = viewRow(ofSheetRow: m.r0) {
+            gridSelect(
+                [GridRect(GridPoint(row: vr, col: m.c0), GridPoint(row: vr, col: m.c0))], active: GridPoint(row: vr, col: m.c0),
+                anchor: GridPoint(row: vr, col: m.c0))
+        }
     }
 
     func unmergeSelection() {

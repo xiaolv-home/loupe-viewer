@@ -31,7 +31,7 @@ final class MPVPlayer: @unchecked Sendable {
             ("profile", "high-quality"),
             // The picture is drawn in Display P3 with the sRGB curve, the space the layer is
             // tagged with (MPVGLLayer), so macOS colour-manages it like any other app's video.
-            ("target-prim", "display-p3"), ("target-trc", "srgb")
+            ("target-prim", "display-p3"), ("target-trc", "srgb"),
         ]
         for (k, v) in opts { _ = api.setOption(h, k, v) }
         guard api.initialize(h) >= 0 else { api.terminateDestroy(h); return nil }
@@ -40,11 +40,13 @@ final class MPVPlayer: @unchecked Sendable {
             _ = api.observe(h, UInt64(i + 1), name, fmt)
         }
         let ctx = Unmanaged.passUnretained(self).toOpaque()
-        api.setWakeup(h, { ctx in
-            guard let ctx else { return }
-            let me = Unmanaged<MPVPlayer>.fromOpaque(ctx).takeUnretainedValue()
-            me.queue.async { me.drain() }
-        }, ctx)
+        api.setWakeup(
+            h,
+            { ctx in
+                guard let ctx else { return }
+                let me = Unmanaged<MPVPlayer>.fromOpaque(ctx).takeUnretainedValue()
+                me.queue.async { me.drain() }
+            }, ctx)
     }
 
     func createRenderContext() {
@@ -55,19 +57,23 @@ final class MPVPlayer: @unchecked Sendable {
         defer { free(apiType) }
         var rc: OpaquePointer?
         let r: Int32 = withUnsafeMutablePointer(to: &initParams) { ip in
-            var params = [mpv_render_param(type: MPVConst.rpAPIType, data: UnsafeMutableRawPointer(apiType)),
-                          mpv_render_param(type: MPVConst.rpGLInit, data: UnsafeMutableRawPointer(ip)),
-                          mpv_render_param(type: MPVConst.rpInvalid, data: nil)]
+            var params = [
+                mpv_render_param(type: MPVConst.rpAPIType, data: UnsafeMutableRawPointer(apiType)),
+                mpv_render_param(type: MPVConst.rpGLInit, data: UnsafeMutableRawPointer(ip)),
+                mpv_render_param(type: MPVConst.rpInvalid, data: nil),
+            ]
             return params.withUnsafeMutableBufferPointer { api.rcCreate(&rc, h, UnsafeMutableRawPointer($0.baseAddress!)) }
         }
         guard r >= 0, let rc else { return }
         renderContext = rc
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-        api.rcSetUpdate(rc, { ctx in
-            guard let ctx else { return }
-            let me = Unmanaged<MPVPlayer>.fromOpaque(ctx).takeUnretainedValue()
-            DispatchQueue.main.async { me.layer?.setNeedsDisplay() }
-        }, selfPtr)
+        api.rcSetUpdate(
+            rc,
+            { ctx in
+                guard let ctx else { return }
+                let me = Unmanaged<MPVPlayer>.fromOpaque(ctx).takeUnretainedValue()
+                DispatchQueue.main.async { me.layer?.setNeedsDisplay() }
+            }, selfPtr)
     }
 
     func command(_ args: [String]) {
@@ -109,8 +115,11 @@ final class MPVPlayer: @unchecked Sendable {
                 guard let n = p.name.map({ String(cString: $0) }) else { continue }
                 var value: Any?
                 if let data = p.data {
-                    if p.format == MPVConst.formatDouble { value = data.assumingMemoryBound(to: Double.self).pointee }
-                    else if p.format == MPVConst.formatFlag { value = data.assumingMemoryBound(to: Int32.self).pointee != 0 }
+                    if p.format == MPVConst.formatDouble {
+                        value = data.assumingMemoryBound(to: Double.self).pointee
+                    } else if p.format == MPVConst.formatFlag {
+                        value = data.assumingMemoryBound(to: Int32.self).pointee != 0
+                    }
                 }
                 DispatchQueue.main.async { self.onEvent?(n, value) }
             case MPVConst.evVideoReconfig:

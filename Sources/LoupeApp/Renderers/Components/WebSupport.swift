@@ -6,7 +6,9 @@ import LoupeCore
 enum AppResources {
     /// Bundled web assets: Contents/Resources/web in the app, or the source tree during development.
     static let webRoot: URL = {
-        if let r = Bundle.main.resourceURL?.appendingPathComponent("web"), FileManager.default.fileExists(atPath: r.appendingPathComponent("markdown.html").path) {
+        if let r = Bundle.main.resourceURL?.appendingPathComponent("web"),
+            FileManager.default.fileExists(atPath: r.appendingPathComponent("markdown.html").path)
+        {
             return r
         }
         return URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
@@ -137,7 +139,8 @@ enum WebFactory {
     /// A failed compile is not cached: the page must not load without the rules.
     static func blockRemoteRules() async throws -> WKContentRuleList {
         if let r = ruleList { return r }
-        let json = #"[{"trigger":{"url-filter":"^https?://"},"action":{"type":"block"}},{"trigger":{"url-filter":"^wss?://"},"action":{"type":"block"}},{"trigger":{"url-filter":"^ftp://"},"action":{"type":"block"}}]"#
+        let json =
+            #"[{"trigger":{"url-filter":"^https?://"},"action":{"type":"block"}},{"trigger":{"url-filter":"^wss?://"},"action":{"type":"block"}},{"trigger":{"url-filter":"^ftp://"},"action":{"type":"block"}}]"#
         let list: WKContentRuleList? = await withCheckedContinuation { cont in
             WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "loupe-block-remote-v2", encodedContentRuleList: json) { list, error in
                 if error != nil { cont.resume(returning: nil) } else { cont.resume(returning: list) }
@@ -184,11 +187,14 @@ final class WebNavigator: NSObject, WKNavigationDelegate, WKUIDelegate {
 
     private func isSitePage(_ url: URL) -> Bool {
         guard let root = siteRoot?.standardizedFileURL, url.scheme == "loupe", url.host == "file",
-              let f = LoupeSchemeHandler.resolve(url)?.standardizedFileURL else { return false }
+            let f = LoupeSchemeHandler.resolve(url)?.standardizedFileURL
+        else { return false }
         return ["html", "htm", "xhtml"].contains(f.pathExtension.lowercased()) && f.path.hasPrefix(root.path + "/")
     }
 
-    func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
+    func webView(
+        _ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
+    ) {
         guard let url = action.request.url else { decisionHandler(.cancel); return }
         guard action.navigationType == .linkActivated else {
             // Scripts and frames may move between local pages, never out to the network
@@ -210,8 +216,9 @@ final class WebNavigator: NSObject, WKNavigationDelegate, WKUIDelegate {
         if url.scheme == "loupe", url.host == "file", let f = LoupeSchemeHandler.resolve(url) {
             host?.open(f)
         } else if ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") {
-            host?.showNotice("链接不会自动打开：\(url.absoluteString)", style: .info,
-                             action: NoticeAction(title: "在浏览器中打开") { NSWorkspace.shared.open(url) })
+            host?.showNotice(
+                "链接不会自动打开：\(url.absoluteString)", style: .info,
+                action: NoticeAction(title: "在浏览器中打开") { NSWorkspace.shared.open(url) })
         }
     }
 
@@ -220,15 +227,21 @@ final class WebNavigator: NSObject, WKNavigationDelegate, WKUIDelegate {
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { onFail?(error); onFail = nil }
     /// Links meant for a new window: the site's own pages open in place, local files in Loupe,
     /// web addresses only on request.
-    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        guard navigationAction.navigationType == .linkActivated || navigationAction.sourceFrame.isMainFrame, let url = navigationAction.request.url else { return nil }
+    func webView(
+        _ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction,
+        windowFeatures: WKWindowFeatures
+    ) -> WKWebView? {
+        guard navigationAction.navigationType == .linkActivated || navigationAction.sourceFrame.isMainFrame, let url = navigationAction.request.url else {
+            return nil
+        }
         if isSitePage(url) {
             webView.load(URLRequest(url: url))
         } else if url.scheme == "loupe", url.host == "file", let f = LoupeSchemeHandler.resolve(url) {
             host?.open(f)
         } else if navigationAction.navigationType == .linkActivated, ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") {
-            host?.showNotice("链接不会自动打开：\(url.absoluteString)", style: .info,
-                             action: NoticeAction(title: "在浏览器中打开") { NSWorkspace.shared.open(url) })
+            host?.showNotice(
+                "链接不会自动打开：\(url.absoluteString)", style: .info,
+                action: NoticeAction(title: "在浏览器中打开") { NSWorkspace.shared.open(url) })
         }
         return nil
     }
@@ -249,4 +262,3 @@ final class WebNavigator: NSObject, WKNavigationDelegate, WKUIDelegate {
         }
     }
 }
-

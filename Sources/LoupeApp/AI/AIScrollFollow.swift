@@ -52,9 +52,10 @@ final class AIScrollFollow: ObservableObject {
         // Delivered on the spot rather than queued, so a jump to the end can't slip in between the
         // user taking hold of the scroller and this hearing about it.
         func on(_ name: Notification.Name, _ act: @escaping @MainActor (AIScrollFollow) -> Void) {
-            observers.append(NotificationCenter.default.addObserver(forName: name, object: view, queue: nil) { [weak self] _ in
-                MainActor.assumeIsolated { if let self { act(self) } }
-            })
+            observers.append(
+                NotificationCenter.default.addObserver(forName: name, object: view, queue: nil) { [weak self] _ in
+                    MainActor.assumeIsolated { if let self { act(self) } }
+                })
         }
         on(NSScrollView.willStartLiveScrollNotification) { $0.userScrolling = true }
         on(NSScrollView.didLiveScrollNotification) { $0.userMoved() }
@@ -74,7 +75,8 @@ final class AIScrollFollow: ObservableObject {
 
     private func wheel(_ event: NSEvent) {
         guard let view = scrollView, event.window === view.window,
-              view.bounds.contains(view.convert(event.locationInWindow, from: nil)) else { return }
+            view.bounds.contains(view.convert(event.locationInWindow, from: nil))
+        else { return }
         wheelMoved(deltaY: event.scrollingDeltaY)
     }
 

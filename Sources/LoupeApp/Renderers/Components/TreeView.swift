@@ -15,7 +15,10 @@ final class TreeNode {
     }
 
     var isContainer: Bool {
-        switch value { case .object, .array: return true; default: return false }
+        switch value {
+        case .object, .array: return true;
+        default: return false
+        }
     }
 
     var children: [TreeNode] {
@@ -172,7 +175,7 @@ final class TreeView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate {
             scroll.leadingAnchor.constraint(equalTo: leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: trailingAnchor),
             scroll.topAnchor.constraint(equalTo: topAnchor),
-            scroll.bottomAnchor.constraint(equalTo: bottomAnchor)
+            scroll.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         outline.reloadData()
         outline.expandItem(self.root)
@@ -202,13 +205,15 @@ final class TreeView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate {
 
     func outlineView(_ o: NSOutlineView, viewFor col: NSTableColumn?, item: Any) -> NSView? {
         guard let n = item as? TreeNode, let id = col?.identifier else { return nil }
-        let cell = (o.makeView(withIdentifier: id, owner: nil) as? NSTextField) ?? {
-            let t = NSTextField(labelWithString: "")
-            t.identifier = id
-            t.lineBreakMode = .byTruncatingTail
-            t.cell?.truncatesLastVisibleLine = true
-            return t
-        }()
+        let cell =
+            (o.makeView(withIdentifier: id, owner: nil) as? NSTextField)
+            ?? {
+                let t = NSTextField(labelWithString: "")
+                t.identifier = id
+                t.lineBreakMode = .byTruncatingTail
+                t.cell?.truncatesLastVisibleLine = true
+                return t
+            }()
         switch id.rawValue {
         case "k":
             cell.font = keyFont

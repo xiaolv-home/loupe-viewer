@@ -13,7 +13,7 @@ final class AppAutomation {
     enum Mode {
         case none, probe
         #if DEBUG
-        case snapshot(URL), stress(URL, Int)
+            case snapshot(URL), stress(URL, Int)
         #endif
     }
     private(set) var mode: Mode = .none
@@ -24,8 +24,8 @@ final class AppAutomation {
     var showInspector = false
     var showSidebar = false
     #if DEBUG
-    var commands: [String] = []
-    var captureOverride: NSWindow?
+        var commands: [String] = []
+        var captureOverride: NSWindow?
     #endif
     var isActive: Bool { if case .none = mode { return false }; return true }
 
@@ -38,12 +38,12 @@ final class AppAutomation {
             switch a {
             case "--probe": mode = .probe
             #if DEBUG
-            case "--snapshot": if let d = next() { mode = .snapshot(URL(fileURLWithPath: d)) }
-            case "--stress":
-                if let d = next() { mode = .stress(URL(fileURLWithPath: d), 2) }
-            case "--rounds":
-                if let n = next().flatMap(Int.init), case .stress(let d, _) = mode { mode = .stress(d, n) }
-            case "--cmd": if let c = next() { commands.append(c) }
+                case "--snapshot": if let d = next() { mode = .snapshot(URL(fileURLWithPath: d)) }
+                case "--stress":
+                    if let d = next() { mode = .stress(URL(fileURLWithPath: d), 2) }
+                case "--rounds":
+                    if let n = next().flatMap(Int.init), case .stress(let d, _) = mode { mode = .stress(d, n) }
+                case "--cmd": if let c = next() { commands.append(c) }
             #endif
             case "--delay": delay = next().flatMap(Double.init) ?? delay
             case "--hold": hold = next().flatMap(Double.init) ?? 0
@@ -79,8 +79,8 @@ final class AppAutomation {
             switch mode {
             case .probe: await probe(urls, wc)
             #if DEBUG
-            case .snapshot(let dir): await snapshot(urls, wc, dir)
-            case .stress(let dir, let rounds): await stress(dir, rounds, wc)
+                case .snapshot(let dir): await snapshot(urls, wc, dir)
+                case .stress(let dir, let rounds): await stress(dir, rounds, wc)
             #endif
             case .none: break
             }
@@ -120,10 +120,11 @@ final class AppAutomation {
                 "engine": engine,
                 "mismatch": f?.format.extensionMismatch ?? false,
                 "status": wc.model.statusText,
-                "failures": failures
+                "failures": failures,
             ]
             if let d = try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys]),
-               let s = String(data: d, encoding: .utf8) {
+                let s = String(data: d, encoding: .utf8)
+            {
                 print(s)
                 fflush(stdout)
             }

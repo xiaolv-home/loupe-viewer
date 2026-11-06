@@ -7,27 +7,29 @@ import Foundation
 struct ConditionalFormatTests {
     static func sheet(_ body: String, extra: String = "") -> Sheet {
         let xml = """
-        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-        <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main" xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main">
-        <sheetData>\(body)</sheetData>\(extra)</worksheet>
-        """
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main" xmlns:xm="http://schemas.microsoft.com/office/excel/2006/main">
+            <sheetData>\(body)</sheetData>\(extra)</worksheet>
+            """
         let p = SheetXMLParser(shared: [], dateStyles: [], color: { a in a["rgb"].flatMap(RGBA.init(hex:)) })
         p.run(Data(xml.utf8))
         return p.makeSheet(name: "S")
     }
 
     /// 和用户那份工作计划一样：Excel 2007 的规则 + 2010 扩展（渐变、边框、长度 0~100、自动最小/最大）。
-    static let progress = sheet("""
+    static let progress = sheet(
+        """
         <row r="2"><c r="E2"><v>1</v></c></row>
         <row r="6"><c r="E6"><v>0.85</v></c></row>
         <row r="10"><c r="E10"><v>0.2</v></c></row>
         <row r="14"><c r="E14"><v>0</v></c></row>
         <row r="18"><c r="E18"><v>0</v></c></row>
-        """, extra: """
-        <mergeCells count="1"><mergeCell ref="E2:H5"/></mergeCells>
-        <conditionalFormatting sqref="E2:H21"><cfRule type="dataBar" priority="1"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF638EC6"/></dataBar><extLst><ext uri="{B025F937-C7B1-47D3-B67F-A62EFF666E3E}"><x14:id>{ebe2}</x14:id></ext></extLst></cfRule></conditionalFormatting>
-        <extLst><ext uri="{78C0D931-6437-407d-A8EE-F0AAD7539E65}"><x14:conditionalFormattings><x14:conditionalFormatting><x14:cfRule type="dataBar" id="{ebe2}"><x14:dataBar minLength="0" maxLength="100" border="1" negativeBarBorderColorSameAsPositive="0"><x14:cfvo type="autoMin"/><x14:cfvo type="autoMax"/><x14:borderColor rgb="FF638EC6"/><x14:negativeFillColor rgb="FFFF0000"/><x14:axisColor rgb="FF000000"/></x14:dataBar></x14:cfRule><xm:sqref>E2:H21</xm:sqref></x14:conditionalFormatting></x14:conditionalFormattings></ext></extLst>
-        """)
+        """,
+        extra: """
+            <mergeCells count="1"><mergeCell ref="E2:H5"/></mergeCells>
+            <conditionalFormatting sqref="E2:H21"><cfRule type="dataBar" priority="1"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF638EC6"/></dataBar><extLst><ext uri="{B025F937-C7B1-47D3-B67F-A62EFF666E3E}"><x14:id>{ebe2}</x14:id></ext></extLst></cfRule></conditionalFormatting>
+            <extLst><ext uri="{78C0D931-6437-407d-A8EE-F0AAD7539E65}"><x14:conditionalFormattings><x14:conditionalFormatting><x14:cfRule type="dataBar" id="{ebe2}"><x14:dataBar minLength="0" maxLength="100" border="1" negativeBarBorderColorSameAsPositive="0"><x14:cfvo type="autoMin"/><x14:cfvo type="autoMax"/><x14:borderColor rgb="FF638EC6"/><x14:negativeFillColor rgb="FFFF0000"/><x14:axisColor rgb="FF000000"/></x14:dataBar></x14:cfRule><xm:sqref>E2:H21</xm:sqref></x14:conditionalFormatting></x14:conditionalFormattings></ext></extLst>
+            """)
 
     @Test("读出数据条：2010 扩展覆盖 2007 的长度和阈值，颜色沿用基础规则")
     func readsDataBar() throws {
@@ -59,11 +61,13 @@ struct ConditionalFormatTests {
 
     @Test("只有 2007 规则时：最小/最大取实际值，最短 10%、最长 90%")
     func legacyBar() throws {
-        let s = Self.sheet("""
+        let s = Self.sheet(
+            """
             <row r="1"><c r="A1"><v>10</v></c></row><row r="2"><c r="A2"><v>20</v></c></row><row r="3"><c r="A3"><v>30</v></c></row>
-            """, extra: """
-            <conditionalFormatting sqref="A1:A3"><cfRule type="dataBar" priority="1"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF63BE7B"/></dataBar></cfRule></conditionalFormatting>
-            """)
+            """,
+            extra: """
+                <conditionalFormatting sqref="A1:A3"><cfRule type="dataBar" priority="1"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF63BE7B"/></dataBar></cfRule></conditionalFormatting>
+                """)
         let cells = ConditionalFormatting.evaluate(s)
         #expect(abs((cells[Sheet.key(0, 0)]?.bar?.to ?? 0) - 0.1) < 1e-9)
         #expect(abs((cells[Sheet.key(1, 0)]?.bar?.to ?? 0) - 0.5) < 1e-9)
@@ -72,11 +76,13 @@ struct ConditionalFormatTests {
 
     @Test("有正有负：按比例放坐标轴，负数往左长")
     func negativeAxis() throws {
-        let s = Self.sheet("""
+        let s = Self.sheet(
+            """
             <row r="1"><c r="A1"><v>-50</v></c></row><row r="2"><c r="A2"><v>150</v></c></row><row r="3"><c r="A3"><v>75</v></c></row>
-            """, extra: """
-            <conditionalFormatting sqref="A1:A3"><cfRule type="dataBar" priority="1"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF638EC6"/></dataBar></cfRule></conditionalFormatting>
-            """)
+            """,
+            extra: """
+                <conditionalFormatting sqref="A1:A3"><cfRule type="dataBar" priority="1"><dataBar><cfvo type="min"/><cfvo type="max"/><color rgb="FF638EC6"/></dataBar></cfRule></conditionalFormatting>
+                """)
         let cells = ConditionalFormatting.evaluate(s)
         let neg = try #require(cells[Sheet.key(0, 0)]?.bar), pos = try #require(cells[Sheet.key(2, 0)]?.bar)
         #expect(neg.axis == 0.25 && neg.negative && neg.from == 0 && neg.to == 0.25)
@@ -85,11 +91,13 @@ struct ConditionalFormatTests {
 
     @Test("三色色阶：两端和中位数对上颜色，中间插值")
     func colorScale() throws {
-        let s = Self.sheet("""
+        let s = Self.sheet(
+            """
             <row r="1"><c r="A1"><v>0</v></c></row><row r="2"><c r="A2"><v>50</v></c></row><row r="3"><c r="A3"><v>100</v></c></row><row r="4"><c r="A4"><v>25</v></c></row>
-            """, extra: """
-            <conditionalFormatting sqref="A1:A4"><cfRule type="colorScale" priority="1"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFFEB84"/><color rgb="FF63BE7B"/></colorScale></cfRule></conditionalFormatting>
-            """)
+            """,
+            extra: """
+                <conditionalFormatting sqref="A1:A4"><cfRule type="colorScale" priority="1"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFFEB84"/><color rgb="FF63BE7B"/></colorScale></cfRule></conditionalFormatting>
+                """)
         let cells = ConditionalFormatting.evaluate(s)
         #expect(cells[Sheet.key(0, 0)]?.fill == RGBA(hex: "F8696B"))
         #expect(cells[Sheet.key(2, 0)]?.fill == RGBA(hex: "63BE7B"))
@@ -101,11 +109,13 @@ struct ConditionalFormatTests {
 
     @Test("按值变色等规则不画，但会记下来提示；格子里富文本的颜色不会被当成条件格式")
     func otherRules() throws {
-        let s = Self.sheet("""
+        let s = Self.sheet(
+            """
             <row r="1"><c r="A1" t="inlineStr"><is><r><rPr><color rgb="FFFF0000"/></rPr><t>红</t></r></is></c><c r="B1"><v>3</v></c></row>
-            """, extra: """
-            <conditionalFormatting sqref="B1"><cfRule type="cellIs" dxfId="0" priority="1" operator="greaterThan"><formula>2</formula></cfRule></conditionalFormatting>
-            """)
+            """,
+            extra: """
+                <conditionalFormatting sqref="B1"><cfRule type="cellIs" dxfId="0" priority="1" operator="greaterThan"><formula>2</formula></cfRule></conditionalFormatting>
+                """)
         #expect(s.conditionalFormats.isEmpty)
         #expect(s.otherConditionalFormats == 1)
         #expect(s.richText[Sheet.key(0, 0)]?.first?.color == RGBA(hex: "FF0000"))

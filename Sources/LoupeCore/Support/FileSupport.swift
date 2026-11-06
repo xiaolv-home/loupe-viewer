@@ -34,7 +34,7 @@ enum Zip {
             p.standardError = err
             try p.run()
             p.waitUntilExit()
-            if p.terminationStatus != 0 && p.terminationStatus != 12 {   // 12 = nothing to do
+            if p.terminationStatus != 0 && p.terminationStatus != 12 {  // 12 = nothing to do
                 let msg = String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
                 throw SaveError("压缩失败：\(msg)")
             }
@@ -64,7 +64,8 @@ enum AtomicWrite {
     }
 
     static func tempNear(_ dest: URL, ext: String) -> URL {
-        let dir = (try? FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: dest, create: true))
+        let dir =
+            (try? FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: dest, create: true))
             ?? FileManager.default.temporaryDirectory
         return dir.appendingPathComponent("loupe-\(UUID().uuidString).\(ext)")
     }

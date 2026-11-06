@@ -36,7 +36,9 @@ final class ODSParser: NSObject, XMLParserDelegate {
                     f.formatOptions = s.contains("T") ? [.withFullDate, .withTime, .withColonSeparatorInTime] : [.withFullDate]
                     f.timeZone = TimeZone(identifier: "UTC")
                     cellValue = f.date(from: s).map { .date(CellValue.serial(from: $0)) } ?? .text(s)
-                } else { cellValue = .empty }
+                } else {
+                    cellValue = .empty
+                }
             case "boolean": cellValue = .bool(a["office:boolean-value"] == "true")
             case "string": cellValue = .text("")
             default: cellValue = .empty

@@ -56,7 +56,13 @@ struct RichRunReader {
 
     /// Text of a `<t>`: goes to the current run (or a plain one, for `<si><t>` without runs).
     mutating func text(_ s: String) {
-        if var p = props { p.text += s; props = p } else if let last = runs.indices.last, runs[last].isPlain { runs[last].text += s } else { runs.append(RichRun(text: s)) }
+        if var p = props {
+            p.text += s; props = p
+        } else if let last = runs.indices.last, runs[last].isPlain {
+            runs[last].text += s
+        } else {
+            runs.append(RichRun(text: s))
+        }
     }
 
     mutating func end(_ name: String) {
@@ -103,7 +109,8 @@ final class SharedStringsParser: NSObject, XMLParserDelegate {
 
 /// Reads xl/theme/theme1.xml colour scheme (dk1, lt1, dk2, lt2, accent1…6, hlink, folHlink).
 final class ThemeParser: NSObject, XMLParserDelegate {
-    static let officeDefault: [RGBA] = ["000000", "FFFFFF", "44546A", "E7E6E6", "4472C4", "ED7D31", "A5A5A5", "FFC000", "5B9BD5", "70AD47", "0563C1", "954F72"].map { RGBA(hex: $0)! }
+    static let officeDefault: [RGBA] = ["000000", "FFFFFF", "44546A", "E7E6E6", "4472C4", "ED7D31", "A5A5A5", "FFC000", "5B9BD5", "70AD47", "0563C1", "954F72"]
+        .map { RGBA(hex: $0)! }
     private static let order = ["dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5", "accent6", "hlink", "folHlink"]
     private var colors: [String: RGBA] = [:]
     private var current: String?
@@ -172,15 +179,18 @@ final class StylesParser: NSObject, XMLParserDelegate {
 
     func color(_ a: [String: String]) -> RGBA? {
         var c: RGBA?
-        if let rgb = a["rgb"] { c = RGBA(hex: rgb) }
-        else if let t = a["theme"].flatMap(Int.init) {
+        if let rgb = a["rgb"] {
+            c = RGBA(hex: rgb)
+        } else if let t = a["theme"].flatMap(Int.init) {
             // Theme indices swap dark/light: 0=lt1, 1=dk1, 2=lt2, 3=dk2.
             let map = [1, 0, 3, 2, 4, 5, 6, 7, 8, 9, 10, 11]
             if t < map.count { c = theme[map[t]] }
         } else if let i = a["indexed"].flatMap(Int.init) {
             let palette = indexedOverride.isEmpty ? RGBA.indexed : indexedOverride
-            if i < palette.count { c = palette[i] } else if i == 64 { c = nil }   // 64 = system foreground
-        } else if a["auto"] == "1" { c = nil }
+            if i < palette.count { c = palette[i] } else if i == 64 { c = nil }  // 64 = system foreground
+        } else if a["auto"] == "1" {
+            c = nil
+        }
         if let t = a["tint"].flatMap(Double.init), let base = c { c = base.tinted(t) }
         return c
     }
@@ -198,8 +208,9 @@ final class StylesParser: NSObject, XMLParserDelegate {
         case "strike": if font != nil { font?.strike = a["val"] != "0" }
         case "sz": if font != nil { font?.size = a["val"].flatMap(Double.init) }
         case "color":
-            if font != nil { font?.color = color(a) }
-            else if var b = border, borderSide != nil {
+            if font != nil {
+                font?.color = color(a)
+            } else if var b = border, borderSide != nil {
                 if b.1 == nil { b.1 = color(a) }
                 border = b
             }
@@ -236,7 +247,11 @@ final class StylesParser: NSObject, XMLParserDelegate {
             case "fill": xf?.hAlign = .fill
             default: break
             }
-            switch a["vertical"] { case "top": xf?.vAlign = .top; case "center": xf?.vAlign = .center; default: break }
+            switch a["vertical"] {
+            case "top": xf?.vAlign = .top;
+            case "center": xf?.vAlign = .center;
+            default: break
+            }
             if a["wrapText"] == "1" || a["wrapText"] == "true" { xf?.wrap = true }
         default: break
         }

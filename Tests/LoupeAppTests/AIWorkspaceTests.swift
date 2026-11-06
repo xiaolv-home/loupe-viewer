@@ -32,7 +32,8 @@ struct AIWorkspaceTests {
         try Data("hi".utf8).write(to: file)
         let workspace = FakeWorkspace()
         workspace.aiBrowsingFolder = folder
-        let out = await toolbox(workspace).run(AIToolCall(id: "1", name: "open_file", arguments: "{\"path\":\"a.txt\"}"), AIJSON.object(["path": .string("a.txt")]))
+        let out = await toolbox(workspace).run(
+            AIToolCall(id: "1", name: "open_file", arguments: "{\"path\":\"a.txt\"}"), AIJSON.object(["path": .string("a.txt")]))
         #expect(!out.isError)
         #expect(workspace.opened.map(\.lastPathComponent) == ["a.txt"])
     }

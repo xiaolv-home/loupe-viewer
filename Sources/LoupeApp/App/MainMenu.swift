@@ -155,15 +155,19 @@ enum MainMenu {
 
     /// A 格式 item: the command name rides along; it is enabled only for Markdown, so its keys
     /// fall through to other menus elsewhere (⌘[ / ⌘] still switch files there).
-    private static func format(_ menu: NSMenu, _ title: String, _ command: String, _ key: String = "",
-                               _ mods: NSEvent.ModifierFlags = [.command]) {
+    private static func format(
+        _ menu: NSMenu, _ title: String, _ command: String, _ key: String = "",
+        _ mods: NSEvent.ModifierFlags = [.command]
+    ) {
         let item = add(menu, title, #selector(ViewerWindowController.loupeFormat(_:)), key, mods)
         item.representedObject = command
     }
 
     @discardableResult
-    private static func add(_ menu: NSMenu, _ title: String, _ action: Selector, _ key: String = "",
-                            _ mods: NSEvent.ModifierFlags = [.command], target: AnyObject? = nil) -> NSMenuItem {
+    private static func add(
+        _ menu: NSMenu, _ title: String, _ action: Selector, _ key: String = "",
+        _ mods: NSEvent.ModifierFlags = [.command], target: AnyObject? = nil
+    ) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.keyEquivalentModifierMask = key.isEmpty ? [] : mods
         item.target = target

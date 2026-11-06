@@ -130,14 +130,15 @@ final class CodeView: NSView {
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
             scrollView.topAnchor.constraint(equalTo: topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor)
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         ruler = LineNumberRuler(textView: textView, scrollView: scrollView)
         scrollView.verticalRulerView = ruler
         scrollView.hasVerticalRuler = true
         scrollView.rulersVisible = true
         scrollView.contentView.postsBoundsChangedNotifications = true
-        NotificationCenter.default.addObserver(self, selector: #selector(boundsChanged), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(boundsChanged), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
         NotificationCenter.default.addObserver(self, selector: #selector(boundsChanged), name: NSTextView.didChangeSelectionNotification, object: textView)
         applyWrap()
     }
@@ -252,7 +253,8 @@ final class CodeView: NSView {
 
     private func rehighlight(_ text: String) {
         guard let lang = editLanguage, let hl = SyntaxHighlighter.forLanguage(lang),
-              text.utf8.count <= AppSettings.shared.highlightLimitBytes else { return }
+            text.utf8.count <= AppSettings.shared.highlightLimitBytes
+        else { return }
         highlightTask?.cancel()
         highlightTask = Task { [weak self] in
             let tokens = await Task.detached(priority: .utility) { () -> [Token] in
@@ -276,21 +278,26 @@ final class CodeView: NSView {
         let italic = NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
         // Weight/italic live in the storage; colour as temporary attributes (no relayout).
         // The two must not be interleaved: temporary attributes may not change mid-edit.
-        _ = LPTry({
-            storage.beginEditing()
-            if resetBaseFont { storage.addAttribute(.font, value: base, range: full) }
-            for t in valid {
-                if Theme.syntaxIsBold(t.kind) { storage.addAttribute(.font, value: bold, range: t.range) }
-                else if t.kind == .comment { storage.addAttribute(.font, value: italic, range: t.range) }
-            }
-            storage.endEditing()
-        }, nil)
-        _ = LPTry({
-            if resetBaseFont { lm.removeTemporaryAttribute(.foregroundColor, forCharacterRange: full) }
-            for t in valid {
-                lm.addTemporaryAttribute(.foregroundColor, value: Theme.syntax(t.kind), forCharacterRange: t.range)
-            }
-        }, nil)
+        _ = LPTry(
+            {
+                storage.beginEditing()
+                if resetBaseFont { storage.addAttribute(.font, value: base, range: full) }
+                for t in valid {
+                    if Theme.syntaxIsBold(t.kind) {
+                        storage.addAttribute(.font, value: bold, range: t.range)
+                    } else if t.kind == .comment {
+                        storage.addAttribute(.font, value: italic, range: t.range)
+                    }
+                }
+                storage.endEditing()
+            }, nil)
+        _ = LPTry(
+            {
+                if resetBaseFont { lm.removeTemporaryAttribute(.foregroundColor, forCharacterRange: full) }
+                for t in valid {
+                    lm.addTemporaryAttribute(.foregroundColor, value: Theme.syntax(t.kind), forCharacterRange: t.range)
+                }
+            }, nil)
         highlighted = true
     }
 
@@ -309,8 +316,9 @@ final class CodeView: NSView {
         let has = width == 2 ? around >= 2 : (around == 1 || around == 3)
         let inner = ns.substring(with: sel)
         if has {
-            replace(NSRange(location: sel.location - width, length: sel.length + 2 * width), with: inner,
-                    select: NSRange(location: sel.location - width, length: sel.length))
+            replace(
+                NSRange(location: sel.location - width, length: sel.length + 2 * width), with: inner,
+                select: NSRange(location: sel.location - width, length: sel.length))
         } else {
             replace(sel, with: marker + inner + marker, select: NSRange(location: sel.location + width, length: sel.length))
         }
@@ -330,7 +338,8 @@ final class CodeView: NSView {
     /// so these win over ⌘I「显示简介」only inside the editor).
     override func performKeyEquivalent(with e: NSEvent) -> Bool {
         guard textView.isEditable, window?.firstResponder === textView,
-              e.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command else { return super.performKeyEquivalent(with: e) }
+            e.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
+        else { return super.performKeyEquivalent(with: e) }
         switch e.charactersIgnoringModifiers {
         case "b": toggleWrap("**"); return true
         case "i": toggleWrap("*"); return true
@@ -347,7 +356,7 @@ final class CodeView: NSView {
 
     /// An undoable replacement through the text view (as if typed).
     private func replace(_ range: NSRange, with text: String, select: NSRange) {
-        textView.breakUndoCoalescing()          // a formatting step undoes on its own
+        textView.breakUndoCoalescing()  // a formatting step undoes on its own
         guard textView.shouldChangeText(in: range, replacementString: text) else { return }
         textView.textStorage?.replaceCharacters(in: range, with: NSAttributedString(string: text, attributes: textView.typingAttributes))
         textView.didChangeText()
@@ -383,4 +392,3 @@ final class CodeView: NSView {
 extension CodeView: NSTextViewDelegate {
     func textDidChange(_ notification: Notification) { textEdited() }
 }
-

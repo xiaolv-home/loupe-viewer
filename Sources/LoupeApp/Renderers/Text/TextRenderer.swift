@@ -8,7 +8,8 @@ import LoupeCore
 final class TextRenderer: NSObject, Renderer, ObservableObject {
     func fallbackNote(for file: FileContext?, reason: String) -> FallbackNote {
         let label = file?.format.label ?? "文件", family = file?.format.family
-        let message = family == .json || family == .plist
+        let message =
+            family == .json || family == .plist
             ? "\(label)的内容有格式错误，先按纯文本显示（\(reason)）"
             : "这个\(label)打不开（文件可能已损坏或不完整），现在按纯文本显示"
         return FallbackNote(message: message, showsRawContent: family != .text && family != .code)
@@ -42,8 +43,9 @@ final class TextRenderer: NSObject, Renderer, ObservableObject {
         }
         let url = file.url
         let d: Data
-        do { d = try await Task.detached { try Data(contentsOf: url, options: [.mappedIfSafe]) }.value }
-        catch { throw RenderError.unreadable("无法读取文件：\(error.localizedDescription)") }
+        do { d = try await Task.detached { try Data(contentsOf: url, options: [.mappedIfSafe]) }.value } catch {
+            throw RenderError.unreadable("无法读取文件：\(error.localizedDescription)")
+        }
         try Task.checkCancellation()
         data = d
         let enc = await Task.detached { TextEncodingDetector.detect(d) }.value
@@ -82,22 +84,23 @@ final class TextRenderer: NSObject, Renderer, ObservableObject {
         loadTask = Task { [weak self, weak view] in
             var lastUpdate = Date.distantPast
             await Task.detached(priority: .userInitiated) {
-                idx.build(progress: { frac, _ in
-                    let now = Date()
-                    guard now.timeIntervalSince(lastUpdate) > 0.15 || frac >= 1 else { return }
-                    lastUpdate = now
-                    Task { @MainActor in
-                        guard let self, let view else { return }
-                        view.reload()
-                        self.lines = idx.lineCount
-                        if frac < 1 {
-                            self.highlightState = "正在索引 \(Int(frac * 100))%"
-                        } else {
-                            self.highlightState = "大文件模式 · 高亮已关闭"
+                idx.build(
+                    progress: { frac, _ in
+                        let now = Date()
+                        guard now.timeIntervalSince(lastUpdate) > 0.15 || frac >= 1 else { return }
+                        lastUpdate = now
+                        Task { @MainActor in
+                            guard let self, let view else { return }
+                            view.reload()
+                            self.lines = idx.lineCount
+                            if frac < 1 {
+                                self.highlightState = "正在索引 \(Int(frac * 100))%"
+                            } else {
+                                self.highlightState = "大文件模式 · 高亮已关闭"
+                            }
+                            self.host?.rendererDidUpdate()
                         }
-                        self.host?.rendererDidUpdate()
-                    }
-                }, isCancelled: { Task.isCancelled })
+                    }, isCancelled: { Task.isCancelled })
             }.value
         }
         // Return as soon as the first lines are indexed.
@@ -174,7 +177,7 @@ final class TextRenderer: NSObject, Renderer, ObservableObject {
         DetectedEncoding(.utf16LittleEndian, "UTF-16 LE", unit: 2),
         DetectedEncoding(.utf16BigEndian, "UTF-16 BE", unit: 2, bigEndian: true),
         DetectedEncoding(.windowsCP1252, "Windows-1252"),
-        DetectedEncoding(.isoLatin1, "ISO-8859-1")
+        DetectedEncoding(.isoLatin1, "ISO-8859-1"),
     ]
 }
 

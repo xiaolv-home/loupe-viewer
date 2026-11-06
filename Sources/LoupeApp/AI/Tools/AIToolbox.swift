@@ -23,8 +23,10 @@ final class AIToolbox {
     /// A skill was loaded during this request. Commands then need a second confirmation.
     private var usedSkill = false
 
-    init(document: AIDocument?, workspace: AIWorkspace?, skills: [Skill], allowCommands: Bool, vision: Bool = false,
-         approve: @escaping (AIApproval) async -> Bool) {
+    init(
+        document: AIDocument?, workspace: AIWorkspace?, skills: [Skill], allowCommands: Bool, vision: Bool = false,
+        approve: @escaping (AIApproval) async -> Bool
+    ) {
         self.vision = vision
         self.document = document
         self.workspace = workspace
@@ -39,45 +41,76 @@ final class AIToolbox {
 
     var specs: [AIToolSpec] {
         var out: [AIToolSpec] = [
-            AIToolSpec("read_file", "读取文件内容为文字：文本/Markdown/代码按原编码，PDF 按页，Word/RTF，PPT 幻灯片文字，Excel 各工作表，图片会做文字识别（OCR，同一行用制表符分隔）。不填 path 读当前打开的文件。长文件用 offset 分段读。",
-                       Schema.object(["path": Schema.string("文件路径：绝对路径、~/… 或相对当前文件所在文件夹"),
-                                      "offset": Schema.integer("从第几个字开始（默认 0）"),
-                                      "max_chars": Schema.integer("最多读多少字（默认 20000）")])),
-            AIToolSpec("list_folder", "列出文件夹里的文件和子文件夹（含大小、修改时间）。不填 path 为当前文件所在文件夹。",
-                       Schema.object(["path": Schema.string("文件夹路径")])),
-            AIToolSpec("search_text", "在文件夹（含子文件夹）的文本类文件里搜索文字，返回「文件:行号: 内容」。适合在资料库、法规库、笔记里找依据。",
-                       Schema.object(["query": Schema.string("要找的文字（或正则表达式，regex=true 时）"),
-                                      "folder": Schema.string("在哪个文件夹里搜，默认当前文件所在文件夹"),
-                                      "regex": Schema.boolean("query 是否为正则表达式")], required: ["query"])),
-            AIToolSpec("write_file", "生成一个新文件交付给用户。按扩展名决定格式：.docx/.pdf/.html/.rtf 会把 Markdown 内容排版成正式文档（标题、列表、表格都保留）；.md/.txt/.json/.csv 等原样写入。已存在的文件需要用户同意才会覆盖。",
-                       Schema.object(["path": Schema.string("文件路径，建议放在当前文件旁边，如 「合同审阅意见.docx」"),
-                                      "content": Schema.string("文件内容（富文本格式请用 Markdown 书写）")], required: ["path", "content"])),
-            AIToolSpec("create_spreadsheet", "生成新的 Excel（.xlsx）或 CSV 表格。每张表是行的数组，每行是单元格数组；数字写成数字；以 = 开头的文字会作为公式写入（例如 \"=SUM(B2:B10)\"），保存前会先算好结果。",
-                       Schema.object(["path": Schema.string("文件路径（.xlsx / .csv）"),
-                                      "sheets": Schema.array("工作表", items: Schema.object([
-                                        "name": Schema.string("工作表名称"),
-                                        "rows": Schema.array("行", items: Schema.array("单元格", items: ["description": "数字、文字或公式"]))
-                                      ], required: ["name", "rows"]))], required: ["path", "sheets"])),
-            AIToolSpec("open_file", "在 Loupe 的新标签页里打开一个文件给用户看（例如刚生成的文件）。",
-                       Schema.object(["path": Schema.string("文件路径")], required: ["path"]))
+            AIToolSpec(
+                "read_file", "读取文件内容为文字：文本/Markdown/代码按原编码，PDF 按页，Word/RTF，PPT 幻灯片文字，Excel 各工作表，图片会做文字识别（OCR，同一行用制表符分隔）。不填 path 读当前打开的文件。长文件用 offset 分段读。",
+                Schema.object([
+                    "path": Schema.string("文件路径：绝对路径、~/… 或相对当前文件所在文件夹"),
+                    "offset": Schema.integer("从第几个字开始（默认 0）"),
+                    "max_chars": Schema.integer("最多读多少字（默认 20000）"),
+                ])),
+            AIToolSpec(
+                "list_folder", "列出文件夹里的文件和子文件夹（含大小、修改时间）。不填 path 为当前文件所在文件夹。",
+                Schema.object(["path": Schema.string("文件夹路径")])),
+            AIToolSpec(
+                "search_text", "在文件夹（含子文件夹）的文本类文件里搜索文字，返回「文件:行号: 内容」。适合在资料库、法规库、笔记里找依据。",
+                Schema.object(
+                    [
+                        "query": Schema.string("要找的文字（或正则表达式，regex=true 时）"),
+                        "folder": Schema.string("在哪个文件夹里搜，默认当前文件所在文件夹"),
+                        "regex": Schema.boolean("query 是否为正则表达式"),
+                    ], required: ["query"])),
+            AIToolSpec(
+                "write_file", "生成一个新文件交付给用户。按扩展名决定格式：.docx/.pdf/.html/.rtf 会把 Markdown 内容排版成正式文档（标题、列表、表格都保留）；.md/.txt/.json/.csv 等原样写入。已存在的文件需要用户同意才会覆盖。",
+                Schema.object(
+                    [
+                        "path": Schema.string("文件路径，建议放在当前文件旁边，如 「合同审阅意见.docx」"),
+                        "content": Schema.string("文件内容（富文本格式请用 Markdown 书写）"),
+                    ], required: ["path", "content"])),
+            AIToolSpec(
+                "create_spreadsheet", "生成新的 Excel（.xlsx）或 CSV 表格。每张表是行的数组，每行是单元格数组；数字写成数字；以 = 开头的文字会作为公式写入（例如 \"=SUM(B2:B10)\"），保存前会先算好结果。",
+                Schema.object(
+                    [
+                        "path": Schema.string("文件路径（.xlsx / .csv）"),
+                        "sheets": Schema.array(
+                            "工作表",
+                            items: Schema.object(
+                                [
+                                    "name": Schema.string("工作表名称"),
+                                    "rows": Schema.array("行", items: Schema.array("单元格", items: ["description": "数字、文字或公式"])),
+                                ], required: ["name", "rows"])),
+                    ], required: ["path", "sheets"])),
+            AIToolSpec(
+                "open_file", "在 Loupe 的新标签页里打开一个文件给用户看（例如刚生成的文件）。",
+                Schema.object(["path": Schema.string("文件路径")], required: ["path"])),
         ]
         if vision {
-            out.append(AIToolSpec("view_image", "直接看一张图片（或 PDF 的某一页）：理解照片、图表、截图、版式、印章、手写等画面内容。只需要其中的文字时用 read_file（文字识别更快更准）。不填 path 看当前打开的文件。",
-                                  Schema.object(["path": Schema.string("图片或 PDF 路径"), "page": Schema.integer("PDF 的第几页（默认 1）")])))
+            out.append(
+                AIToolSpec(
+                    "view_image", "直接看一张图片（或 PDF 的某一页）：理解照片、图表、截图、版式、印章、手写等画面内容。只需要其中的文字时用 read_file（文字识别更快更准）。不填 path 看当前打开的文件。",
+                    Schema.object(["path": Schema.string("图片或 PDF 路径"), "page": Schema.integer("PDF 的第几页（默认 1）")])))
         }
         if !skills.isEmpty {
             let many = skills.count > AISession.listAllSkillsUpTo
-            out.append(AIToolSpec("use_skill", "载入一个技能的完整说明（工作方法、检查清单、模板）。任务和某个技能相关时，先调用它再动手。",
-                                  Schema.object(["name": Schema.string("技能名称", enum: many ? nil : skills.map(\.name))], required: ["name"])))
+            out.append(
+                AIToolSpec(
+                    "use_skill", "载入一个技能的完整说明（工作方法、检查清单、模板）。任务和某个技能相关时，先调用它再动手。",
+                    Schema.object(["name": Schema.string("技能名称", enum: many ? nil : skills.map(\.name))], required: ["name"])))
             if many {
-                out.append(AIToolSpec("find_skills", "按关键词在已安装的技能里搜索（名称和说明，中英文都可以），返回最相关的技能名和说明。",
-                                      Schema.object(["query": Schema.string("关键词，如「合同 审查」或 resume")], required: ["query"])))
+                out.append(
+                    AIToolSpec(
+                        "find_skills", "按关键词在已安装的技能里搜索（名称和说明，中英文都可以），返回最相关的技能名和说明。",
+                        Schema.object(["query": Schema.string("关键词，如「合同 审查」或 resume")], required: ["query"])))
             }
         }
         if allowCommands {
-            out.append(AIToolSpec("run_command", "在终端运行一条 shell 命令（zsh），例如运行技能里附带的 Python 脚本、转换格式。每次都会先请用户点「允许」。不要用它删除或覆盖文件。",
-                                  Schema.object(["command": Schema.string("命令"),
-                                                 "cwd": Schema.string("工作目录，默认当前文件所在文件夹")], required: ["command"])))
+            out.append(
+                AIToolSpec(
+                    "run_command", "在终端运行一条 shell 命令（zsh），例如运行技能里附带的 Python 脚本、转换格式。每次都会先请用户点「允许」。不要用它删除或覆盖文件。",
+                    Schema.object(
+                        [
+                            "command": Schema.string("命令"),
+                            "cwd": Schema.string("工作目录，默认当前文件所在文件夹"),
+                        ], required: ["command"])))
         }
         if let d = documentTools { out += d.aiTools }
         return out
@@ -112,7 +145,9 @@ final class AIToolbox {
         if let why = AIFiles.readable(url) { return .error(why) }
         guard FileManager.default.fileExists(atPath: url.path) else { return .error("文件不存在：\(url.path)") }
         let text: String
-        if let t = textCache[url] { text = t } else {
+        if let t = textCache[url] {
+            text = t
+        } else {
             do { text = try await DocumentText.extract(url) } catch {
                 return .error((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
             }
@@ -157,7 +192,9 @@ final class AIToolbox {
         if useRegex {
             guard let r = try? NSRegularExpression(pattern: q, options: [.caseInsensitive]) else { return .error("正则表达式写错了") }
             re = r
-        } else { re = nil }
+        } else {
+            re = nil
+        }
         let hits = await Task.detached(priority: .userInitiated) { Self.search(q, regex: re, in: folder) }.value
         if hits.isEmpty { return AIToolOutput("在 \(folder.path) 里没有找到「\(q)」") }
         return AIToolOutput("在 \(folder.path) 里找到 \(hits.count)\(hits.count >= 120 ? "+" : "") 处：\n" + hits.joined(separator: "\n"))
@@ -165,14 +202,18 @@ final class AIToolbox {
 
     nonisolated static func search(_ q: String, regex re: NSRegularExpression?, in folder: URL) -> [String] {
         var out: [String] = []
-        guard let e = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey],
-                                                     options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { return out }
+        guard
+            let e = FileManager.default.enumerator(
+                at: folder, includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey],
+                options: [.skipsHiddenFiles, .skipsPackageDescendants])
+        else { return out }
         var scanned = 0
         while let u = e.nextObject() as? URL {
             if out.count >= 120 || scanned > 5000 { break }
             guard DocumentText.textExtensions.contains(u.pathExtension.lowercased()),
-                  let v = try? u.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]), v.isRegularFile == true,
-                  (v.fileSize ?? 0) < 8 << 20, let text = try? TextFileFormat.read(u).0 else { continue }
+                let v = try? u.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]), v.isRegularFile == true,
+                (v.fileSize ?? 0) < 8 << 20, let text = try? TextFileFormat.read(u).0
+            else { continue }
             scanned += 1
             let rel = u.path.replacingOccurrences(of: folder.path + "/", with: "")
             for (i, line) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {

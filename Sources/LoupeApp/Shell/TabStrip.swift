@@ -51,9 +51,11 @@ struct TabStrip: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 4) {
                         ForEach(tabs.docs, id: \.id) { doc in
-                            TabChip(model: doc, active: doc === tabs.current, width: chip,
-                                    onSelect: { select(doc) }, onClose: { close(doc) })
-                                .id(doc.id)
+                            TabChip(
+                                model: doc, active: doc === tabs.current, width: chip,
+                                onSelect: { select(doc) }, onClose: { close(doc) }
+                            )
+                            .id(doc.id)
                         }
                     }
                     .padding(.vertical, 2)

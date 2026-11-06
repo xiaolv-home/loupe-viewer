@@ -67,7 +67,7 @@ final class MediaStageView: NSView {
             addSubview(v)
             NSLayoutConstraint.activate([
                 v.leadingAnchor.constraint(equalTo: leadingAnchor), v.trailingAnchor.constraint(equalTo: trailingAnchor),
-                v.topAnchor.constraint(equalTo: topAnchor), v.bottomAnchor.constraint(equalTo: bottomAnchor)
+                v.topAnchor.constraint(equalTo: topAnchor), v.bottomAnchor.constraint(equalTo: bottomAnchor),
             ])
         }
         scheduleHide()
@@ -88,8 +88,7 @@ final class MediaStageView: NSView {
     override func mouseEntered(with event: NSEvent) { reveal() }
     override func mouseExited(with event: NSEvent) { scheduleHide(after: 0.6) }
     override func mouseDown(with event: NSEvent) {
-        if event.clickCount == 2 { model.toggleFullscreen() }
-        else { window?.makeFirstResponder(self) }
+        if event.clickCount == 2 { model.toggleFullscreen() } else { window?.makeFirstResponder(self) }
     }
 
     func reveal() {
@@ -223,7 +222,9 @@ private struct TransportBar: View {
                 Spacer(minLength: 8)
                 Menu {
                     ForEach([0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0], id: \.self) { r in
-                        Button { model.rate = r; model.onRate(r) } label: {
+                        Button {
+                            model.rate = r; model.onRate(r)
+                        } label: {
                             Text(String(format: "%g×", r) + (r == model.rate ? "  ✓" : ""))
                         }
                     }
@@ -233,10 +234,18 @@ private struct TransportBar: View {
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .frame(width: 40).help("播放速度")
                 Menu {
-                    Button { model.selectedSubtitle = -1; model.onSelectSubtitle(-1) } label: { Text("关闭字幕" + (model.selectedSubtitle == -1 ? "  ✓" : "")) }
+                    Button {
+                        model.selectedSubtitle = -1; model.onSelectSubtitle(-1)
+                    } label: {
+                        Text("关闭字幕" + (model.selectedSubtitle == -1 ? "  ✓" : ""))
+                    }
                     if !model.subtitleOptions.isEmpty { Divider() }
                     ForEach(Array(model.subtitleOptions.enumerated()), id: \.offset) { i, name in
-                        Button { model.selectedSubtitle = i; model.onSelectSubtitle(i) } label: { Text(name + (model.selectedSubtitle == i ? "  ✓" : "")) }
+                        Button {
+                            model.selectedSubtitle = i; model.onSelectSubtitle(i)
+                        } label: {
+                            Text(name + (model.selectedSubtitle == i ? "  ✓" : ""))
+                        }
                     }
                     Divider()
                     Button("载入字幕文件…") { model.chooseSubtitleFile(near: fileURL()) }
@@ -292,9 +301,13 @@ private struct VolumeControl: View {
     @ObservedObject var model: PlayerModel
     var body: some View {
         HStack(spacing: 4) {
-            Button { model.muted.toggle(); model.onMute(model.muted) } label: {
-                Image(systemName: model.muted || model.volume == 0 ? "speaker.slash.fill" : (model.volume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.2.fill"))
-                    .font(.system(size: 12)).frame(width: 24, height: 26).contentShape(Rectangle())
+            Button {
+                model.muted.toggle(); model.onMute(model.muted)
+            } label: {
+                Image(
+                    systemName: model.muted || model.volume == 0 ? "speaker.slash.fill" : (model.volume < 0.5 ? "speaker.wave.1.fill" : "speaker.wave.2.fill")
+                )
+                .font(.system(size: 12)).frame(width: 24, height: 26).contentShape(Rectangle())
             }.buttonStyle(.plain).help("静音（M）")
             GeometryReader { g in
                 ZStack(alignment: .leading) {
@@ -303,12 +316,13 @@ private struct VolumeControl: View {
                 }
                 .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
-                .gesture(DragGesture(minimumDistance: 0).onChanged { v in
-                    let x = max(0, min(1, v.location.x / g.size.width))
-                    model.volume = x
-                    model.muted = false
-                    model.onVolume(x)
-                })
+                .gesture(
+                    DragGesture(minimumDistance: 0).onChanged { v in
+                        let x = max(0, min(1, v.location.x / g.size.width))
+                        model.volume = x
+                        model.muted = false
+                        model.onVolume(x)
+                    })
             }
             .frame(width: 64, height: 20)
         }
@@ -347,13 +361,14 @@ private struct Scrubber: View {
             .onContinuousHover { phase in
                 if case .active(let p) = phase { hoverX = max(0, min(w, p.x)) } else { hoverX = nil }
             }
-            .gesture(DragGesture(minimumDistance: 0)
-                .onChanged { v in
-                    let t = Double(max(0, min(w, v.location.x)) / w) * model.duration
-                    scrubbing = t
-                    model.onSeek(t)
-                }
-                .onEnded { _ in scrubbing = nil })
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { v in
+                        let t = Double(max(0, min(w, v.location.x)) / w) * model.duration
+                        scrubbing = t
+                        model.onSeek(t)
+                    }
+                    .onEnded { _ in scrubbing = nil })
         }
     }
 }

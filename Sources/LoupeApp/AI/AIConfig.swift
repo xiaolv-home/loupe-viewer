@@ -14,25 +14,34 @@ struct CloudProvider: Identifiable, Hashable {
     var allowsCustomBaseURL: Bool { id == "custom" || id == "doubao" }
 
     static let all: [CloudProvider] = [
-        CloudProvider(id: "deepseek", name: "DeepSeek", proto: .openAI, baseURL: "https://api.deepseek.com/v1", defaultModel: "deepseek-chat",
-                      keyPage: "https://platform.deepseek.com/api_keys"),
-        CloudProvider(id: "qwen", name: "通义千问（阿里云百炼）", proto: .openAI, baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                      defaultModel: "qwen-plus", keyPage: "https://bailian.console.aliyun.com/?apiKey=1"),
-        CloudProvider(id: "kimi", name: "Kimi（月之暗面）", proto: .openAI, baseURL: "https://api.moonshot.cn/v1", defaultModel: "kimi-latest",
-                      keyPage: "https://platform.moonshot.cn/console/api-keys"),
-        CloudProvider(id: "zhipu", name: "智谱 GLM", proto: .openAI, baseURL: "https://open.bigmodel.cn/api/paas/v4", defaultModel: "glm-4-plus",
-                      keyPage: "https://bigmodel.cn/usercenter/proj-mgmt/apikeys"),
-        CloudProvider(id: "doubao", name: "豆包（火山方舟）", proto: .openAI, baseURL: "https://ark.cn-beijing.volces.com/api/v3", defaultModel: "",
-                      keyPage: "https://console.volcengine.com/ark"),
-        CloudProvider(id: "siliconflow", name: "硅基流动", proto: .openAI, baseURL: "https://api.siliconflow.cn/v1", defaultModel: "deepseek-ai/DeepSeek-V3",
-                      keyPage: "https://cloud.siliconflow.cn/account/ak"),
-        CloudProvider(id: "anthropic", name: "Claude（Anthropic）", proto: .anthropic, baseURL: "https://api.anthropic.com", defaultModel: "claude-opus-5-5",
-                      keyPage: "https://console.anthropic.com/settings/keys"),
-        CloudProvider(id: "openai", name: "OpenAI", proto: .openAI, baseURL: "https://api.openai.com/v1", defaultModel: "gpt-5",
-                      keyPage: "https://platform.openai.com/api-keys"),
-        CloudProvider(id: "openrouter", name: "OpenRouter", proto: .openAI, baseURL: "https://openrouter.ai/api/v1", defaultModel: "openrouter/auto",
-                      keyPage: "https://openrouter.ai/keys"),
-        CloudProvider(id: "custom", name: "自定义（OpenAI 兼容）", proto: .openAI, baseURL: "", defaultModel: "", keyPage: "")
+        CloudProvider(
+            id: "deepseek", name: "DeepSeek", proto: .openAI, baseURL: "https://api.deepseek.com/v1", defaultModel: "deepseek-chat",
+            keyPage: "https://platform.deepseek.com/api_keys"),
+        CloudProvider(
+            id: "qwen", name: "通义千问（阿里云百炼）", proto: .openAI, baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            defaultModel: "qwen-plus", keyPage: "https://bailian.console.aliyun.com/?apiKey=1"),
+        CloudProvider(
+            id: "kimi", name: "Kimi（月之暗面）", proto: .openAI, baseURL: "https://api.moonshot.cn/v1", defaultModel: "kimi-latest",
+            keyPage: "https://platform.moonshot.cn/console/api-keys"),
+        CloudProvider(
+            id: "zhipu", name: "智谱 GLM", proto: .openAI, baseURL: "https://open.bigmodel.cn/api/paas/v4", defaultModel: "glm-4-plus",
+            keyPage: "https://bigmodel.cn/usercenter/proj-mgmt/apikeys"),
+        CloudProvider(
+            id: "doubao", name: "豆包（火山方舟）", proto: .openAI, baseURL: "https://ark.cn-beijing.volces.com/api/v3", defaultModel: "",
+            keyPage: "https://console.volcengine.com/ark"),
+        CloudProvider(
+            id: "siliconflow", name: "硅基流动", proto: .openAI, baseURL: "https://api.siliconflow.cn/v1", defaultModel: "deepseek-ai/DeepSeek-V3",
+            keyPage: "https://cloud.siliconflow.cn/account/ak"),
+        CloudProvider(
+            id: "anthropic", name: "Claude（Anthropic）", proto: .anthropic, baseURL: "https://api.anthropic.com", defaultModel: "claude-opus-5-5",
+            keyPage: "https://console.anthropic.com/settings/keys"),
+        CloudProvider(
+            id: "openai", name: "OpenAI", proto: .openAI, baseURL: "https://api.openai.com/v1", defaultModel: "gpt-5",
+            keyPage: "https://platform.openai.com/api-keys"),
+        CloudProvider(
+            id: "openrouter", name: "OpenRouter", proto: .openAI, baseURL: "https://openrouter.ai/api/v1", defaultModel: "openrouter/auto",
+            keyPage: "https://openrouter.ai/keys"),
+        CloudProvider(id: "custom", name: "自定义（OpenAI 兼容）", proto: .openAI, baseURL: "", defaultModel: "", keyPage: ""),
     ]
 
     static func find(_ id: String) -> CloudProvider { all.first { $0.id == id } ?? all[0] }
@@ -118,7 +127,8 @@ final class AIConfig: ObservableObject {
     /// Finds a running local model server (LM Studio, Ollama, llama.cpp, vLLM) and its models.
     func detectLocal() async -> (base: String, models: [String])? {
         var candidates = [localBaseURL]
-        for c in ["http://127.0.0.1:1234/v1", "http://127.0.0.1:11434/v1", "http://127.0.0.1:8080/v1", "http://127.0.0.1:8000/v1"] where !candidates.contains(c) {
+        for c in ["http://127.0.0.1:1234/v1", "http://127.0.0.1:11434/v1", "http://127.0.0.1:8080/v1", "http://127.0.0.1:8000/v1"] where !candidates.contains(c)
+        {
             candidates.append(c)
         }
         for c in candidates {
@@ -142,7 +152,9 @@ final class AIKeyStore {
     private var keys: [String: String] = [:]
 
     private static var file: URL {
-        let base = AppEnvironment.isScripted ? FileManager.default.temporaryDirectory.appendingPathComponent("loupe-harness-keys")
+        let base =
+            AppEnvironment.isScripted
+            ? FileManager.default.temporaryDirectory.appendingPathComponent("loupe-harness-keys")
             : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!.appendingPathComponent("Loupe")
         return base.appendingPathComponent("ai-keys.json")
     }

@@ -29,8 +29,7 @@ public struct TextFileFormat: Sendable, Equatable {
         var prevCR = false
         for u in s.utf8 {
             if u == 13 { if prevCR { cr += 1 }; prevCR = true; continue }
-            if u == 10 { if prevCR { crlf += 1 } else { lf += 1 } }
-            else if prevCR { cr += 1 }
+            if u == 10 { if prevCR { crlf += 1 } else { lf += 1 } } else if prevCR { cr += 1 }
             prevCR = false
         }
         if prevCR { cr += 1 }

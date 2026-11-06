@@ -67,7 +67,11 @@ public enum DrawingParser {
             // gives something drawable.
             for branch in node.children("Choice") + node.children("Fallback") {
                 let items = branch.children.flatMap { objects($0, rels: rels, theme: theme, part: part, frame: frame) }
-                if items.contains(where: { if case .placeholder = $0.content { return false }; return true }) { return items }
+                if items.contains(where: {
+                    if case .placeholder = $0.content { return false }; return true
+                }) {
+                    return items
+                }
             }
             return node.children("Choice").first.map { $0.children.flatMap { objects($0, rels: rels, theme: theme, part: part, frame: frame) } } ?? []
         case "grpSp":
@@ -78,7 +82,8 @@ public enum DrawingParser {
             for c in node.children where c.name != "nvGrpSpPr" && c.name != "grpSpPr" {
                 var childFrame = UnitRect.full
                 if let cx = c.firstDescendant("xfrm"), let co = point(cx.child("off")), let ce = point(cx.child("ext"), x: "cx", y: "cy"),
-                   let chOff, let chExt, chExt.0 > 0, chExt.1 > 0 {
+                    let chOff, let chExt, chExt.0 > 0, chExt.1 > 0
+                {
                     childFrame = UnitRect(x: (co.0 - chOff.0) / chExt.0, y: (co.1 - chOff.1) / chExt.1, width: ce.0 / chExt.0, height: ce.1 / chExt.1)
                 }
                 items += objects(c, rels: rels, theme: theme, part: part, frame: childFrame.within(frame))

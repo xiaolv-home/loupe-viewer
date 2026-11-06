@@ -61,16 +61,17 @@ enum AIFiles {
             case "xlsx":
                 // Text starting with "=" is written as a live formula, with its value worked out
                 // now so the file shows numbers even in viewers that do not recalculate.
-                var wb = Workbook(sheets: sheets.map { s in
-                    var sh = Sheet(name: s.name, rows: s.rows)
-                    sh.columnCount = s.rows.reduce(0) { max($0, $1.count) }
-                    for (r, row) in s.rows.enumerated() {
-                        for (c, v) in row.enumerated() {
-                            if case .text(let t) = v, t.hasPrefix("="), t.count > 1 { sh.formulas[Sheet.key(r, c)] = t; sh.rows[r][c] = .empty }
+                var wb = Workbook(
+                    sheets: sheets.map { s in
+                        var sh = Sheet(name: s.name, rows: s.rows)
+                        sh.columnCount = s.rows.reduce(0) { max($0, $1.count) }
+                        for (r, row) in s.rows.enumerated() {
+                            for (c, v) in row.enumerated() {
+                                if case .text(let t) = v, t.hasPrefix("="), t.count > 1 { sh.formulas[Sheet.key(r, c)] = t; sh.rows[r][c] = .empty }
+                            }
                         }
-                    }
-                    return sh
-                }, source: "")
+                        return sh
+                    }, source: "")
                 for i in wb.sheets.indices {
                     for key in wb.sheets[i].formulas.keys.sorted() {
                         let f = wb.sheets[i].formulas[key]!

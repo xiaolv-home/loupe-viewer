@@ -14,8 +14,9 @@ extension SpreadsheetRenderer {
             guard let r = anchorRect(d.anchor) else { continue }
             for (ii, item) in d.items.enumerated() {
                 let f = item.frame
-                let rect = CGRect(x: r.minX + CGFloat(f.x) * r.width, y: r.minY + CGFloat(f.y) * r.height,
-                                  width: CGFloat(f.width) * r.width, height: CGFloat(f.height) * r.height)
+                let rect = CGRect(
+                    x: r.minX + CGFloat(f.x) * r.width, y: r.minY + CGFloat(f.y) * r.height,
+                    width: CGFloat(f.width) * r.width, height: CGFloat(f.height) * r.height)
                 out.append((item, (sheetIndex << 32) | (di << 12) | ii, rect.integral))
             }
         }
@@ -41,8 +42,9 @@ extension SpreadsheetRenderer {
             }
             return CGRect(x: p0.x, y: p0.y, width: CGFloat(a.width ?? 480) * zoom, height: CGFloat(a.height ?? 288) * zoom)
         }
-        return CGRect(x: CGFloat(a.x ?? 0) * zoom, y: CGFloat(a.y ?? 0) * zoom,
-                      width: CGFloat(a.width ?? 960) * zoom, height: CGFloat(a.height ?? 600) * zoom)
+        return CGRect(
+            x: CGFloat(a.x ?? 0) * zoom, y: CGFloat(a.y ?? 0) * zoom,
+            width: CGFloat(a.width ?? 960) * zoom, height: CGFloat(a.height ?? 600) * zoom)
     }
 
     func paintDrawings(dirty: NSRect) {

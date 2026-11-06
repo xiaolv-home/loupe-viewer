@@ -68,9 +68,10 @@ final class FileNode {
                     if last && !e.isDirectory { cur.size = e.size; cur.modified = e.modified }
                     continue
                 }
-                let node = FileNode(name: p, isDirectory: !last || e.isDirectory,
-                                    size: last && !e.isDirectory ? e.size : nil,
-                                    modified: last ? e.modified : nil)
+                let node = FileNode(
+                    name: p, isDirectory: !last || e.isDirectory,
+                    size: last && !e.isDirectory ? e.size : nil,
+                    modified: last ? e.modified : nil)
                 if last { node.encrypted = e.isEncrypted; node.isSymlink = e.isSymlink }
                 cur.add(node)
                 cur = node
@@ -122,7 +123,7 @@ final class FileTreeView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate
         addSubview(s)
         NSLayoutConstraint.activate([
             s.leadingAnchor.constraint(equalTo: leadingAnchor), s.trailingAnchor.constraint(equalTo: trailingAnchor),
-            s.topAnchor.constraint(equalTo: topAnchor), s.bottomAnchor.constraint(equalTo: bottomAnchor)
+            s.topAnchor.constraint(equalTo: topAnchor), s.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         outline.reloadData()
         // A single top-level folder (typical "project.zip/project/") is opened right away.
@@ -138,43 +139,48 @@ final class FileTreeView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate
 
     @objc private func doubleClicked() {
         guard let n = outline.item(atRow: outline.clickedRow) as? FileNode else { return }
-        if n.isDirectory { outline.isItemExpanded(n) ? outline.collapseItem(n) : outline.expandItem(n) }
-        else { onOpen?(n) }
+        if n.isDirectory { outline.isItemExpanded(n) ? outline.collapseItem(n) : outline.expandItem(n) } else { onOpen?(n) }
     }
 
     func outlineView(_ o: NSOutlineView, viewFor col: NSTableColumn?, item: Any) -> NSView? {
         guard let n = item as? FileNode, let id = col?.identifier.rawValue else { return nil }
         if id == "n" {
-            let cell = (o.makeView(withIdentifier: .init("name"), owner: nil) as? NSTableCellView) ?? {
-                let v = NSTableCellView()
-                v.identifier = .init("name")
-                let iv = NSImageView()
-                let t = NSTextField(labelWithString: "")
-                t.lineBreakMode = .byTruncatingMiddle
-                t.font = .systemFont(ofSize: 12)
-                for x in [iv, t] as [NSView] { x.translatesAutoresizingMaskIntoConstraints = false; v.addSubview(x) }
-                v.imageView = iv
-                v.textField = t
-                NSLayoutConstraint.activate([
-                    iv.leadingAnchor.constraint(equalTo: v.leadingAnchor, constant: 2), iv.centerYAnchor.constraint(equalTo: v.centerYAnchor),
-                    iv.widthAnchor.constraint(equalToConstant: 16), iv.heightAnchor.constraint(equalToConstant: 16),
-                    t.leadingAnchor.constraint(equalTo: iv.trailingAnchor, constant: 6), t.trailingAnchor.constraint(equalTo: v.trailingAnchor),
-                    t.centerYAnchor.constraint(equalTo: v.centerYAnchor)
-                ])
-                return v
-            }()
+            let cell =
+                (o.makeView(withIdentifier: .init("name"), owner: nil) as? NSTableCellView)
+                ?? {
+                    let v = NSTableCellView()
+                    v.identifier = .init("name")
+                    let iv = NSImageView()
+                    let t = NSTextField(labelWithString: "")
+                    t.lineBreakMode = .byTruncatingMiddle
+                    t.font = .systemFont(ofSize: 12)
+                    for x in [iv, t] as [NSView] { x.translatesAutoresizingMaskIntoConstraints = false; v.addSubview(x) }
+                    v.imageView = iv
+                    v.textField = t
+                    NSLayoutConstraint.activate([
+                        iv.leadingAnchor.constraint(equalTo: v.leadingAnchor, constant: 2), iv.centerYAnchor.constraint(equalTo: v.centerYAnchor),
+                        iv.widthAnchor.constraint(equalToConstant: 16), iv.heightAnchor.constraint(equalToConstant: 16),
+                        t.leadingAnchor.constraint(equalTo: iv.trailingAnchor, constant: 6), t.trailingAnchor.constraint(equalTo: v.trailingAnchor),
+                        t.centerYAnchor.constraint(equalTo: v.centerYAnchor),
+                    ])
+                    return v
+                }()
             cell.textField?.stringValue = n.name + (n.encrypted ? "  🔒" : "")
             let ext = (n.name as NSString).pathExtension
-            cell.imageView?.image = n.isDirectory ? NSWorkspace.shared.icon(for: .folder)
+            cell.imageView?.image =
+                n.isDirectory
+                ? NSWorkspace.shared.icon(for: .folder)
                 : NSWorkspace.shared.icon(for: UTType(filenameExtension: ext) ?? .data)
             return cell
         }
-        let t = (o.makeView(withIdentifier: .init(id), owner: nil) as? NSTextField) ?? {
-            let t = NSTextField(labelWithString: "")
-            t.identifier = .init(id)
-            t.lineBreakMode = .byTruncatingTail
-            return t
-        }()
+        let t =
+            (o.makeView(withIdentifier: .init(id), owner: nil) as? NSTextField)
+            ?? {
+                let t = NSTextField(labelWithString: "")
+                t.identifier = .init(id)
+                t.lineBreakMode = .byTruncatingTail
+                return t
+            }()
         t.textColor = .secondaryLabelColor
         switch id {
         case "s":
@@ -186,8 +192,9 @@ final class FileTreeView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate
             t.stringValue = n.modified.map { dateFmt.string(from: $0) } ?? "—"
         default:
             t.font = .systemFont(ofSize: 11)
-            if n.isDirectory { t.stringValue = "文件夹" }
-            else {
+            if n.isDirectory {
+                t.stringValue = "文件夹"
+            } else {
                 let ext = (n.name as NSString).pathExtension
                 t.stringValue = UTType(filenameExtension: ext)?.localizedDescription ?? (ext.isEmpty ? "文件" : ext.uppercased())
             }
@@ -219,7 +226,7 @@ private func stack(header: NSView, body: NSView) -> NSView {
         header.topAnchor.constraint(equalTo: v.topAnchor), header.leadingAnchor.constraint(equalTo: v.leadingAnchor),
         header.trailingAnchor.constraint(equalTo: v.trailingAnchor),
         body.topAnchor.constraint(equalTo: header.bottomAnchor), body.leadingAnchor.constraint(equalTo: v.leadingAnchor),
-        body.trailingAnchor.constraint(equalTo: v.trailingAnchor), body.bottomAnchor.constraint(equalTo: v.bottomAnchor)
+        body.trailingAnchor.constraint(equalTo: v.trailingAnchor), body.bottomAnchor.constraint(equalTo: v.bottomAnchor),
     ])
     return v
 }
@@ -244,11 +251,14 @@ final class ArchiveRenderer: Renderer {
         do {
             l = try await withTaskCancellationHandler {
                 try await Task.detached(priority: .userInitiated) {
-                    try ArchiveReader.list(url: url, progress: { n in
-                        Task { @MainActor in host.reportProgress(nil, label: "正在读取目录… \(n) 项") }
-                    }, isCancelled: { Task.isCancelled })
+                    try ArchiveReader.list(
+                        url: url,
+                        progress: { n in
+                            Task { @MainActor in host.reportProgress(nil, label: "正在读取目录… \(n) 项") }
+                        }, isCancelled: { Task.isCancelled })
                 }.value
-            } onCancel: {}
+            } onCancel: {
+            }
         } catch ArchiveError.cancelled {
             throw RenderError.cancelled
         } catch {
@@ -262,12 +272,18 @@ final class ArchiveRenderer: Renderer {
         let t = FileTreeView(root: root)
         tree = t
         var note: String?
-        if l.truncated { note = "条目过多，仅列出前 \(Fmt.number(ArchiveReader.maxEntries)) 项" }
-        else if l.errorMessage != nil { note = "部分内容无法读取（可能已损坏或加密）" }
-        else if l.entries.contains(where: { $0.isEncrypted }) { note = "包含加密条目" }
-        let header = NSHostingView(rootView: TreeHeader(title: l.formatName.uppercased() + (l.filterName.isEmpty ? "" : " · \(l.filterName)"),
-                                                        detail: "\(Fmt.number(fileCount)) 个文件 · 解压后约 \(Fmt.bytes(root.size ?? 0))",
-                                                        note: note))
+        if l.truncated {
+            note = "条目过多，仅列出前 \(Fmt.number(ArchiveReader.maxEntries)) 项"
+        } else if l.errorMessage != nil {
+            note = "部分内容无法读取（可能已损坏或加密）"
+        } else if l.entries.contains(where: { $0.isEncrypted }) {
+            note = "包含加密条目"
+        }
+        let header = NSHostingView(
+            rootView: TreeHeader(
+                title: l.formatName.uppercased() + (l.filterName.isEmpty ? "" : " · \(l.filterName)"),
+                detail: "\(Fmt.number(fileCount)) 个文件 · 解压后约 \(Fmt.bytes(root.size ?? 0))",
+                note: note))
         header.sizingOptions = [.intrinsicContentSize]
         return stack(header: header, body: t)
     }
@@ -277,8 +293,10 @@ final class ArchiveRenderer: Renderer {
     var statusText: String { "\(Fmt.number(fileCount)) 个文件 · \(Fmt.number(dirCount)) 个文件夹" }
     var infoSections: [InfoSection] {
         guard let l = listing else { return [] }
-        var items = [InfoItem("格式", l.formatName), InfoItem("文件", Fmt.number(fileCount)), InfoItem("文件夹", Fmt.number(dirCount)),
-                     InfoItem("解压后大小", Fmt.bytes(tree?.root.size ?? 0))]
+        var items = [
+            InfoItem("格式", l.formatName), InfoItem("文件", Fmt.number(fileCount)), InfoItem("文件夹", Fmt.number(dirCount)),
+            InfoItem("解压后大小", Fmt.bytes(tree?.root.size ?? 0)),
+        ]
         if !l.filterName.isEmpty { items.insert(InfoItem("压缩", l.filterName), at: 1) }
         if let e = l.errorMessage { items.append(InfoItem("警告", e)) }
         return [InfoSection("压缩包", items)]
@@ -303,8 +321,9 @@ final class DirectoryRenderer: Renderer {
         return items.map { u in
             let rv = try? u.resourceValues(forKeys: Set(keys))
             let dir = (rv?.isDirectory ?? false) && !(rv?.isPackage ?? false)
-            return FileNode(name: u.lastPathComponent, isDirectory: dir, size: rv?.fileSize.map(Int64.init), modified: rv?.contentModificationDate,
-                            loader: dir ? { DirectoryRenderer.children(of: u) } : nil)
+            return FileNode(
+                name: u.lastPathComponent, isDirectory: dir, size: rv?.fileSize.map(Int64.init), modified: rv?.contentModificationDate,
+                loader: dir ? { DirectoryRenderer.children(of: u) } : nil)
         }
         .sorted { a, b in
             if a.isDirectory != b.isDirectory { return a.isDirectory }

@@ -145,8 +145,7 @@ final class SheetXMLParser: NSObject, XMLParserDelegate {
     }
 
     func parser(_ parser: XMLParser, foundCharacters s: String) {
-        if inV { value += s } else if inF { formula += s } else if inIsT { value += s; if inIs { inline.text(s) } }
-        else { conditional.characters(s) }
+        if inV { value += s } else if inF { formula += s } else if inIsT { value += s; if inIs { inline.text(s) } } else { conditional.characters(s) }
     }
 
     func parser(_ parser: XMLParser, didEndElement name: String, namespaceURI: String?, qualifiedName: String?) {
@@ -162,8 +161,11 @@ final class SheetXMLParser: NSObject, XMLParserDelegate {
             // A single cell a huge gap below the last row is dropped, not used to grow the sheet.
             if r > rows.count + SpreadsheetReader.maxLayoutPadding { return }
             // Text in mixed formats: from the shared table, or written inline.
-            if type == "s", let i = Int(value), let runs = sharedRich[i] { richText[Sheet.key(r, c)] = runs }
-            else if type == "inlineStr", let runs = inline.formatted { richText[Sheet.key(r, c)] = runs }
+            if type == "s", let i = Int(value), let runs = sharedRich[i] {
+                richText[Sheet.key(r, c)] = runs
+            } else if type == "inlineStr", let runs = inline.formatted {
+                richText[Sheet.key(r, c)] = runs
+            }
             let cell: CellValue
             switch type {
             case "s": cell = Int(value).flatMap { $0 < shared.count ? .text(shared[$0]) : nil } ?? .empty
@@ -171,8 +173,7 @@ final class SheetXMLParser: NSObject, XMLParserDelegate {
             case "b": cell = .bool(value == "1")
             case "e": cell = .error(value)
             default:
-                if let d = Double(value) { cell = dateStyles.contains(style) ? .date(d) : .number(d) }
-                else { cell = value.isEmpty ? .empty : .text(value) }
+                if let d = Double(value) { cell = dateStyles.contains(style) ? .date(d) : .number(d) } else { cell = value.isEmpty ? .empty : .text(value) }
             }
             while rows.count <= r { rows.append([]) }
             if !cell.isEmpty || !formula.isEmpty {

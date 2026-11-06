@@ -159,14 +159,20 @@ public struct JSONParser {
         let start = i
         while i < b.count {
             let c = b[i]
-            if (c >= 0x30 && c <= 0x39) || c == UInt8(ascii: "-") || c == UInt8(ascii: "+") || c == UInt8(ascii: ".") || c == UInt8(ascii: "e") || c == UInt8(ascii: "E") { i += 1 } else { break }
+            if (c >= 0x30 && c <= 0x39) || c == UInt8(ascii: "-") || c == UInt8(ascii: "+") || c == UInt8(ascii: ".") || c == UInt8(ascii: "e")
+                || c == UInt8(ascii: "E")
+            {
+                i += 1
+            } else {
+                break
+            }
         }
         guard i > start else { throw err("无法识别的字符") }
         return .number(String(decoding: b[start..<i], as: UTF8.self))
     }
 
     private mutating func string() throws -> String {
-        i += 1 // opening quote
+        i += 1  // opening quote
         var out = [UInt8]()
         while i < b.count {
             let c = b[i]
@@ -185,7 +191,8 @@ public struct JSONParser {
                     guard i + 4 < b.count, var code = UInt32(String(decoding: b[(i + 1)...(i + 4)], as: UTF8.self), radix: 16) else { throw err("无效的 \\u 转义") }
                     i += 4
                     if (0xD800...0xDBFF).contains(code), i + 6 < b.count, b[i + 1] == UInt8(ascii: "\\"), b[i + 2] == UInt8(ascii: "u"),
-                       let low = UInt32(String(decoding: b[(i + 3)...(i + 6)], as: UTF8.self), radix: 16), (0xDC00...0xDFFF).contains(low) {
+                        let low = UInt32(String(decoding: b[(i + 3)...(i + 6)], as: UTF8.self), radix: 16), (0xDC00...0xDFFF).contains(low)
+                    {
                         code = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00)
                         i += 6
                     }

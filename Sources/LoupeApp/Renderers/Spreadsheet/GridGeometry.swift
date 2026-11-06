@@ -21,9 +21,9 @@ struct GridPoint: Equatable, Hashable {
 /// `cols` are the sheet columns on screen, in order. The first `frozenRows` rows stay on top.
 struct GridLayout {
     var cols: [Int] = []
-    var colPos: [Int] = []          // sheet column → index in `cols`, -1 when hidden
-    var xs: [CGFloat] = [0]         // left edge of each shown column, plus the total width
-    var ys: [CGFloat] = [0]         // top edge of each view row, plus the total height
+    var colPos: [Int] = []  // sheet column → index in `cols`, -1 when hidden
+    var xs: [CGFloat] = [0]  // left edge of each shown column, plus the total width
+    var ys: [CGFloat] = [0]  // top edge of each view row, plus the total height
     var frozenRows = 0
 
     var rowCount: Int { ys.count - 1 }

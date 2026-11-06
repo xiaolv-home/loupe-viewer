@@ -28,7 +28,9 @@ struct FunctionPanel: View {
                 if query.isEmpty {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 4), spacing: 4) {
                         ForEach(FunctionCatalog.categories, id: \.self) { c in
-                            Button { category = c; selected = FunctionCatalog.all.first { $0.category == c } } label: {
+                            Button {
+                                category = c; selected = FunctionCatalog.all.first { $0.category == c }
+                            } label: {
                                 Text(c)
                                     .font(.system(size: 11, weight: c == category ? .semibold : .regular))
                                     .frame(maxWidth: .infinity).padding(.vertical, 3)
@@ -46,7 +48,9 @@ struct FunctionPanel: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(list) { d in
-                            Button { selected = d } label: {
+                            Button {
+                                selected = d
+                            } label: {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(d.name).font(.system(size: 12, weight: .semibold, design: .monospaced))
                                     Text(d.summary).font(.system(size: 10.5)).foregroundStyle(.secondary).lineLimit(1)

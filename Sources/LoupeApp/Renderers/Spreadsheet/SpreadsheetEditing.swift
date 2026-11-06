@@ -104,7 +104,8 @@ extension SpreadsheetRenderer {
         markDirty()
         // New rows/columns, or wrapped text that may change its row's height, need a new layout.
         if sheet.rows.count != rowsBefore || sheet.columnCount != colsBefore
-            || changes.contains(where: { workbook.style($0.sheet, $0.row, $0.col)?.wrap == true }) {
+            || changes.contains(where: { workbook.style($0.sheet, $0.row, $0.col)?.wrap == true })
+        {
             reloadSheet()
         } else {
             lookCache = [:]
@@ -134,7 +135,9 @@ extension SpreadsheetRenderer {
         writeCell(row: sr, col: active.col, input: formulaText)
         let v = sheet.cell(sr, active.col)
         if formulaText.hasPrefix("=") {
-            resultIsError = { if case .error = v { return true }; return false }()
+            resultIsError = {
+                if case .error = v { return true }; return false
+            }()
             resultText = workbook.formatted(sheetIndex, sr, active.col).text
         }
         grid.window?.makeFirstResponder(grid)
@@ -161,7 +164,8 @@ extension SpreadsheetRenderer {
         guard let f = file, let window = grid.window else { completion?(false); return }
         let panel = NSSavePanel()
         let isCSV = workbook.csv != nil
-        panel.allowedContentTypes = isCSV ? [.commaSeparatedText, UTType(filenameExtension: "xlsx")!] : [UTType(filenameExtension: "xlsx")!, .commaSeparatedText]
+        panel.allowedContentTypes =
+            isCSV ? [.commaSeparatedText, UTType(filenameExtension: "xlsx")!] : [UTType(filenameExtension: "xlsx")!, .commaSeparatedText]
         panel.allowsOtherFileTypes = false
         panel.directoryURL = f.url.deletingLastPathComponent()
         panel.nameFieldStringValue = f.url.deletingPathExtension().lastPathComponent + (isCSV ? ".csv" : (canSaveInPlace ? " 副本.xlsx" : ".xlsx"))
@@ -217,10 +221,14 @@ extension SpreadsheetRenderer {
         panel.beginSheetModal(for: window) { [weak self] resp in
             guard resp == .OK, let dest = panel.url else { return }
             do {
-                if asCSV { try CSVWriter.write(rows: rows, format: CSVFormat(delimiter: 44, encoding: .utf8, bom: true, crlf: true), to: dest) }
-                else { try XLSXWriter.write(sheets: [(name: name, rows: rows, formulas: [:])], to: dest) }
-                self?.host?.showNotice("已导出 \(Fmt.number(rows.count)) 行：\(dest.lastPathComponent)", style: .success,
-                                       action: NoticeAction(title: "在 Finder 中显示") { NSWorkspace.shared.activateFileViewerSelecting([dest]) })
+                if asCSV {
+                    try CSVWriter.write(rows: rows, format: CSVFormat(delimiter: 44, encoding: .utf8, bom: true, crlf: true), to: dest)
+                } else {
+                    try XLSXWriter.write(sheets: [(name: name, rows: rows, formulas: [:])], to: dest)
+                }
+                self?.host?.showNotice(
+                    "已导出 \(Fmt.number(rows.count)) 行：\(dest.lastPathComponent)", style: .success,
+                    action: NoticeAction(title: "在 Finder 中显示") { NSWorkspace.shared.activateFileViewerSelecting([dest]) })
             } catch {
                 self?.host?.showNotice("导出失败：\(error.localizedDescription)", style: .warning, action: nil)
             }

@@ -21,8 +21,10 @@ public enum SheetSummary {
     /// One row per distinct combination of the group columns (in order of first appearance,
     /// or by the first value column descending when `sortDescending`), then a 总计 row.
     /// `rows` are the data rows to include (already filtered).
-    public static func groupBy(_ sheet: Sheet, rows: [Int], header: Int?, groupColumns: [Int], valueColumns: [Int],
-                               aggregate: Aggregate, sortDescending: Bool = true) -> [[CellValue]] {
+    public static func groupBy(
+        _ sheet: Sheet, rows: [Int], header: Int?, groupColumns: [Int], valueColumns: [Int],
+        aggregate: Aggregate, sortDescending: Bool = true
+    ) -> [[CellValue]] {
         func name(_ c: Int) -> String {
             if let h = header { let t = sheet.cell(h, c).display; if !t.isEmpty { return t } }
             return Sheet.columnName(c) + "列"
@@ -69,7 +71,8 @@ public enum SheetSummary {
         if sortDescending, aggregate != .min {
             keys.sort { (result(groups[$0]![0]).number ?? 0) > (result(groups[$1]![0]).number ?? 0) }
         }
-        let headerRow: [CellValue] = groupColumns.map { .text(name($0)) }
+        let headerRow: [CellValue] =
+            groupColumns.map { .text(name($0)) }
             + values.map { .text($0 < 0 ? aggregate.title : "\(name($0))（\(aggregate.title)）") }
         var out: [[CellValue]] = [headerRow]
         for k in keys {
@@ -83,7 +86,9 @@ public enum SheetSummary {
 
     /// Tab-separated text of a table (what the model reads back).
     public static func tsv(_ rows: [[CellValue]], limit: Int = 500) -> String {
-        var lines = rows.prefix(limit).map { $0.map { $0.display.replacingOccurrences(of: "\t", with: " ").replacingOccurrences(of: "\n", with: " ") }.joined(separator: "\t") }
+        var lines = rows.prefix(limit).map {
+            $0.map { $0.display.replacingOccurrences(of: "\t", with: " ").replacingOccurrences(of: "\n", with: " ") }.joined(separator: "\t")
+        }
         if rows.count > limit { lines.append("…（共 \(rows.count) 行，只列出前 \(limit) 行）") }
         return lines.joined(separator: "\n")
     }

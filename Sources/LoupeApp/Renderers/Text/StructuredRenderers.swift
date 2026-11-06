@@ -29,7 +29,7 @@ class StructuredRenderer: NSObject, ObservableObject {
             v.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             v.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             v.topAnchor.constraint(equalTo: container.topAnchor),
-            v.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            v.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
     }
 

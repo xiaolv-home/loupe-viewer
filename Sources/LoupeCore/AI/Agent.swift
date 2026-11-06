@@ -20,8 +20,10 @@ public enum AIAgent {
     /// Longest tool output sent back to the model; the tool says how to read more.
     public static let maxToolOutput = 24_000
 
-    public static func run(client: AIClient, system: String, history: [AIMessage], tools: [AIToolSpec],
-                           maxSteps: Int = 24, runTool: ToolRunner, onEvent: EventSink) async throws {
+    public static func run(
+        client: AIClient, system: String, history: [AIMessage], tools: [AIToolSpec],
+        maxSteps: Int = 24, runTool: ToolRunner, onEvent: EventSink
+    ) async throws {
         var messages = history
         for _ in 0..<maxSteps {
             var final: AIMessage?

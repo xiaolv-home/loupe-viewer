@@ -53,19 +53,25 @@ private struct SidebarContent: View {
             // Every click on a row opens it, anywhere in its highlight and whether or not it is
             // already selected. The list's own selection change cannot tell a click from the
             // arrow keys, misses clicks on the selected row and can arrive after the click.
-            .background(ListRowClicks { row in
-                guard filtered.indices.contains(row) else { return }
-                let u = filtered[row].url
-                select(u)
-                activate(u)
-            })
-            .onKeyPress(.return) { if let u = selection { activate(u) }; return .handled }
+            .background(
+                ListRowClicks { row in
+                    guard filtered.indices.contains(row) else { return }
+                    let u = filtered[row].url
+                    select(u)
+                    activate(u)
+                }
+            )
+            .onKeyPress(.return) {
+                if let u = selection { activate(u) }; return .handled
+            }
             .onKeyPress(.rightArrow) {
                 guard let u = selection, isFolder(u) else { return .ignored }
                 activate(u)
                 return .handled
             }
-            .onKeyPress(.leftArrow) { goUp(); return .handled }
+            .onKeyPress(.leftArrow) {
+                goUp(); return .handled
+            }
             .overlay {
                 if browser.items.isEmpty {
                     Text("这个文件夹是空的").font(.system(size: 12)).foregroundStyle(.secondary)
@@ -125,7 +131,9 @@ private struct SidebarContent: View {
             .help(browser.dir?.path.replacingOccurrences(of: NSHomeDirectory(), with: "~") ?? "")
             Spacer(minLength: 2)
             Text("\(browser.items.count)").font(Theme.mono(10)).foregroundStyle(.secondary)
-            Button { naming = true } label: {
+            Button {
+                naming = true
+            } label: {
                 Image(systemName: "plus").font(.system(size: 12, weight: .semibold)).frame(width: 22, height: 22)
                     .contentShape(Rectangle())
             }
@@ -138,7 +146,9 @@ private struct SidebarContent: View {
                     naming = false
                     select(url)
                     model.openInNewTab(url)
-                } cancel: { naming = false }
+                } cancel: {
+                    naming = false
+                }
             }
         }
         .padding(.leading, 8).padding(.trailing, 14).padding(.top, 10).padding(.bottom, 6)
@@ -295,8 +305,10 @@ enum IconCache {
         let special = item.isFolder ? item.url.path : (ext.isEmpty || ["app", "pages", "numbers", "key"].contains(ext) ? item.url.path : nil)
         let key = special ?? "ext:" + ext
         if let i = byKey[key] { return i }
-        let i = special != nil ? NSWorkspace.shared.icon(forFile: item.url.path)
-                               : NSWorkspace.shared.icon(for: UTType(filenameExtension: ext) ?? .data)
+        let i =
+            special != nil
+            ? NSWorkspace.shared.icon(forFile: item.url.path)
+            : NSWorkspace.shared.icon(for: UTType(filenameExtension: ext) ?? .data)
         if byKey.count > 2000 { byKey.removeAll() }
         byKey[key] = i
         return i
@@ -344,7 +356,7 @@ struct InspectorView: View {
             InfoItem("大小", Fmt.bytes(f.size) + (f.size >= 1024 ? "（\(Fmt.exactBytes(f.size))）" : "")),
             InfoItem("修改时间", Fmt.date(f.modified)),
             InfoItem("创建时间", Fmt.date(f.created)),
-            InfoItem("位置", f.url.deletingLastPathComponent().path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))
+            InfoItem("位置", f.url.deletingLastPathComponent().path.replacingOccurrences(of: NSHomeDirectory(), with: "~")),
         ]
         if let t = f.utType { items.append(InfoItem("UTI", t.identifier)) }
         let src: String

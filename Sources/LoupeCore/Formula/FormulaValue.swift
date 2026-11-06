@@ -64,7 +64,7 @@ public struct CellRef: Sendable, Equatable {
 
 public struct RangeRef: Sendable, Equatable {
     public var sheet: String?
-    public var r0: Int, c0: Int, r1: Int, c1: Int     // r1/c1 = Int.max for whole column/row
+    public var r0: Int, c0: Int, r1: Int, c1: Int  // r1/c1 = Int.max for whole column/row
     public var absR0: Bool, absR1: Bool, absC0: Bool, absC1: Bool
 }
 

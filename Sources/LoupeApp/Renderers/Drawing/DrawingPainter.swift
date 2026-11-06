@@ -141,8 +141,10 @@ final class DrawingPainter {
                 let size = CGFloat(run.size ?? 11) * 4 / 3 * scale
                 var font = NSFont.systemFont(ofSize: size, weight: run.bold ? .semibold : .regular)
                 if run.italic { font = NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) }
-                var attrs: [NSAttributedString.Key: Any] = [.font: font, .paragraphStyle: style,
-                                                            .foregroundColor: run.color.map(ns) ?? NSColor(white: 0.12, alpha: 1)]
+                var attrs: [NSAttributedString.Key: Any] = [
+                    .font: font, .paragraphStyle: style,
+                    .foregroundColor: run.color.map(ns) ?? NSColor(white: 0.12, alpha: 1),
+                ]
                 if run.underline { attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue }
                 text.append(NSAttributedString(string: run.text, attributes: attrs))
             }
@@ -166,6 +168,7 @@ final class DrawingPainter {
         let f = NSFont.systemFont(ofSize: 12 * scale)
         let s = what as NSString
         let size = s.size(withAttributes: [.font: f])
-        s.draw(at: CGPoint(x: r.midX - size.width / 2, y: r.midY - size.height / 2), withAttributes: [.font: f, .foregroundColor: NSColor(white: 0.45, alpha: 1)])
+        s.draw(
+            at: CGPoint(x: r.midX - size.width / 2, y: r.midY - size.height / 2), withAttributes: [.font: f, .foregroundColor: NSColor(white: 0.45, alpha: 1)])
     }
 }

@@ -21,7 +21,9 @@ struct AIWelcome: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("试试").font(Theme.label).foregroundStyle(.secondary)
                     ForEach(suggestions, id: \.self) { s in
-                        Button { session.input = s; session.send() } label: {
+                        Button {
+                            session.input = s; session.send()
+                        } label: {
                             HStack(alignment: .top, spacing: 6) {
                                 Image(systemName: "arrow.turn.down.right").font(.system(size: 9.5)).foregroundStyle(Theme.ember).padding(.top, 2)
                                 Text(s).font(.system(size: 12)).multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
@@ -42,7 +44,9 @@ struct AIWelcome: View {
                             Button("全部（\(store.list.count)）…", action: showHistory).buttonStyle(.link).font(.system(size: 11))
                         }
                         ForEach(store.list.prefix(3)) { s in
-                            Button { session.open(s.id) } label: {
+                            Button {
+                                session.open(s.id)
+                            } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: "bubble.left").font(.system(size: 10)).foregroundStyle(.secondary)
                                     Text(s.title).font(.system(size: 12)).lineLimit(1)
@@ -63,7 +67,9 @@ struct AIWelcome: View {
                         }
                         AIFlow(spacing: 6) {
                             ForEach(skills.enabled.prefix(16)) { s in
-                                Button { session.pinnedSkill = s } label: {
+                                Button {
+                                    session.pinnedSkill = s
+                                } label: {
                                     Text(s.name).font(.system(size: 11)).padding(.horizontal, 8).padding(.vertical, 4)
                                         .background(Capsule().strokeBorder(Theme.ember.opacity(0.4)))
                                 }
@@ -79,19 +85,25 @@ struct AIWelcome: View {
 
     private var suggestions: [String] {
         guard let f = tabs.current.file else {
-            return ["看看我「文稿」文件夹里最近有哪些文件，按类型整理成一份清单（Excel）",
-                    "帮我写一份本周工作周报的模板（Word）"]
+            return [
+                "看看我「文稿」文件夹里最近有哪些文件，按类型整理成一份清单（Excel）",
+                "帮我写一份本周工作周报的模板（Word）",
+            ]
         }
         if let own = tabs.current.renderer?.aiSuggestions { return own }
         switch f.format.family {
         case .markdown:
-            return ["帮我润色这篇文档，改得更通顺专业，直接改在编辑器里",
-                    "给这篇文档加一个目录和摘要", "把它排版成一份 Word 文档"]
+            return [
+                "帮我润色这篇文档，改得更通顺专业，直接改在编辑器里",
+                "给这篇文档加一个目录和摘要", "把它排版成一份 Word 文档",
+            ]
         case .pdf, .office, .iwork, .text:
-            return ["概括这份文件的要点，列出需要我注意或处理的事项",
-                    "如果这是合同：逐条审阅风险，出一份审阅意见书（Word）",
-                    "如果这是简历：按招聘方视角点评，并生成一份优化后的简历（Word）",
-                    "把里面的关键数据整理成 Excel 表"]
+            return [
+                "概括这份文件的要点，列出需要我注意或处理的事项",
+                "如果这是合同：逐条审阅风险，出一份审阅意见书（Word）",
+                "如果这是简历：按招聘方视角点评，并生成一份优化后的简历（Word）",
+                "把里面的关键数据整理成 Excel 表",
+            ]
         case .image:
             return ["识别图片里的文字，整理成文档", "如果是表格截图，把它还原成 Excel"]
         default:

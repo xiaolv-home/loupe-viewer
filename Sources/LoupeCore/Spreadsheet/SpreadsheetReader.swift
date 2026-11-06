@@ -37,8 +37,9 @@ public enum SpreadsheetReader {
         bytes = Data()
         if rows.count > maxRows { rows = Array(rows.prefix(maxRows)) }
         let cells = rows.map { $0.map(CellValue.infer) }
-        var wb = Workbook(sheets: [Sheet(name: url.deletingPathExtension().lastPathComponent, rows: cells)],
-                          source: delim == 9 ? "TSV · \(enc.name)" : "CSV · \(enc.name)")
+        var wb = Workbook(
+            sheets: [Sheet(name: url.deletingPathExtension().lastPathComponent, rows: cells)],
+            source: delim == 9 ? "TSV · \(enc.name)" : "CSV · \(enc.name)")
         let crlf = data.prefix(64 * 1024).range(of: Data([0x0D, 0x0A])) != nil
         wb.csv = CSVFormat(delimiter: delim, encoding: enc.encoding, bom: enc.bomLength > 0, crlf: crlf)
         return wb
@@ -50,11 +51,11 @@ public enum SpreadsheetReader {
         let rawParts: [String: Data]
         do {
             rawParts = try ArchiveReader.extractAll(url: url) { p in
-                p == "xl/workbook.xml" || p == "xl/_rels/workbook.xml.rels" || p == "xl/sharedStrings.xml" ||
-                    p == "xl/styles.xml" || p == "xl/theme/theme1.xml" || (p.hasPrefix("xl/worksheets/") && p.hasSuffix(".xml")) ||
+                p == "xl/workbook.xml" || p == "xl/_rels/workbook.xml.rels" || p == "xl/sharedStrings.xml" || p == "xl/styles.xml" || p == "xl/theme/theme1.xml"
+                    || (p.hasPrefix("xl/worksheets/") && p.hasSuffix(".xml"))
                     // What is drawn over the cells: drawings, the charts and pictures they use, chart sheets.
-                    p.hasPrefix("xl/drawings/") || p.hasPrefix("xl/charts/") || p.hasPrefix("xl/media/") ||
-                    p.hasPrefix("xl/chartsheets/") || p.hasPrefix("xl/worksheets/_rels/")
+                    || p.hasPrefix("xl/drawings/") || p.hasPrefix("xl/charts/") || p.hasPrefix("xl/media/") || p.hasPrefix("xl/chartsheets/")
+                    || p.hasPrefix("xl/worksheets/_rels/")
             }
         } catch {
             throw SpreadsheetError(message: "无法读取工作簿：\(error.localizedDescription)")
@@ -105,7 +106,9 @@ public enum SpreadsheetReader {
         }
         if sheets.isEmpty {
             // Some writers omit rels; fall back to every worksheet in name order.
-            for (k, d) in parts.filter({ $0.key.hasPrefix("xl/worksheets/") && !$0.key.contains("/_rels/") }).sorted(by: { $0.key.localizedStandardCompare($1.key) == .orderedAscending }) {
+            for (k, d) in parts.filter({ $0.key.hasPrefix("xl/worksheets/") && !$0.key.contains("/_rels/") }).sorted(by: {
+                $0.key.localizedStandardCompare($1.key) == .orderedAscending
+            }) {
                 let p = SheetXMLParser(shared: shared, sharedRich: sharedTable.rich, dateStyles: dateStyles, color: runColor)
                 p.run(d)
                 var sh = p.makeSheet(name: (k as NSString).lastPathComponent.replacingOccurrences(of: ".xml", with: ""))
@@ -129,7 +132,8 @@ public enum SpreadsheetReader {
     /// few KB of that sheet instead of parsing the workbook — for showing it as Excel would.
     public static func savedZoom(xlsx url: URL) -> Double? {
         guard let parts = try? ArchiveReader.extractAll(url: url, matching: { $0 == "xl/workbook.xml" || $0 == "xl/_rels/workbook.xml.rels" }),
-              let wbData = parts["xl/workbook.xml"] else { return nil }
+            let wbData = parts["xl/workbook.xml"]
+        else { return nil }
         let book = WorkbookParser.parsed(wbData)
         let sheets = book.sheets, active = book.activeTab
         guard sheets.indices.contains(active) else { return nil }
@@ -141,7 +145,8 @@ public enum SpreadsheetReader {
         guard let r = text.range(of: #"<(\w+:)?sheetView\b[^>]*\bzoomScale="(\d+)""#, options: .regularExpression) else { return nil }
         let tag = text[r]
         guard let z = tag.range(of: #"zoomScale="(\d+)""#, options: .regularExpression).flatMap({ Double(tag[$0].filter(\.isNumber)) }),
-              z >= 10, z <= 400 else { return nil }
+            z >= 10, z <= 400
+        else { return nil }
         return z
     }
 
@@ -183,8 +188,10 @@ public enum SpreadsheetReader {
 /// Removes the prefix some writers give SpreadsheetML / relationship elements (`<x:row>` →
 /// `<row>`), so the parsers below — which match plain element names — read those files too.
 enum XLSXNamespace {
-    static let namespaces = ["http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-                             "http://schemas.openxmlformats.org/package/2006/relationships"]
+    static let namespaces = [
+        "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+        "http://schemas.openxmlformats.org/package/2006/relationships",
+    ]
 
     static func unprefixed(_ d: Data) -> Data {
         let head = String(decoding: d.prefix(4096), as: UTF8.self)
@@ -192,8 +199,9 @@ enum XLSXNamespace {
         for ns in namespaces {
             let pattern = #"xmlns:([A-Za-z_][\w.-]*)=""# + NSRegularExpression.escapedPattern(for: ns) + "\""
             guard let re = try? NSRegularExpression(pattern: pattern),
-                  let m = re.firstMatch(in: head, range: NSRange(head.startIndex..., in: head)),
-                  let r = Range(m.range(at: 1), in: head) else { continue }
+                let m = re.firstMatch(in: head, range: NSRange(head.startIndex..., in: head)),
+                let r = Range(m.range(at: 1), in: head)
+            else { continue }
             prefixes.append(String(head[r]))
         }
         guard !prefixes.isEmpty else { return d }
@@ -204,4 +212,3 @@ enum XLSXNamespace {
         return Data(text.utf8)
     }
 }
-

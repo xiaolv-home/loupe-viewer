@@ -68,7 +68,7 @@ final class LargeTextView: NSView, NSTableViewDataSource, NSTableViewDelegate, N
             stack.leadingAnchor.constraint(equalTo: searchBar.leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: searchBar.trailingAnchor),
             stack.centerYAnchor.constraint(equalTo: searchBar.centerYAnchor),
-            searchField.widthAnchor.constraint(greaterThanOrEqualToConstant: 240)
+            searchField.widthAnchor.constraint(greaterThanOrEqualToConstant: 240),
         ])
         searchBar.isHidden = true
 
@@ -85,7 +85,7 @@ final class LargeTextView: NSView, NSTableViewDataSource, NSTableViewDelegate, N
             scroll.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
             scroll.leadingAnchor.constraint(equalTo: leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: bottomAnchor)
+            scroll.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
     required init?(coder: NSCoder) { fatalError() }
@@ -108,13 +108,15 @@ final class LargeTextView: NSView, NSTableViewDataSource, NSTableViewDelegate, N
 
     func tableView(_ tableView: NSTableView, viewFor col: NSTableColumn?, row: Int) -> NSView? {
         let id = col?.identifier ?? .init("t")
-        let cell = (tableView.makeView(withIdentifier: id, owner: nil) as? NSTextField) ?? {
-            let t = NSTextField(labelWithString: "")
-            t.identifier = id
-            t.lineBreakMode = .byClipping
-            t.allowsDefaultTighteningForTruncation = false
-            return t
-        }()
+        let cell =
+            (tableView.makeView(withIdentifier: id, owner: nil) as? NSTextField)
+            ?? {
+                let t = NSTextField(labelWithString: "")
+                t.identifier = id
+                t.lineBreakMode = .byClipping
+                t.allowsDefaultTighteningForTruncation = false
+                return t
+            }()
         if id.rawValue == "n" {
             cell.font = numFont
             cell.alignment = .right

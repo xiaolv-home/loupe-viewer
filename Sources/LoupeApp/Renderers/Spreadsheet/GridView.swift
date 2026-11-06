@@ -233,7 +233,9 @@ final class GridView: NSView {
             rects = [GridRect(GridPoint(row: anchor.row, col: first), b)]
         } else if e.modifierFlags.contains(.command) {
             rects.append(GridRect(a, b)); anchor = a
-        } else { rects = [GridRect(a, b)]; anchor = a }
+        } else {
+            rects = [GridRect(a, b)]; anchor = a
+        }
         owner.gridSelect(rects, active: a, anchor: anchor)
         track(.rows, from: e)
     }
@@ -257,8 +259,10 @@ final class GridView: NSView {
             if ev.type == .leftMouseDragged { loc = ev.locationInWindow }
             let inScroll = scroll.convert(loc, from: nil)
             if !scroll.bounds.contains(inScroll),
-               let fake = NSEvent.mouseEvent(with: .leftMouseDragged, location: loc, modifierFlags: [], timestamp: ev.timestamp,
-                                             windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1) {
+                let fake = NSEvent.mouseEvent(
+                    with: .leftMouseDragged, location: loc, modifierFlags: [], timestamp: ev.timestamp,
+                    windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)
+            {
                 body.autoscroll(with: fake)
             }
             guard let owner, let p = cell(at: gridLocation(loc)) else { continue }
@@ -325,10 +329,10 @@ final class GridView: NSView {
         switch e.keyCode {
         case 123: dc = -1
         case 124: dc = 1
-        case 36, 76, 120:   // Return / Enter / F2 start editing the active cell (or move down)
+        case 36, 76, 120:  // Return / Enter / F2 start editing the active cell (or move down)
             if owner.gridEditable { owner.gridBeginEdit(active, typed: nil); return }
             dr = shift ? -1 : 1
-        case 51, 117:       // Delete / Forward delete clear the selection
+        case 51, 117:  // Delete / Forward delete clear the selection
             if owner.gridEditable { owner.gridClearSelection() }
             return
         case 125: dr = 1
@@ -339,7 +343,8 @@ final class GridView: NSView {
         default:
             // Typing a character starts editing with that character, like a spreadsheet.
             if owner.gridEditable, !cmd, !e.modifierFlags.contains(.control), let ch = e.characters, let u = ch.unicodeScalars.first,
-               u.value >= 0x20, u.value != 0x7F, !(0xF700...0xF8FF).contains(u.value) {
+                u.value >= 0x20, u.value != 0x7F, !(0xF700...0xF8FF).contains(u.value)
+            {
                 owner.gridBeginEdit(active, typed: ch)
                 return
             }
@@ -376,8 +381,9 @@ final class GridView: NSView {
         let L = layoutInfo
         guard let owner, L.rowCount > 0, let first = L.cols.first, let last = L.cols.last else { return }
         let (_, active, _) = owner.gridSelection()
-        owner.gridSelect([GridRect(GridPoint(row: 0, col: first), GridPoint(row: L.rowCount - 1, col: last))],
-                         active: active, anchor: GridPoint(row: 0, col: first))
+        owner.gridSelect(
+            [GridRect(GridPoint(row: 0, col: first), GridPoint(row: L.rowCount - 1, col: last))],
+            active: active, anchor: GridPoint(row: 0, col: first))
     }
 
     @objc func copy(_ sender: Any?) { owner?.gridCopy() }
@@ -444,4 +450,3 @@ final class GridPane: NSView {
         return self
     }
 }
-

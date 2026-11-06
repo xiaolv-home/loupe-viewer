@@ -37,7 +37,7 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
     private let surface = ImageSurface()
     private var source: CGImageSource?
     private var decoded: DecodedImage?
-    private var rotation = 0 // quarter turns clockwise
+    private var rotation = 0  // quarter turns clockwise
     private var props: [String: Any] = [:]
     private var animating = false
     private var isIconFamily = false
@@ -121,7 +121,7 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
                 kCGImageSourceCreateThumbnailFromImageAlways: true,
                 kCGImageSourceCreateThumbnailWithTransform: true,
                 kCGImageSourceShouldCache: false,
-                kCGImageSourceThumbnailMaxPixelSize: maxSide > 0 ? min(maxSide, limit) : limit
+                kCGImageSourceThumbnailMaxPixelSize: maxSide > 0 ? min(maxSide, limit) : limit,
             ]
             opts[kCGImageSourceDecodeRequest] = kCGImageSourceDecodeToHDR
             var img = CGImageSourceCreateThumbnailAtIndex(src, index, opts as CFDictionary)
@@ -136,12 +136,14 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
             let alpha = ![.none, .noneSkipLast, .noneSkipFirst].contains(img.alphaInfo)
             let name = (cs?.name as String?)?.replacingOccurrences(of: "kCGColorSpace", with: "")
             if !hdr, let surf = ImageRenderer.makeSurface(img, quarterTurns: turns) {
-                return DecodedImage(surface: surf, image: nil, pixelSize: CGSize(width: surf.width, height: surf.height),
-                                    isHDR: false, hasAlpha: alpha, colorSpaceName: name, downsampled: maxSide > limit)
+                return DecodedImage(
+                    surface: surf, image: nil, pixelSize: CGSize(width: surf.width, height: surf.height),
+                    isHDR: false, hasAlpha: alpha, colorSpaceName: name, downsampled: maxSide > limit)
             }
             let shown = turns == 0 ? img : (ImageRenderer.rotate(img, quarterTurns: turns) ?? img)
-            return DecodedImage(surface: nil, image: shown, pixelSize: CGSize(width: shown.width, height: shown.height),
-                                isHDR: hdr, hasAlpha: alpha, colorSpaceName: name, downsampled: maxSide > limit)
+            return DecodedImage(
+                surface: nil, image: shown, pixelSize: CGSize(width: shown.width, height: shown.height),
+                isHDR: hdr, hasAlpha: alpha, colorSpaceName: name, downsampled: maxSide > limit)
         }.value
         guard let result else { throw RenderError.unreadable("无法解码图像（文件可能已损坏）") }
         return result
@@ -165,15 +167,17 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
         let bpr = IOSurfaceAlignProperty(kIOSurfaceBytesPerRow, w * 4)
         let props: [IOSurfacePropertyKey: Any] = [
             .width: w, .height: h, .bytesPerElement: 4, .bytesPerRow: bpr,
-            .allocSize: bpr * h, .pixelFormat: kCVPixelFormatType_32BGRA
+            .allocSize: bpr * h, .pixelFormat: kCVPixelFormatType_32BGRA,
         ]
         guard let surf = IOSurface(properties: props) else { return nil }
         let cs: CGColorSpace
         if let c = img.colorSpace, c.model == .rgb { cs = c } else { cs = CGColorSpace(name: CGColorSpace.sRGB)! }
         surf.lock(options: [], seed: nil)
         defer { surf.unlock(options: [], seed: nil) }
-        guard let ctx = CGContext(data: surf.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: surf.bytesPerRow,
-                                  space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+        guard
+            let ctx = CGContext(
+                data: surf.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: surf.bytesPerRow,
+                space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
         else { return nil }
         ctx.clear(CGRect(x: 0, y: 0, width: w, height: h))
         ctx.interpolationQuality = .none
@@ -197,10 +201,14 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
         let w = img.width, h = img.height
         let (nw, nh) = turns % 2 == 1 ? (h, w) : (w, h)
         let wide = img.bitsPerComponent > 8
-        guard let ctx = CGContext(data: nil, width: nw, height: nh, bitsPerComponent: wide ? 16 : 8,
-                                  bytesPerRow: 0, space: img.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!,
-                                  bitmapInfo: wide ? CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.floatComponents.rawValue | CGBitmapInfo.byteOrder16Little.rawValue
-                                                   : CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        guard
+            let ctx = CGContext(
+                data: nil, width: nw, height: nh, bitsPerComponent: wide ? 16 : 8,
+                bytesPerRow: 0, space: img.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!,
+                bitmapInfo: wide
+                    ? CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.floatComponents.rawValue | CGBitmapInfo.byteOrder16Little.rawValue
+                    : CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
         ctx.translateBy(x: CGFloat(nw) / 2, y: CGFloat(nh) / 2)
         ctx.rotate(by: -CGFloat(turns) * .pi / 2)
         ctx.draw(img, in: CGRect(x: -CGFloat(w) / 2, y: -CGFloat(h) / 2, width: CGFloat(w), height: CGFloat(h)))
@@ -272,8 +280,9 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
 
     func zoom(_ factor: CGFloat) {
         let center = scroll.contentView.bounds
-        scroll.setMagnification(max(scroll.minMagnification, min(scroll.maxMagnification, scroll.magnification * factor)),
-                                centeredAt: NSPoint(x: center.midX, y: center.midY))
+        scroll.setMagnification(
+            max(scroll.minMagnification, min(scroll.maxMagnification, scroll.magnification * factor)),
+            centeredAt: NSPoint(x: center.midX, y: center.midY))
         fitMode = false
         magnificationChanged(userInitiated: false)
     }
@@ -401,7 +410,8 @@ final class ImageRenderer: NSObject, Renderer, ObservableObject {
         if let eb = exif[kCGImagePropertyExifExposureBiasValue as String] as? Double, eb != 0 { shot.append(InfoItem("曝光补偿", String(format: "%+.1f EV", eb))) }
         if let d = exif[kCGImagePropertyExifDateTimeOriginal as String] as? String { shot.append(InfoItem("拍摄时间", d)) }
         if let gps = props[kCGImagePropertyGPSDictionary as String] as? [String: Any],
-           let lat = gps[kCGImagePropertyGPSLatitude as String] as? Double, let lon = gps[kCGImagePropertyGPSLongitude as String] as? Double {
+            let lat = gps[kCGImagePropertyGPSLatitude as String] as? Double, let lon = gps[kCGImagePropertyGPSLongitude as String] as? Double
+        {
             let ns = gps[kCGImagePropertyGPSLatitudeRef as String] as? String ?? "N"
             let ew = gps[kCGImagePropertyGPSLongitudeRef as String] as? String ?? "E"
             shot.append(InfoItem("位置", String(format: "%.5f°%@, %.5f°%@", lat, ns, lon, ew)))
@@ -417,7 +427,9 @@ private struct ImageControls: View {
     var body: some View {
         HStack(spacing: 2) {
             LensButton(symbol: "arrow.down.right.and.arrow.up.left", help: "适应窗口（⌘9）", active: r.fitMode) { r.fit() }
-            Button { r.actualSize() } label: {
+            Button {
+                r.actualSize()
+            } label: {
                 Text("1:1").font(.system(size: 11, weight: .bold)).frame(width: 30, height: 24)
                     .foregroundStyle(!r.fitMode && r.zoomPercent == 100 ? Theme.ember : Color.primary.opacity(0.75))
                     .contentShape(Rectangle())

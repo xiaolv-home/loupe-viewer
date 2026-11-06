@@ -8,8 +8,10 @@ extension XLSXPatcher {
     }
 
     /// Replaces every match of `re` in `s` with `f(match)` (called in document order).
-    private static func replaceMatches(_ s: String, _ re: NSRegularExpression, range: NSRange? = nil,
-                                       _ f: (NSTextCheckingResult, NSString) -> String) -> String {
+    private static func replaceMatches(
+        _ s: String, _ re: NSRegularExpression, range: NSRange? = nil,
+        _ f: (NSTextCheckingResult, NSString) -> String
+    ) -> String {
         let ns = s as NSString
         let matches = re.matches(in: s, range: range ?? NSRange(location: 0, length: ns.length))
         let replacements = matches.map { f($0, ns) }
@@ -43,7 +45,7 @@ extension XLSXPatcher {
 
         // 1. Rows and cells.
         guard let sdOpen = doc.range(of: "<\(prefix)sheetData"), let sdClose = doc.range(of: "</\(prefix)sheetData>") else {
-            if doc.contains("<\(prefix)sheetData") { return doc }   // self-closing: nothing to move
+            if doc.contains("<\(prefix)sheetData") { return doc }  // self-closing: nothing to move
             throw SaveError("工作表结构无法识别")
         }
         let rowRE = regex("<\(p)row\\b([^>]*?)(/>|>(.*?)</\(p)row>)")
@@ -65,7 +67,8 @@ extension XLSXPatcher {
             guard let newRow = row else { return "" }
             attrs = spans.stringByReplacingMatches(in: attrs, range: NSRange(location: 0, length: (attrs as NSString).length), withTemplate: "")
             if rAttr.firstMatch(in: attrs, range: NSRange(location: 0, length: (attrs as NSString).length)) != nil {
-                attrs = rAttr.stringByReplacingMatches(in: attrs, range: NSRange(location: 0, length: (attrs as NSString).length), withTemplate: "r=\"\(newRow + 1)\"")
+                attrs = rAttr.stringByReplacingMatches(
+                    in: attrs, range: NSRange(location: 0, length: (attrs as NSString).length), withTemplate: "r=\"\(newRow + 1)\"")
             } else {
                 attrs = " r=\"\(newRow + 1)\"" + attrs
             }
@@ -160,10 +163,12 @@ extension XLSXPatcher {
         }
         guard !mergeXML.isEmpty else { return xml }
         // The schema puts mergeCells after sheetData/autoFilter and before these.
-        for later in ["phoneticPr", "conditionalFormatting", "dataValidations", "hyperlinks", "printOptions", "pageMargins",
-                      "pageSetup", "headerFooter", "rowBreaks", "colBreaks", "customProperties", "cellWatches", "ignoredErrors",
-                      "smartTags", "drawing", "legacyDrawing", "legacyDrawingHF", "picture", "oleObjects", "controls",
-                      "webPublishItems", "tableParts", "extLst"] {
+        for later in [
+            "phoneticPr", "conditionalFormatting", "dataValidations", "hyperlinks", "printOptions", "pageMargins",
+            "pageSetup", "headerFooter", "rowBreaks", "colBreaks", "customProperties", "cellWatches", "ignoredErrors",
+            "smartTags", "drawing", "legacyDrawing", "legacyDrawingHF", "picture", "oleObjects", "controls",
+            "webPublishItems", "tableParts", "extLst",
+        ] {
             if let r = xml.range(of: "<\(prefix)\(later)") { return xml.replacingCharacters(in: r.lowerBound..<r.lowerBound, with: mergeXML) }
         }
         if let r = xml.range(of: "</\(prefix)worksheet>") { return xml.replacingCharacters(in: r.lowerBound..<r.lowerBound, with: mergeXML) }
@@ -241,12 +246,16 @@ extension XLSXPatcher {
             guard let t = targetRE.firstMatch(in: tag as String, range: NSRange(location: 0, length: tag.length)) else { continue }
             var target = tag.substring(with: t.range(at: 1))
             let url: URL
-            if target.hasPrefix("/") { target.removeFirst(); url = work.appendingPathComponent(target) }
-            else { url = URL(fileURLWithPath: work.appendingPathComponent(dir).appendingPathComponent(target).path).standardizedFileURL }
+            if target.hasPrefix("/") {
+                target.removeFirst(); url = work.appendingPathComponent(target)
+            } else {
+                url = URL(fileURLWithPath: work.appendingPathComponent(dir).appendingPathComponent(target).path).standardizedFileURL
+            }
             guard var x = try? String(contentsOf: url, encoding: .utf8),
-                  let rm = x.range(of: #"<(\w+:)?table\b[^>]*\bref="([^"]*)""#, options: .regularExpression),
-                  let refR = x[rm].range(of: #"ref="[^"]*""#, options: .regularExpression),
-                  let range = MergeRange.parse(String(x[refR].dropFirst(5).dropLast())) else { continue }
+                let rm = x.range(of: #"<(\w+:)?table\b[^>]*\bref="([^"]*)""#, options: .regularExpression),
+                let refR = x[rm].range(of: #"ref="[^"]*""#, options: .regularExpression),
+                let range = MergeRange.parse(String(x[refR].dropFirst(5).dropLast()))
+            else { continue }
             var r = range
             for op in ops {
                 if op.isRowOp {

@@ -54,8 +54,9 @@ final class OfficeRenderer: Renderer, ObservableObject {
                 SlideshowController.present(document: doc, startAt: 0, from: self?.host?.window)
             } catch ExportError.notAuthorized {
                 Log.write("slideshow: automation not authorized")
-                self?.host?.showNotice("需要允许 Loupe 控制 Keynote 才能放映（系统设置 › 隐私与安全性 › 自动化）。也可以先用快速查看全屏浏览。", style: .warning,
-                                       action: NoticeAction(title: "打开设置") { DocumentExporter.openAutomationSettings() })
+                self?.host?.showNotice(
+                    "需要允许 Loupe 控制 Keynote 才能放映（系统设置 › 隐私与安全性 › 自动化）。也可以先用快速查看全屏浏览。", style: .warning,
+                    action: NoticeAction(title: "打开设置") { DocumentExporter.openAutomationSettings() })
             } catch {
                 Log.write("slideshow failed: \(error)")
                 self?.host?.showNotice("Keynote 转换失败，已改用快速查看全屏浏览：\(error.localizedDescription)", style: .warning, action: nil)
@@ -75,7 +76,9 @@ final class OfficeRenderer: Renderer, ObservableObject {
 private struct OfficeControls: View {
     @ObservedObject var r: OfficeRenderer
     var body: some View {
-        Button { r.playSlideshow() } label: {
+        Button {
+            r.playSlideshow()
+        } label: {
             HStack(spacing: 6) {
                 Image(systemName: "play.fill").font(.system(size: 10))
                 Text(r.converting ? "正在准备…" : "全屏放映").font(.system(size: 11.5, weight: .semibold))

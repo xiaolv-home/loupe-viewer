@@ -23,9 +23,11 @@ final class MPVGLLayer: CAOpenGLLayer {
         // converts it for whatever screen the window is on.
         colorspace = CGColorSpace(name: CGColorSpace.displayP3)
         let attempts: [[CGLPixelFormatAttribute]] = [
-            [kCGLPFAOpenGLProfile, CGLPixelFormatAttribute(kCGLOGLPVersion_3_2_Core.rawValue), kCGLPFAAccelerated,
-             kCGLPFADoubleBuffer, kCGLPFAAllowOfflineRenderers, _CGLPixelFormatAttribute(rawValue: 0)],
-            [kCGLPFAOpenGLProfile, CGLPixelFormatAttribute(kCGLOGLPVersion_3_2_Core.rawValue), kCGLPFADoubleBuffer, _CGLPixelFormatAttribute(rawValue: 0)]
+            [
+                kCGLPFAOpenGLProfile, CGLPixelFormatAttribute(kCGLOGLPVersion_3_2_Core.rawValue), kCGLPFAAccelerated,
+                kCGLPFADoubleBuffer, kCGLPFAAllowOfflineRenderers, _CGLPixelFormatAttribute(rawValue: 0),
+            ],
+            [kCGLPFAOpenGLProfile, CGLPixelFormatAttribute(kCGLOGLPVersion_3_2_Core.rawValue), kCGLPFADoubleBuffer, _CGLPixelFormatAttribute(rawValue: 0)],
         ]
         for a in attempts {
             var pf: CGLPixelFormatObj?
@@ -61,11 +63,15 @@ final class MPVGLLayer: CAOpenGLLayer {
         return super.copyCGLContext(forPixelFormat: pf)
     }
 
-    override func canDraw(inCGLContext ctx: CGLContextObj, pixelFormat pf: CGLPixelFormatObj, forLayerTime t: CFTimeInterval, displayTime ts: UnsafePointer<CVTimeStamp>?) -> Bool {
+    override func canDraw(
+        inCGLContext ctx: CGLContextObj, pixelFormat pf: CGLPixelFormatObj, forLayerTime t: CFTimeInterval, displayTime ts: UnsafePointer<CVTimeStamp>?
+    ) -> Bool {
         player?.renderContext != nil
     }
 
-    override func draw(inCGLContext ctx: CGLContextObj, pixelFormat pf: CGLPixelFormatObj, forLayerTime t: CFTimeInterval, displayTime ts: UnsafePointer<CVTimeStamp>?) {
+    override func draw(
+        inCGLContext ctx: CGLContextObj, pixelFormat pf: CGLPixelFormatObj, forLayerTime t: CFTimeInterval, displayTime ts: UnsafePointer<CVTimeStamp>?
+    ) {
         guard let player, let rc = player.renderContext, let api = MPVLibrary.load()?.api else { return }
         var fboID: GLint = 0
         glGetIntegerv(GLenum(GL_DRAW_FRAMEBUFFER_BINDING), &fboID)
@@ -76,9 +82,11 @@ final class MPVGLLayer: CAOpenGLLayer {
         var renderResult: Int32 = 0
         withUnsafeMutablePointer(to: &fbo) { fp in
             withUnsafeMutablePointer(to: &flip) { flp in
-                var params = [mpv_render_param(type: MPVConst.rpFBO, data: UnsafeMutableRawPointer(fp)),
-                              mpv_render_param(type: MPVConst.rpFlipY, data: UnsafeMutableRawPointer(flp)),
-                              mpv_render_param(type: MPVConst.rpInvalid, data: nil)]
+                var params = [
+                    mpv_render_param(type: MPVConst.rpFBO, data: UnsafeMutableRawPointer(fp)),
+                    mpv_render_param(type: MPVConst.rpFlipY, data: UnsafeMutableRawPointer(flp)),
+                    mpv_render_param(type: MPVConst.rpInvalid, data: nil),
+                ]
                 let drawn: Int32 = params.withUnsafeMutableBufferPointer { buf in
                     api.rcRender(rc, UnsafeMutableRawPointer(buf.baseAddress!))
                 }

@@ -65,10 +65,12 @@ final class FontRenderer: NSObject, Renderer, ObservableObject {
         guard let f = face else { return [] }
         let font = f.font(12)
         var items: [InfoItem] = [InfoItem("字族", f.family), InfoItem("字重/样式", f.style)]
-        let keys: [(String, CFString)] = [("全名", kCTFontFullNameKey), ("PostScript 名", kCTFontPostScriptNameKey),
-                                          ("版本", kCTFontVersionNameKey), ("设计师", kCTFontDesignerNameKey),
-                                          ("厂商", kCTFontManufacturerNameKey), ("版权", kCTFontCopyrightNameKey),
-                                          ("授权", kCTFontLicenseNameKey)]
+        let keys: [(String, CFString)] = [
+            ("全名", kCTFontFullNameKey), ("PostScript 名", kCTFontPostScriptNameKey),
+            ("版本", kCTFontVersionNameKey), ("设计师", kCTFontDesignerNameKey),
+            ("厂商", kCTFontManufacturerNameKey), ("版权", kCTFontCopyrightNameKey),
+            ("授权", kCTFontLicenseNameKey),
+        ]
         for (label, key) in keys {
             if let v = f.name(key), !v.isEmpty { items.append(InfoItem(label, v.count > 200 ? String(v.prefix(200)) + "…" : v)) }
         }

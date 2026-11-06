@@ -29,8 +29,9 @@ struct ChartPainter {
         if let title = chart.title, !title.isEmpty {
             let t = spec.title
             let font = NSFont.systemFont(ofSize: px(t?.size ?? 14), weight: (t?.bold ?? true) ? .semibold : .regular)
-            let h = drawText(title, font: font, color: t?.color.map(ns) ?? NSColor(white: 0.25, alpha: 1),
-                             in: CGRect(x: area.minX, y: area.minY, width: area.width, height: area.height * 0.3), align: .center)
+            let h = drawText(
+                title, font: font, color: t?.color.map(ns) ?? NSColor(white: 0.25, alpha: 1),
+                in: CGRect(x: area.minX, y: area.minY, width: area.width, height: area.height * 0.3), align: .center)
             area.origin.y += h + 6 * scale
             area.size.height -= h + 6 * scale
         }
@@ -41,10 +42,15 @@ struct ChartPainter {
         let radial = chart.plots.filter { $0.plot.kind == .pie || $0.plot.kind == .doughnut }
         let radar = chart.plots.filter { $0.plot.kind == .radar }
         let cartesian = chart.plots.filter { ![.pie, .doughnut, .radar].contains($0.plot.kind) }
-        if let p = radial.first, cartesian.isEmpty { drawPie(p, in: area) }
-        else if let p = radar.first, cartesian.isEmpty { drawRadar(p, in: area) }
-        else if !cartesian.isEmpty { drawCartesian(cartesian, in: area) }
-        else { drawEmpty(in: area) }
+        if let p = radial.first, cartesian.isEmpty {
+            drawPie(p, in: area)
+        } else if let p = radar.first, cartesian.isEmpty {
+            drawRadar(p, in: area)
+        } else if !cartesian.isEmpty {
+            drawCartesian(cartesian, in: area)
+        } else {
+            drawEmpty(in: area)
+        }
         ctx.restoreGState()
     }
 
@@ -83,8 +89,9 @@ struct ChartPainter {
     func label(_ s: String, at p: CGPoint, anchor: (x: CGFloat, y: CGFloat), font: NSFont? = nil, color: NSColor? = nil) {
         let f = font ?? labelFont
         let sz = size(s, f)
-        (s as NSString).draw(at: CGPoint(x: p.x - sz.width * anchor.x, y: p.y - sz.height * anchor.y),
-                             withAttributes: [.font: f, .foregroundColor: color ?? labelColor])
+        (s as NSString).draw(
+            at: CGPoint(x: p.x - sz.width * anchor.x, y: p.y - sz.height * anchor.y),
+            withAttributes: [.font: f, .foregroundColor: color ?? labelColor])
     }
 
     func format(_ v: Double, _ code: String?) -> String {
@@ -175,11 +182,14 @@ struct ChartPainter {
             for e in entries where y + rowH <= area.maxY + 1 {
                 swatch(e.1, e.2, at: CGPoint(x: x + pad / 2, y: y + (rowH - sw) / 2))
                 let lx = x + pad / 2 + sw * 1.6 + gap
-                drawText(e.0, font: font, color: labelColor, in: CGRect(x: lx, y: y + (rowH - size("国", font).height) / 2 - 1, width: max(1, x + w - lx), height: rowH), align: .left)
+                drawText(
+                    e.0, font: font, color: labelColor,
+                    in: CGRect(x: lx, y: y + (rowH - size("国", font).height) / 2 - 1, width: max(1, x + w - lx), height: rowH), align: .left)
                 y += rowH
             }
             if legend.overlay { return area }
-            return legend.position == "l" ? CGRect(x: area.minX + w, y: area.minY, width: area.width - w, height: area.height)
+            return legend.position == "l"
+                ? CGRect(x: area.minX + w, y: area.minY, width: area.width - w, height: area.height)
                 : CGRect(x: area.minX, y: area.minY, width: area.width - w, height: area.height)
         }
         // Top / bottom: entries flow in lines, centred.
@@ -203,7 +213,8 @@ struct ChartPainter {
             y += rowH
         }
         if legend.overlay { return area }
-        return legend.position == "t" ? CGRect(x: area.minX, y: area.minY + h, width: area.width, height: area.height - h)
+        return legend.position == "t"
+            ? CGRect(x: area.minX, y: area.minY + h, width: area.width, height: area.height - h)
             : CGRect(x: area.minX, y: area.minY, width: area.width, height: area.height - h)
     }
 
@@ -224,7 +235,7 @@ struct ChartPainter {
     /// Round tick values covering the data, starting at zero when the data allows (as Excel does).
     static func niceScale(_ lo: Double, _ hi: Double, fixedMin: Double? = nil, fixedMax: Double? = nil, unit: Double? = nil, targetTicks: Int = 6) -> Scale {
         var a = fixedMin ?? min(lo, 0), b = fixedMax ?? max(hi, 0)
-        if fixedMin == nil && lo > 0 && hi > 0 && (hi - lo) / hi < 0.16 { a = lo }   // all values close together: don't start at 0
+        if fixedMin == nil && lo > 0 && hi > 0 && (hi - lo) / hi < 0.16 { a = lo }  // all values close together: don't start at 0
         if a == b { b = a == 0 ? 1 : a + abs(a) * 0.5 }
         let raw = (b - a) / Double(max(2, targetTicks - 1))
         let mag = pow(10, floor(log10(raw)))

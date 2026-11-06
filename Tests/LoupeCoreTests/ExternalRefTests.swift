@@ -5,29 +5,36 @@ import Testing
 struct ExternalRefTests {
     /// 门店表.xlsx：编号 → 门店名、城市（第一张表叫「门店」，第二张「备用」）。
     static let stores: Workbook = {
-        var s = Sheet(name: "门店", rows: [
-            [.text("编号"), .text("门店"), .text("城市")],
-            [.text("S01"), .text("南京东路店"), .text("上海")],
-            [.text("S02"), .text("国贸店"), .text("北京")],
-            [.text("S03"), .text("西湖店"), .text("杭州")]
-        ])
+        var s = Sheet(
+            name: "门店",
+            rows: [
+                [.text("编号"), .text("门店"), .text("城市")],
+                [.text("S01"), .text("南京东路店"), .text("上海")],
+                [.text("S02"), .text("国贸店"), .text("北京")],
+                [.text("S03"), .text("西湖店"), .text("杭州")],
+            ])
         s.columnCount = 3
         return Workbook(sheets: [s, Sheet(name: "备用", rows: [[.number(42)]])], source: "")
     }()
 
     static let sales: Workbook = {
-        let s = Sheet(name: "销售", rows: [
-            [.text("编号"), .text("金额")],
-            [.text("S02"), .number(100)],
-            [.text("S03"), .number(250)],
-            [.text("S09"), .number(7)]
-        ])
+        let s = Sheet(
+            name: "销售",
+            rows: [
+                [.text("编号"), .text("金额")],
+                [.text("S02"), .number(100)],
+                [.text("S03"), .number(250)],
+                [.text("S09"), .number(7)],
+            ])
         return Workbook(sheets: [s], source: "")
     }()
 
     func eval(_ f: String, rowOffset: Int = 0) -> FValue {
-        FormulaEngine.evaluate(f, in: FormulaContext(workbook: Self.sales, sheet: 0, rowOffset: rowOffset,
-                                                     externalWorkbooks: ["门店表.xlsx": Self.stores]))
+        FormulaEngine.evaluate(
+            f,
+            in: FormulaContext(
+                workbook: Self.sales, sheet: 0, rowOffset: rowOffset,
+                externalWorkbooks: ["门店表.xlsx": Self.stores]))
     }
 
     @Test("VLOOKUP 到另一个文件的指定工作表、默认第一张表、带引号的写法")
@@ -56,7 +63,8 @@ struct ExternalRefTests {
     func namesAndShifting() {
         #expect(FormulaEngine.externalBookNames(in: "=VLOOKUP(A2,[门店表.xlsx]门店!A:C,2,0)+'[另一个 表.xlsx]S'!B1&\"[不是]\"") == ["门店表.xlsx", "另一个 表.xlsx"])
         let op = StructOp.insertRows(at: 0, count: 1)
-        #expect(FormulaRefs.adjusted("=[门店表.xlsx]门店!A2+门店!A2", for: op, targetSheet: "门店", formulaSheet: "销售")
+        #expect(
+            FormulaRefs.adjusted("=[门店表.xlsx]门店!A2+门店!A2", for: op, targetSheet: "门店", formulaSheet: "销售")
                 == "=[门店表.xlsx]门店!A2+门店!A3")
     }
 }

@@ -54,14 +54,18 @@ struct AITranscript: View {
     }
 
     private var waitingForApproval: Bool {
-        session.items.contains { if case .approval(_, decided: nil) = $0.kind { return true }; return false }
+        session.items.contains {
+            if case .approval(_, decided: nil) = $0.kind { return true }; return false
+        }
     }
 
     /// The user sent a message or opened another conversation, so they want to see the newest part.
     private func startedSomethingNew(_ old: [AIItem], _ new: [AIItem]) -> Bool {
         if old.first?.id != new.first?.id { return true }
         guard new.count > old.count else { return false }
-        return new[old.count...].contains { if case .user = $0.kind { return true }; return false }
+        return new[old.count...].contains {
+            if case .user = $0.kind { return true }; return false
+        }
     }
 }
 
@@ -128,7 +132,9 @@ private struct AIReasoningView: View {
     @State private var open = false
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Button { open.toggle() } label: {
+            Button {
+                open.toggle()
+            } label: {
                 HStack(spacing: 4) {
                     Image(systemName: open ? "chevron.down" : "chevron.right").font(.system(size: 8.5, weight: .semibold))
                     Text("思考过程").font(.system(size: 11))
@@ -156,8 +162,12 @@ private struct AIToolRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 7) {
             Group {
-                if result == nil && running { ProgressView().controlSize(.mini).frame(width: 12, height: 12) }
-                else { Image(systemName: failed ? "xmark.circle.fill" : icon).font(.system(size: 10.5)).foregroundStyle(failed ? Color(nsColor: .systemRed) : Theme.ember) }
+                if result == nil && running {
+                    ProgressView().controlSize(.mini).frame(width: 12, height: 12)
+                } else {
+                    Image(systemName: failed ? "xmark.circle.fill" : icon).font(.system(size: 10.5)).foregroundStyle(
+                        failed ? Color(nsColor: .systemRed) : Theme.ember)
+                }
             }
             .frame(width: 14)
             VStack(alignment: .leading, spacing: 2) {
@@ -212,8 +222,12 @@ private struct AIFileCard: View {
                 workspace.aiOpen(url)
             }
             .controlSize(.small)
-            Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: { Image(systemName: "folder") }
-                .controlSize(.small).help("在 Finder 中显示")
+            Button {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            } label: {
+                Image(systemName: "folder")
+            }
+            .controlSize(.small).help("在 Finder 中显示")
         }
         .padding(9)
         .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color(nsColor: Theme.sheet)))
@@ -247,4 +261,3 @@ private struct AIApprovalCard: View {
         .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.emberSoft))
     }
 }
-

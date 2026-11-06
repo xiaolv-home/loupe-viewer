@@ -68,8 +68,9 @@ final class AppSettings: ObservableObject {
         d.register(defaults: [
             "singleWindow": true, "showSidebar": false, "iworkExport": true, "mpvPath": "",
             "preferMPV": false, "wrapText": true, "imageStartsActualSize": false,
-            "highlightLimitMB": 2.0, "showHiddenSiblings": false, "spreadsheetOpensOriginal": false, "spreadsheetEditing": false, "webPagesRunScripts": true, "markdownOpensForWriting": true,
-            "markdownAutosave": false, "writerFocus": false, "writerTypewriter": false
+            "highlightLimitMB": 2.0, "showHiddenSiblings": false, "spreadsheetOpensOriginal": false, "spreadsheetEditing": false, "webPagesRunScripts": true,
+            "markdownOpensForWriting": true,
+            "markdownAutosave": false, "writerFocus": false, "writerTypewriter": false,
         ])
         singleWindow = d.bool(forKey: "singleWindow")
         showSidebar = d.bool(forKey: "showSidebar")

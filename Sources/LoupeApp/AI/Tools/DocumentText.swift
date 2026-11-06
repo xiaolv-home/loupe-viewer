@@ -6,9 +6,11 @@ import LoupeCore
 /// Turns any file the AI is pointed at into text it can read: plain text in its own encoding,
 /// PDF pages, Word/RTF/ODT, PowerPoint slides, tables, and images (recognised with Vision).
 enum DocumentText {
-    static let textExtensions: Set<String> = ["txt", "md", "markdown", "csv", "tsv", "json", "xml", "yaml", "yml", "html", "htm", "log",
-                                              "ini", "toml", "conf", "swift", "py", "js", "ts", "java", "go", "rs", "c", "h", "cpp", "sql",
-                                              "sh", "rb", "php", "css", "srt", "vtt", "tex", "rst", "org"]
+    static let textExtensions: Set<String> = [
+        "txt", "md", "markdown", "csv", "tsv", "json", "xml", "yaml", "yml", "html", "htm", "log",
+        "ini", "toml", "conf", "swift", "py", "js", "ts", "java", "go", "rs", "c", "h", "cpp", "sql",
+        "sh", "rb", "php", "css", "srt", "vtt", "tex", "rst", "org",
+    ]
 
     @MainActor static func extract(_ url: URL) async throws -> String {
         let ext = url.pathExtension.lowercased()

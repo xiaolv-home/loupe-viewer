@@ -62,7 +62,9 @@ public enum AnthropicWire {
             case .tool:
                 // All results of one assistant turn go back together in a single user message.
                 let text = m.text.isEmpty ? "（无输出）" : m.text
-                let body: AIJSON = (m.images ?? []).isEmpty ? .string(text)
+                let body: AIJSON =
+                    (m.images ?? []).isEmpty
+                    ? .string(text)
                     : .array([["type": "text", "text": .string(text)]] + m.images!.map(imageBlock))
                 var r: [String: AIJSON] = ["type": "tool_result", "tool_use_id": .string(m.toolCallID ?? ""), "content": body]
                 if m.isError { r["is_error"] = true }
@@ -82,8 +84,10 @@ public enum AnthropicWire {
                     var blocks: [AIJSON] = []
                     if !m.text.isEmpty { blocks.append(["type": "text", "text": .string(m.text)]) }
                     for c in m.toolCalls {
-                        blocks.append(["type": "tool_use", "id": .string(c.id), "name": .string(c.name),
-                                       "input": c.parsedArguments ?? .object([:])])
+                        blocks.append([
+                            "type": "tool_use", "id": .string(c.id), "name": .string(c.name),
+                            "input": c.parsedArguments ?? .object([:]),
+                        ])
                     }
                     if blocks.isEmpty { blocks.append(["type": "text", "text": "（空）"]) }
                     wire.append(["role": "assistant", "content": .array(blocks)])
@@ -97,15 +101,16 @@ public enum AnthropicWire {
             "max_tokens": 32000,
             "stream": true,
             "system": [["type": "text", "text": .string(system), "cache_control": ["type": "ephemeral"]]],
-            "messages": .array(wire)
+            "messages": .array(wire),
         ]
         let claude = isClaude(endpoint)
         if !tools.isEmpty {
-            body["tools"] = .array(tools.map { t in
-                var o: [String: AIJSON] = ["name": .string(t.name), "description": .string(t.description), "input_schema": t.parameters]
-                if claude { o["eager_input_streaming"] = true }
-                return .object(o)
-            })
+            body["tools"] = .array(
+                tools.map { t in
+                    var o: [String: AIJSON] = ["name": .string(t.name), "description": .string(t.description), "input_schema": t.parameters]
+                    if claude { o["eager_input_streaming"] = true }
+                    return .object(o)
+                })
         }
         if claude {
             body["thinking"] = ["type": "adaptive", "display": "summarized"]

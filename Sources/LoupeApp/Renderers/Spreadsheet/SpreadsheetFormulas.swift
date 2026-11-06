@@ -44,9 +44,13 @@ extension SpreadsheetRenderer {
         let r0 = visible[max(0, min(g.r0, visible.count - 1))] + 1, r1 = visible[max(0, min(g.r1, visible.count - 1))] + 1
         let wholeColumns = g.r0 == 0 && g.r1 >= visible.count - 1 && visible.count > 1
         let ref: String
-        if wholeColumns { ref = "\(Sheet.columnName(g.c0)):\(Sheet.columnName(g.c1))" }
-        else if g.cellCount == 1 { ref = "\(Sheet.columnName(g.c0))\(r0)" }
-        else { ref = "\(Sheet.columnName(g.c0))\(r0):\(Sheet.columnName(g.c1))\(r1)" }
+        if wholeColumns {
+            ref = "\(Sheet.columnName(g.c0)):\(Sheet.columnName(g.c1))"
+        } else if g.cellCount == 1 {
+            ref = "\(Sheet.columnName(g.c0))\(r0)"
+        } else {
+            ref = "\(Sheet.columnName(g.c0))\(r0):\(Sheet.columnName(g.c1))\(r1)"
+        }
         appendToCalc(ref)
     }
 
@@ -153,9 +157,10 @@ extension SpreadsheetRenderer {
                 self.resultIsError = true
                 self.resultText = e.message
             case .success(let r):
-                self.host?.showNotice("已在最右边加了「\(name)」列（\(Sheet.columnName(r.column)) 列，共 \(Fmt.number(r.rows)) 行，只在屏幕上，不改原文件；可导出）"
-                                      + (r.errors > 0 ? "，其中 \(r.errors) 行出错" : ""),
-                                      style: r.errors > 0 ? .warning : .success, action: nil)
+                self.host?.showNotice(
+                    "已在最右边加了「\(name)」列（\(Sheet.columnName(r.column)) 列，共 \(Fmt.number(r.rows)) 行，只在屏幕上，不改原文件；可导出）"
+                        + (r.errors > 0 ? "，其中 \(r.errors) 行出错" : ""),
+                    style: r.errors > 0 ? .warning : .success, action: nil)
             }
         }
     }
@@ -189,7 +194,9 @@ extension SpreadsheetRenderer {
         reloadSheet()
         grid.scrollTo(row: active.row, col: col)
         gridHeaderClicked(column: col, extend: false)
-        let errors = values.filter { if case .error = $0 { return true }; return false }.count
+        let errors = values.filter {
+            if case .error = $0 { return true }; return false
+        }.count
         return .success(ComputedColumn(column: col, rows: values.count, errors: errors, sample: Array(values.prefix(5))))
     }
 }

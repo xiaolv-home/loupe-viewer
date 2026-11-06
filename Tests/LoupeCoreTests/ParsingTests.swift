@@ -17,7 +17,7 @@ struct EncodingTests {
         let d = TextEncodingDetector.detect(bom)
         #expect(d.bomLength == 3)
         #expect(TextEncodingDetector.decode(bom, as: d) == sample)
-        let u16 = sample.data(using: .utf16)!   // with BOM
+        let u16 = sample.data(using: .utf16)!  // with BOM
         #expect(TextEncodingDetector.decode(u16).0 == sample)
         let le = "plain ascii in utf16".data(using: .utf16LittleEndian)!
         #expect(TextEncodingDetector.detect(le).encoding == .utf16LittleEndian)
@@ -113,7 +113,8 @@ struct SubtitleTests {
 
     @Test("ASS 去除样式标签、保留文本中的逗号")
     func ass() {
-        let src = "[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,{\\b1}粗体{\\b0}，逗号, 保留\\N第二行\n"
+        let src =
+            "[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,{\\b1}粗体{\\b0}，逗号, 保留\\N第二行\n"
         let cues = SubtitleParser.parse(src, ext: "ass")
         #expect(cues.count == 1)
         #expect(cues[0].text == "粗体，逗号, 保留\n第二行")
@@ -169,7 +170,7 @@ struct LineIndexTests {
 
     @Test("UTF-16 LE 行切分")
     func utf16() {
-        let d = "甲\n乙\n丙".data(using: .utf16)!   // BOM + LE on Apple platforms
+        let d = "甲\n乙\n丙".data(using: .utf16)!  // BOM + LE on Apple platforms
         let idx = LineIndex(data: d)
         idx.build()
         #expect(idx.lineCount == 3)
@@ -206,9 +207,13 @@ struct MiscTests {
         #expect(tokens.contains { $0.kind == .comment })
     }
 
-    @Test("所有语言规则都能编译", arguments: ["swift", "python", "javascript", "typescript", "go", "rust", "c", "cpp", "java", "kotlin",
-                                       "ruby", "php", "shell", "sql", "json", "yaml", "toml", "ini", "xml", "html", "css",
-                                       "diff", "log", "markdown", "makefile", "dockerfile", "lua", "haskell", "tex"])
+    @Test(
+        "所有语言规则都能编译",
+        arguments: [
+            "swift", "python", "javascript", "typescript", "go", "rust", "c", "cpp", "java", "kotlin",
+            "ruby", "php", "shell", "sql", "json", "yaml", "toml", "ini", "xml", "html", "css",
+            "diff", "log", "markdown", "makefile", "dockerfile", "lua", "haskell", "tex",
+        ])
     func allLanguages(lang: String) {
         #expect(SyntaxHighlighter.forLanguage(lang) != nil)
     }

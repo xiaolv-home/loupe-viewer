@@ -20,7 +20,12 @@ final class SlideshowController: NSObject {
         override var canBecomeKey: Bool { true }
         override var canBecomeMain: Bool { true }
         override func keyDown(with e: NSEvent) { if onKey?(e) != true { super.keyDown(with: e) } }
-        override func cancelOperation(_ sender: Any?) { _ = onKey?(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: windowNumber, context: nil, characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)!) }
+        override func cancelOperation(_ sender: Any?) {
+            _ = onKey?(
+                NSEvent.keyEvent(
+                    with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: windowNumber, context: nil, characters: "\u{1b}",
+                    charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)!)
+        }
     }
 
     final class SlideView: PDFView {
@@ -43,7 +48,8 @@ final class SlideshowController: NSObject {
         let c = SlideshowController()
         current = c
         guard let screen = parent?.screen ?? NSScreen.main,
-              let ql = QLPreviewView(frame: screen.frame, style: .normal) else { return }
+            let ql = QLPreviewView(frame: screen.frame, style: .normal)
+        else { return }
         ql.previewItem = url as NSURL
         c.quickLook = ql
         let w = SlideWindow(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false, screen: screen)
@@ -89,8 +95,8 @@ final class SlideshowController: NSObject {
     private func handle(_ e: NSEvent) -> Bool {
         if e.type == .leftMouseDown { view.goToNextPage(nil); return true }
         switch e.keyCode {
-        case 53: close(); return true                              // esc
-        case 124, 125, 49, 121, 36: view.goToNextPage(nil); return true // → ↓ space pgdn return
+        case 53: close(); return true  // esc
+        case 124, 125, 49, 121, 36: view.goToNextPage(nil); return true  // → ↓ space pgdn return
         case 123, 126, 116, 51: view.goToPreviousPage(nil); return true  // ← ↑ pgup delete
         case 115: view.goToFirstPage(nil); return true
         case 119: view.goToLastPage(nil); return true

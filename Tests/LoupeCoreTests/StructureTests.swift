@@ -28,17 +28,17 @@ struct StructureTests {
 
     @Test("插入/删除时调整引用：区域扩张收缩、删到的变 #REF!、只改指向本表的")
     func adjusting() {
-        let ins = StructOp.insertRows(at: 4, count: 2)        // before row 5
+        let ins = StructOp.insertRows(at: 4, count: 2)  // before row 5
         #expect(FormulaRefs.adjusted("=SUM(D3:D6)", for: ins, targetSheet: "S", formulaSheet: "S") == "=SUM(D3:D8)")
         #expect(FormulaRefs.adjusted("=D4+D5+$D$5", for: ins, targetSheet: "S", formulaSheet: "S") == "=D4+D7+$D$7")
         #expect(FormulaRefs.adjusted("=D5", for: ins, targetSheet: "S", formulaSheet: "T") == "=D5")
         #expect(FormulaRefs.adjusted("=S!D5", for: ins, targetSheet: "S", formulaSheet: "T") == "=S!D7")
         #expect(FormulaRefs.adjusted("=SUM(A:A)", for: ins, targetSheet: "S", formulaSheet: "S") == "=SUM(A:A)")
-        let del = StructOp.deleteRows(at: 3, count: 2)        // rows 4–5
+        let del = StructOp.deleteRows(at: 3, count: 2)  // rows 4–5
         #expect(FormulaRefs.adjusted("=SUM(D3:D6)", for: del, targetSheet: "S", formulaSheet: "S") == "=SUM(D3:D4)")
         #expect(FormulaRefs.adjusted("=D4*2", for: del, targetSheet: "S", formulaSheet: "S") == "=#REF!*2")
         #expect(FormulaRefs.adjusted("=SUM(D4:D5)", for: del, targetSheet: "S", formulaSheet: "S") == "=SUM(#REF!)")
-        let delC = StructOp.deleteColumns(at: 1, count: 1)    // column B
+        let delC = StructOp.deleteColumns(at: 1, count: 1)  // column B
         #expect(FormulaRefs.adjusted("=B3*C3", for: delC, targetSheet: "S", formulaSheet: "S") == "=#REF!*B3")
         #expect(FormulaRefs.adjusted("=SUM(A1:D1)", for: delC, targetSheet: "S", formulaSheet: "S") == "=SUM(A1:C1)")
     }
@@ -85,10 +85,10 @@ struct StructureTests {
         #expect(b.merges.contains(MergeRange(r0: 0, c0: 0, r1: 0, c1: 3)))
         #expect(b.customHeightRows.contains(0))
         #expect(back.sheets[1].formulas[Sheet.key(0, 0)] == "=数据!D9")
-        #expect(back.style(0, 1, 0)?.fill != nil)                    // header row keeps its fill
+        #expect(back.style(0, 1, 0)?.fill != nil)  // header row keeps its fill
         let xml = try sheetXML(file)
-        #expect(xml.contains("sqref=\"B3:B8\""))                    // conditional format grew
-        #expect(xml.contains("sqref=\"C3:C8\""))                    // validation grew
+        #expect(xml.contains("sqref=\"B3:B8\""))  // conditional format grew
+        #expect(xml.contains("sqref=\"C3:C8\""))  // validation grew
         #expect(!xml.contains("t=\"shared\""))
         let w = try partXML(file, "xl/workbook.xml")
         #expect(w.contains("数据!$D$9"))
@@ -103,7 +103,7 @@ struct StructureTests {
         for op in ops { wb.apply(op, sheet: 0) }
         let s = wb.sheets[0]
         #expect(s.cell(3, 0) == .text("橙子"))
-        #expect(s.cell(3, 1) == .number(6))                        // 单价 moved into B
+        #expect(s.cell(3, 1) == .number(6))  // 单价 moved into B
         #expect(s.formulas[Sheet.key(5, 2)] == "=SUM(C3:C5)")
         #expect(s.formulas[Sheet.key(2, 2)] == "=#REF!*B3")
         #expect(s.columnWidths[2] == 12)
@@ -119,8 +119,8 @@ struct StructureTests {
         #expect(b.merges.contains(MergeRange(r0: 0, c0: 0, r1: 0, c1: 2)))
         #expect(b.merges.contains(MergeRange(r0: 6, c0: 0, r1: 7, c1: 0)))
         let xml = try sheetXML(file)
-        #expect(!xml.contains("conditionalFormatting"))            // its range (column B) is gone
-        #expect(xml.contains("sqref=\"B3:B5\""))                   // validation followed 单价
+        #expect(!xml.contains("conditionalFormatting"))  // its range (column B) is gone
+        #expect(xml.contains("sqref=\"B3:B5\""))  // validation followed 单价
         try openpyxlCheck(file)
     }
 

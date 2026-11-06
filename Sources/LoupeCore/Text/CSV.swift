@@ -82,4 +82,3 @@ public struct CSVParser {
         return rows
     }
 }
-

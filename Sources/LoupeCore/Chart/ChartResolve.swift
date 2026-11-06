@@ -14,12 +14,13 @@ extension ChartSpec {
                 let numericX = p.kind == .scatter || p.kind == .bubble ? numbers(s.categories, source) : nil
                 let vals = numbers(s.values, source) ?? []
                 let name = s.name.flatMap { resolveText($0, source) } ?? "系列\(index + 1)"
-                series.append(ResolvedSeries(
-                    series: s, name: name, categories: cats, values: vals,
-                    xValues: numericX.flatMap { xs in xs.contains { $0 != nil } ? xs : nil },
-                    sizes: numbers(s.bubbleSizes, source),
-                    numberFormat: s.values?.numberFormat ?? formatOf(s.values, source),
-                    index: index))
+                series.append(
+                    ResolvedSeries(
+                        series: s, name: name, categories: cats, values: vals,
+                        xValues: numericX.flatMap { xs in xs.contains { $0 != nil } ? xs : nil },
+                        sizes: numbers(s.bubbleSizes, source),
+                        numberFormat: s.values?.numberFormat ?? formatOf(s.values, source),
+                        index: index))
                 index += 1
             }
             let longest = series.map(\.categories).max { $0.count < $1.count } ?? []

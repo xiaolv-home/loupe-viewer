@@ -56,8 +56,11 @@ private struct InstalledSkills: View {
             }
             .frame(minWidth: 240, idealWidth: 260)
             Group {
-                if let s = skills.all.first(where: { $0.id == selection }) { SkillDetail(skill: s) }
-                else { Text("选择一个技能查看说明").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity) }
+                if let s = skills.all.first(where: { $0.id == selection }) {
+                    SkillDetail(skill: s)
+                } else {
+                    Text("选择一个技能查看说明").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
             .frame(minWidth: 320)
         }

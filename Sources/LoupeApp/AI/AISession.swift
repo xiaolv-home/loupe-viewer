@@ -152,8 +152,9 @@ final class AISession: ObservableObject {
         pinnedSkill = nil
         if conversation == nil {
             let title = text.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces)
-            conversation = AIConversation(title: String(title.prefix(30)), model: debugEndpoint.map { "\($0.proto.rawValue) · \($0.model)" } ?? config.summary,
-                                          file: doc?.file?.name, history: [], items: [])
+            conversation = AIConversation(
+                title: String(title.prefix(30)), model: debugEndpoint.map { "\($0.proto.rawValue) · \($0.model)" } ?? config.summary,
+                file: doc?.file?.name, history: [], items: [])
         }
 
         let host = debugEndpoint != nil ? "测试服务器" : config.mode == .local ? "这台 Mac 上运行的本地模型（不联网）" : config.provider.name + " 的云端 API"
@@ -180,12 +181,14 @@ final class AISession: ObservableObject {
             }
             session.history.append(user)
             session.save()
-            let toolbox = AIToolbox(document: doc, workspace: session.workspace, skills: skills, allowCommands: allowCommands, vision: vision,
-                                    approve: { a in await session.ask(a) })
+            let toolbox = AIToolbox(
+                document: doc, workspace: session.workspace, skills: skills, allowCommands: allowCommands, vision: vision,
+                approve: { a in await session.ask(a) })
             do {
-                try await AIAgent.run(client: client, system: system, history: session.history, tools: toolbox.specs,
-                                      runTool: { call, args in await toolbox.run(call, args) },
-                                      onEvent: { ev in await session.handle(ev) })
+                try await AIAgent.run(
+                    client: client, system: system, history: session.history, tools: toolbox.specs,
+                    runTool: { call, args in await toolbox.run(call, args) },
+                    onEvent: { ev in await session.handle(ev) })
             } catch is CancellationError {
                 session.note("已停止", isError: false)
             } catch {
@@ -272,8 +275,11 @@ final class AISession: ObservableObject {
             statusLine = AIToolNames.verb(call.name) + "…"
             items.append(AIItem(kind: .tool(name: call.name, summary: AIToolNames.summary(call), result: nil, failed: false)))
         case .toolFinished(let call, let out):
-            if let i = items.lastIndex(where: { if case .tool(let n, _, nil, _) = $0.kind { return n == call.name }; return false }),
-               case .tool(let n, let s, _, _) = items[i].kind {
+            if let i = items.lastIndex(where: {
+                if case .tool(let n, _, nil, _) = $0.kind { return n == call.name }; return false
+            }),
+                case .tool(let n, let s, _, _) = items[i].kind
+            {
                 items[i].kind = .tool(name: n, summary: s, result: AIToolNames.resultLine(call, out), failed: out.isError)
             }
             statusLine = "继续…"
@@ -301,15 +307,15 @@ final class AISession: ObservableObject {
 
     /// Debug harness: talk to this endpoint instead of the configured one (mock servers).
     #if DEBUG
-    var debugEndpoint: AIEndpoint?
+        var debugEndpoint: AIEndpoint?
     #else
-    let debugEndpoint: AIEndpoint? = nil
+        let debugEndpoint: AIEndpoint? = nil
     #endif
     /// Debug harness: answer approval requests automatically.
     #if DEBUG
-    var debugAutoApprove: Bool?
+        var debugAutoApprove: Bool?
     #else
-    let debugAutoApprove: Bool? = nil
+        let debugAutoApprove: Bool? = nil
     #endif
 
     fileprivate func ask(_ a: AIApproval) async -> Bool {
@@ -322,7 +328,9 @@ final class AISession: ObservableObject {
 
     func decide(_ a: AIApproval, _ allow: Bool) {
         guard let c = approvals.removeValue(forKey: a.id) else { return }
-        if let i = items.firstIndex(where: { if case .approval(let x, _) = $0.kind { return x.id == a.id }; return false }) {
+        if let i = items.firstIndex(where: {
+            if case .approval(let x, _) = $0.kind { return x.id == a.id }; return false
+        }) {
             items[i].kind = .approval(a, decided: allow)
         }
         c.resume(returning: allow)
@@ -335,18 +343,18 @@ final class AISession: ObservableObject {
 
     static func systemPrompt(skills: [Skill], endpoint: AIEndpoint, host: String) -> String {
         var s = """
-        你是「览」（Loupe）里的 AI 助手，现在由 \(host) 提供的模型「\(endpoint.model)」驱动（用户问起你是什么模型时如实告诉对方）。Loupe 是 macOS 上的文件查看器，用户正在看文件，你能用工具真正动手：读文件、精确计算、汇总、筛选、改文档、生成 Word / PDF / Excel 文件交付给用户。
+            你是「览」（Loupe）里的 AI 助手，现在由 \(host) 提供的模型「\(endpoint.model)」驱动（用户问起你是什么模型时如实告诉对方）。Loupe 是 macOS 上的文件查看器，用户正在看文件，你能用工具真正动手：读文件、精确计算、汇总、筛选、改文档、生成 Word / PDF / Excel 文件交付给用户。
 
-        做事原则：
-        - 先弄清材料：处理文件前先读（表格先 sheet_overview，文档先 read_file），不要凭空猜内容。
-        - 数字全部用工具算（calculate / summarize / add_column），绝不心算或估算；引用数据时说明来自哪里。
-        - 用户要的是结果，就交付文件：报告、意见书、简历用 write_file 生成 .docx（或用户要求的格式），表格结果用 create_spreadsheet 或 summarize 的 save_as。文件放在当前文件旁边，起清楚的中文名。生成后用一两句话说明做了什么、文件在哪。
-        - 转录、还原、提取数据时逐字保留原值：不四舍五入、不改格式、不补不删，识别不清的标出来让用户核对。
-        - 原文件永远不改；需要修改时生成新文件（Markdown 文档可以用 edit_document 在编辑器里改，用户自己保存）。
-        - 任务和某个技能相关时，先 use_skill 载入它，按技能里的方法和标准做。
-        - 一次工具调用失败就看错误信息换个办法，不要重复同样的调用。
-        - 用中文回答，简洁、具体；不要复述用户已经看到的内容。
-        """
+            做事原则：
+            - 先弄清材料：处理文件前先读（表格先 sheet_overview，文档先 read_file），不要凭空猜内容。
+            - 数字全部用工具算（calculate / summarize / add_column），绝不心算或估算；引用数据时说明来自哪里。
+            - 用户要的是结果，就交付文件：报告、意见书、简历用 write_file 生成 .docx（或用户要求的格式），表格结果用 create_spreadsheet 或 summarize 的 save_as。文件放在当前文件旁边，起清楚的中文名。生成后用一两句话说明做了什么、文件在哪。
+            - 转录、还原、提取数据时逐字保留原值：不四舍五入、不改格式、不补不删，识别不清的标出来让用户核对。
+            - 原文件永远不改；需要修改时生成新文件（Markdown 文档可以用 edit_document 在编辑器里改，用户自己保存）。
+            - 任务和某个技能相关时，先 use_skill 载入它，按技能里的方法和标准做。
+            - 一次工具调用失败就看错误信息换个办法，不要重复同样的调用。
+            - 用中文回答，简洁、具体；不要复述用户已经看到的内容。
+            """
         if skills.count <= listAllSkillsUpTo {
             if !skills.isEmpty {
                 s += "\n\n可用技能（用 use_skill 载入完整说明）：\n" + skills.map { "- \($0.name)：\($0.description.prefix(160))" }.joined(separator: "\n")

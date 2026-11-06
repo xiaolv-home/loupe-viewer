@@ -6,16 +6,20 @@ import Foundation
 struct FormulaTests {
     /// Row 1 is a header; data in rows 2–5.
     static let wb: Workbook = {
-        let sales = Sheet(name: "销售", rows: [
-            [.text("门店"), .text("城市"), .text("营业额"), .text("订单")],
-            [.text("A店"), .text("上海"), .number(100), .number(4)],
-            [.text("B店"), .text("北京"), .number(250.5), .number(5)],
-            [.text("C店"), .text("上海"), .number(80), .number(2)],
-            [.text("D店"), .text("深圳"), .text("n/a"), .number(1)]
-        ])
-        let cities = Sheet(name: "城市 表", rows: [
-            [.text("城市"), .text("区域")], [.text("上海"), .text("华东")], [.text("北京"), .text("华北")], [.text("深圳"), .text("华南")]
-        ])
+        let sales = Sheet(
+            name: "销售",
+            rows: [
+                [.text("门店"), .text("城市"), .text("营业额"), .text("订单")],
+                [.text("A店"), .text("上海"), .number(100), .number(4)],
+                [.text("B店"), .text("北京"), .number(250.5), .number(5)],
+                [.text("C店"), .text("上海"), .number(80), .number(2)],
+                [.text("D店"), .text("深圳"), .text("n/a"), .number(1)],
+            ])
+        let cities = Sheet(
+            name: "城市 表",
+            rows: [
+                [.text("城市"), .text("区域")], [.text("上海"), .text("华东")], [.text("北京"), .text("华北")], [.text("深圳"), .text("华南")],
+            ])
         return Workbook(sheets: [sales, cities], source: "test")
     }()
 
@@ -23,10 +27,12 @@ struct FormulaTests {
         FormulaEngine.evaluate(f, in: FormulaContext(workbook: Self.wb, sheet: 0, rowOffset: offset))
     }
 
-    @Test("聚合函数跳过文本", arguments: [
-        ("=SUM(C2:C5)", 430.5), ("=AVERAGE(C2:C5)", 143.5), ("=COUNT(C:C)", 3), ("=COUNTA(A2:A5)", 4),
-        ("=MAX(C2:C5)", 250.5), ("=MIN(C2:C5)", 80), ("=SUM(D:D)", 12), ("=ROUND(AVERAGE(C2:C4)/3, 2)", 47.83)
-    ])
+    @Test(
+        "聚合函数跳过文本",
+        arguments: [
+            ("=SUM(C2:C5)", 430.5), ("=AVERAGE(C2:C5)", 143.5), ("=COUNT(C:C)", 3), ("=COUNTA(A2:A5)", 4),
+            ("=MAX(C2:C5)", 250.5), ("=MIN(C2:C5)", 80), ("=SUM(D:D)", 12), ("=ROUND(AVERAGE(C2:C4)/3, 2)", 47.83),
+        ])
     func aggregates(f: String, expected: Double) {
         #expect(ev(f) == .number(expected))
     }
@@ -34,7 +40,7 @@ struct FormulaTests {
     @Test("运算优先级、百分号、字符串拼接、比较")
     func operators() {
         #expect(ev("=1+2*3^2") == .number(19))
-        #expect(ev("=-2^2") == .number(4))          // Excel: unary minus binds tighter
+        #expect(ev("=-2^2") == .number(4))  // Excel: unary minus binds tighter
         #expect(ev("=50%*C2") == .number(50))
         #expect(ev("=A2&\"-\"&B2") == .text("A店-上海"))
         #expect(ev("=C2>C4") == .bool(true))
@@ -66,8 +72,8 @@ struct FormulaTests {
 
     @Test("相对引用随行偏移，绝对引用不动（计算列填充）")
     func relativeFill() {
-        #expect(ev("=C2/D2", row: 1) == .number(50.1))          // becomes C3/D3
-        #expect(ev("=C2/$D$2", row: 2) == .number(20))          // C4 / D2
+        #expect(ev("=C2/D2", row: 1) == .number(50.1))  // becomes C3/D3
+        #expect(ev("=C2/$D$2", row: 2) == .number(20))  // C4 / D2
         #expect(ev("=IF(C2>90,\"高\",\"低\")", row: 2) == .text("低"))
     }
 
@@ -148,7 +154,7 @@ struct SpreadsheetReaderTests {
         #expect(q.visibleRows(in: s) == [0, 1, 2])
         q.filters = [:]
         q.sortColumn = 2; q.ascending = false
-        #expect(q.visibleRows(in: s) == [0, 2, 1, 3, 4])      // text "n/a" sorts after numbers
+        #expect(q.visibleRows(in: s) == [0, 2, 1, 3, 4])  // text "n/a" sorts after numbers
         q.hiddenRows = [1]
         #expect(q.visibleRows(in: s) == [0, 2, 3, 4])
         let st = SelectionStats([.number(1), .text("2"), .empty, .text("x"), .number(3)])
@@ -170,10 +176,20 @@ struct SpreadsheetReaderTests {
         }
         let main = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
         try put("[Content_Types].xml", #"<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>"#)
-        try put("xl/workbook.xml", #"<?xml version="1.0" encoding="utf-8"?><x:workbook xmlns:x="\#(main)"><x:sheets><x:sheet name="字段清单" sheetId="1" r:id="R1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/></x:sheets></x:workbook>"#)
-        try put("xl/_rels/workbook.xml.rels", "\u{FEFF}" + #"<?xml version="1.0" encoding="utf-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="worksheet" Target="/xl/worksheets/sheet1.xml" Id="R1"/><Relationship Type="sharedStrings" Target="/xl/sharedStrings.xml" Id="R2"/></Relationships>"#)
+        try put(
+            "xl/workbook.xml",
+            #"<?xml version="1.0" encoding="utf-8"?><x:workbook xmlns:x="\#(main)"><x:sheets><x:sheet name="字段清单" sheetId="1" r:id="R1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/></x:sheets></x:workbook>"#
+        )
+        try put(
+            "xl/_rels/workbook.xml.rels",
+            "\u{FEFF}"
+                + #"<?xml version="1.0" encoding="utf-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="worksheet" Target="/xl/worksheets/sheet1.xml" Id="R1"/><Relationship Type="sharedStrings" Target="/xl/sharedStrings.xml" Id="R2"/></Relationships>"#
+        )
         try put("xl/sharedStrings.xml", #"<?xml version="1.0"?><x:sst xmlns:x="\#(main)"><x:si><x:t>表名</x:t></x:si></x:sst>"#)
-        try put("xl/worksheets/sheet1.xml", #"<?xml version="1.0"?><x:worksheet xmlns:x="\#(main)"><x:sheetData><x:row r="1"><x:c r="A1" t="s"><x:v>0</x:v></x:c><x:c r="B1" t="inlineStr"><x:is><x:t>字段</x:t></x:is></x:c></x:row><x:row r="2"><x:c r="A2" t="inlineStr"><x:is><x:t>ods_order</x:t></x:is></x:c><x:c r="B2"><x:v>42</x:v></x:c></x:row></x:sheetData></x:worksheet>"#)
+        try put(
+            "xl/worksheets/sheet1.xml",
+            #"<?xml version="1.0"?><x:worksheet xmlns:x="\#(main)"><x:sheetData><x:row r="1"><x:c r="A1" t="s"><x:v>0</x:v></x:c><x:c r="B1" t="inlineStr"><x:is><x:t>字段</x:t></x:is></x:c></x:row><x:row r="2"><x:c r="A2" t="inlineStr"><x:is><x:t>ods_order</x:t></x:is></x:c><x:c r="B2"><x:v>42</x:v></x:c></x:row></x:sheetData></x:worksheet>"#
+        )
         let url = dir.appendingPathComponent("prefixed.xlsx")
         try Zip.pack(directory: pkg, to: url)
         let wb = try SpreadsheetReader.readXLSX(url: url)
@@ -194,19 +210,25 @@ struct SpreadsheetReaderTests {
             try Data(s.utf8).write(to: f)
         }
         try put("[Content_Types].xml", #"<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>"#)
-        try put("xl/workbook.xml", #"<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="S" sheetId="1" r:id="rId1"/></sheets></workbook>"#)
-        try put("xl/_rels/workbook.xml.rels", #"<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>"#)
+        try put(
+            "xl/workbook.xml",
+            #"<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="S" sheetId="1" r:id="rId1"/></sheets></workbook>"#
+        )
+        try put(
+            "xl/_rels/workbook.xml.rels",
+            #"<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>"#
+        )
         let sheet = """
-        <?xml version="1.0"?>
-        <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-          <sheetData>
-            <row r="2"><c r="A2"><f t="shared" si="0"/><v>2</v></c></row>
-            <row r="1"><c r="A1"><f t="shared" si="0" ref="A1:A2">A1+1</f><v>1</v></c></row>
-            <row r="500000"><c r="B500000"><v>9</v></c></row>
-          </sheetData>
-          <mergeCells count="1"><mergeCell ref="A1:A1048576"/></mergeCells>
-        </worksheet>
-        """
+            <?xml version="1.0"?>
+            <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+              <sheetData>
+                <row r="2"><c r="A2"><f t="shared" si="0"/><v>2</v></c></row>
+                <row r="1"><c r="A1"><f t="shared" si="0" ref="A1:A2">A1+1</f><v>1</v></c></row>
+                <row r="500000"><c r="B500000"><v>9</v></c></row>
+              </sheetData>
+              <mergeCells count="1"><mergeCell ref="A1:A1048576"/></mergeCells>
+            </worksheet>
+            """
         try put("xl/worksheets/sheet1.xml", sheet)
         let url = dir.appendingPathComponent("shared.xlsx")
         try Zip.pack(directory: pkg, to: url)
@@ -248,10 +270,11 @@ struct HiddenSheetTests {
         for (path, data) in try ArchiveReader.extractAll(url: plain, matching: { _ in true }) {
             var data = data
             if path == "xl/workbook.xml" {
-                data = Data(String(decoding: data, as: UTF8.self)
-                    .replacingOccurrences(of: "<sheets>", with: "<bookViews><workbookView activeTab=\"3\"/></bookViews><sheets>")
-                    .replacingOccurrences(of: "name=\"底稿\"", with: "name=\"底稿\" state=\"hidden\"")
-                    .replacingOccurrences(of: "name=\"参数\"", with: "name=\"参数\" state=\"veryHidden\"").utf8)
+                data = Data(
+                    String(decoding: data, as: UTF8.self)
+                        .replacingOccurrences(of: "<sheets>", with: "<bookViews><workbookView activeTab=\"3\"/></bookViews><sheets>")
+                        .replacingOccurrences(of: "name=\"底稿\"", with: "name=\"底稿\" state=\"hidden\"")
+                        .replacingOccurrences(of: "name=\"参数\"", with: "name=\"参数\" state=\"veryHidden\"").utf8)
             }
             let u = unpacked.appendingPathComponent(path)
             try FileManager.default.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true)

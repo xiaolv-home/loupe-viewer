@@ -192,8 +192,9 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
 
     private func follow(_ href: String) {
         if let u = URL(string: href), let scheme = u.scheme?.lowercased(), ["http", "https", "mailto"].contains(scheme) {
-            host?.showNotice("链接不会自动打开：\(href)", style: .info,
-                             action: NoticeAction(title: "在浏览器中打开") { NSWorkspace.shared.open(u) })
+            host?.showNotice(
+                "链接不会自动打开：\(href)", style: .info,
+                action: NoticeAction(title: "在浏览器中打开") { NSWorkspace.shared.open(u) })
             return
         }
         let path = (href.removingPercentEncoding ?? href).components(separatedBy: "#")[0]
@@ -350,8 +351,9 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
                 guard resp == .OK, let dest = panel.url else { return }
                 do {
                     try DocumentWriter.write(markdown: text, to: dest)
-                    self?.host?.showNotice("已导出：\(dest.lastPathComponent)", style: .success,
-                                           action: NoticeAction(title: "在 Finder 中显示") { NSWorkspace.shared.activateFileViewerSelecting([dest]) })
+                    self?.host?.showNotice(
+                        "已导出：\(dest.lastPathComponent)", style: .success,
+                        action: NoticeAction(title: "在 Finder 中显示") { NSWorkspace.shared.activateFileViewerSelecting([dest]) })
                 } catch {
                     self?.host?.showNotice("导出失败：\(error.localizedDescription)", style: .warning, action: nil)
                 }
@@ -381,10 +383,16 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
         return s
     }
     var infoSections: [InfoSection] {
-        [InfoSection("Markdown", [InfoItem("编码", format.encoding.name + (format.lineEnding == "\r\n" ? " · CRLF" : format.lineEnding == "\r" ? " · CR" : " · LF")),
-                                  InfoItem("写作", "Vditor 即时渲染（本地）；粘贴的图片存到 assets/"),
-                                  InfoItem("阅读", "markdown-it · KaTeX · Mermaid（本地）"),
-                                  InfoItem("安全", "已净化 HTML，远程资源已阻止，本地文件限于所在文件夹")])]
+        [
+            InfoSection(
+                "Markdown",
+                [
+                    InfoItem("编码", format.encoding.name + (format.lineEnding == "\r\n" ? " · CRLF" : format.lineEnding == "\r" ? " · CR" : " · LF")),
+                    InfoItem("写作", "Vditor 即时渲染（本地）；粘贴的图片存到 assets/"),
+                    InfoItem("阅读", "markdown-it · KaTeX · Mermaid（本地）"),
+                    InfoItem("安全", "已净化 HTML，远程资源已阻止，本地文件限于所在文件夹"),
+                ])
+        ]
     }
     var controls: AnyView? { AnyView(MarkdownControls(r: self)) }
     var initialFirstResponder: NSView? { mode == Self.writeMode ? writer?.webView : web }

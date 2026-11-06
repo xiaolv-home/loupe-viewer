@@ -15,9 +15,11 @@ public enum XLSXPatcher {
     /// edited cells, inserted/deleted rows and columns (`structure`, in the order they were made)
     /// and changed row heights / column widths. Everything else in the package — styles, charts,
     /// comments, other sheets — is copied as-is.
-    public static func save(base: URL, to dest: URL, workbook wb: Workbook, edited: [Int: Set<Int>],
-                            structure: [Int: [StructOp]] = [:], layout: [Int: SheetLayoutEdits] = [:],
-                            mergesChanged: Set<Int> = []) throws {
+    public static func save(
+        base: URL, to dest: URL, workbook wb: Workbook, edited: [Int: Set<Int>],
+        structure: [Int: [StructOp]] = [:], layout: [Int: SheetLayoutEdits] = [:],
+        mergesChanged: Set<Int> = []
+    ) throws {
         let parts = try ArchiveReader.extractAll(url: base) { _ in true }
         let work = FileManager.default.temporaryDirectory.appendingPathComponent("loupe-xlsx-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: work) }
@@ -90,7 +92,9 @@ public enum XLSXPatcher {
         let s = style.map { " s=\"\($0)\"" } ?? ""
         let tag = prefix + "c"
         let value = sheet.cell(r, c)
-        let formula = sheet.formulas[key].map { f -> String in var t = f; if t.hasPrefix("=") { t.removeFirst() }; return t }
+        let formula = sheet.formulas[key].map { f -> String in
+            var t = f; if t.hasPrefix("=") { t.removeFirst() }; return t
+        }
         let f = formula.map { "<\(prefix)f>\(XMLEscape.text($0))</\(prefix)f>" } ?? ""
         switch value {
         case .empty:
@@ -101,7 +105,8 @@ public enum XLSXPatcher {
         case .bool(let b):
             return "<\(tag) r=\"\(ref(r, c))\"\(s) t=\"b\">\(f)<\(prefix)v>\(b ? 1 : 0)</\(prefix)v></\(tag)>"
         case .error(let e):
-            return "<\(tag) r=\"\(ref(r, c))\"\(s) t=\"e\">\(f)<\(prefix)v>\(XMLEscape.text(e.hasPrefix("#") ? String(e.prefix(while: { $0 != " " && $0 != "（" })) : "#VALUE!"))</\(prefix)v></\(tag)>"
+            return
+                "<\(tag) r=\"\(ref(r, c))\"\(s) t=\"e\">\(f)<\(prefix)v>\(XMLEscape.text(e.hasPrefix("#") ? String(e.prefix(while: { $0 != " " && $0 != "（" })) : "#VALUE!"))</\(prefix)v></\(tag)>"
         case .text(let t):
             if formula != nil {
                 return "<\(tag) r=\"\(ref(r, c))\"\(s) t=\"str\">\(f)<\(prefix)v>\(XMLEscape.text(t))</\(prefix)v></\(tag)>"
@@ -135,7 +140,9 @@ public enum XLSXPatcher {
             let n: Int
             if let am = rAttr.firstMatch(in: attrs, range: NSRange(location: 0, length: (attrs as NSString).length)) {
                 n = Int((attrs as NSString).substring(with: am.range(at: 1))) ?? implicit + 1
-            } else { n = implicit + 1 }
+            } else {
+                n = implicit + 1
+            }
             implicit = n
             rows.append((n - 1, m.range))
         }
@@ -248,10 +255,13 @@ public enum XLSXPatcher {
             }
             return w.replacingCharacters(in: r, with: tag)
         }
-        let prefix = w.range(of: #"<(\w+:)?workbook\b"#, options: .regularExpression).map { String(w[$0]).dropFirst().components(separatedBy: "workbook")[0] } ?? ""
+        let prefix =
+            w.range(of: #"<(\w+:)?workbook\b"#, options: .regularExpression).map { String(w[$0]).dropFirst().components(separatedBy: "workbook")[0] } ?? ""
         let calc = "<\(prefix)calcPr fullCalcOnLoad=\"1\"/>"
         // calcPr precedes these elements in the schema.
-        for later in ["oleSize", "customWorkbookViews", "pivotCaches", "smartTagPr", "smartTagTypes", "webPublishing", "fileRecoveryPr", "webPublishObjects", "extLst"] {
+        for later in [
+            "oleSize", "customWorkbookViews", "pivotCaches", "smartTagPr", "smartTagTypes", "webPublishing", "fileRecoveryPr", "webPublishObjects", "extLst",
+        ] {
             if let r = w.range(of: "<\(prefix)\(later)") { return w.replacingCharacters(in: r.lowerBound..<r.lowerBound, with: calc) }
         }
         if let r = w.range(of: "</\(prefix)workbook>") { return w.replacingCharacters(in: r.lowerBound..<r.lowerBound, with: calc) }
@@ -295,28 +305,56 @@ public enum XLSXWriter {
             if name.isEmpty { name = "Sheet\(i + 1)" }
             while usedNames.contains(name.lowercased()) { name = String(name.prefix(28)) + "_\(i + 1)" }
             usedNames.insert(name.lowercased())
-            overrides += "<Override PartName=\"/xl/worksheets/sheet\(i + 1).xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
+            overrides +=
+                "<Override PartName=\"/xl/worksheets/sheet\(i + 1).xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
             sheetEntries += "<sheet name=\"\(XMLEscape.text(name))\" sheetId=\"\(i + 1)\" r:id=\"rId\(i + 1)\"/>"
-            rels += "<Relationship Id=\"rId\(i + 1)\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet\(i + 1).xml\"/>"
+            rels +=
+                "<Relationship Id=\"rId\(i + 1)\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet\(i + 1).xml\"/>"
             var body = ""
             var tmp = Sheet(name: name, rows: sh.rows, formulas: sh.formulas)
             tmp.columnCount = sh.rows.reduce(0) { max($0, $1.count) }
             for (r, row) in sh.rows.enumerated() {
                 var cells = ""
                 for c in row.indices {
-                    let isDate: Bool = { if case .date = row[c] { return true }; return false }()
+                    let isDate: Bool = {
+                        if case .date = row[c] { return true }; return false
+                    }()
                     if let x = XLSXPatcher.cellXML(tmp, r, c, prefix: "", style: isDate ? "1" : nil) { cells += x }
                 }
                 if !cells.isEmpty { body += "<row r=\"\(r + 1)\">\(cells)</row>" }
             }
-            try put("xl/worksheets/sheet\(i + 1).xml", xmlHead + "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheetData>\(body)</sheetData></worksheet>")
+            try put(
+                "xl/worksheets/sheet\(i + 1).xml",
+                xmlHead
+                    + "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheetData>\(body)</sheetData></worksheet>"
+            )
         }
         let n = sheets.count
-        try put("[Content_Types].xml", xmlHead + "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>\(overrides)</Types>")
-        try put("_rels/.rels", xmlHead + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>")
-        try put("xl/workbook.xml", xmlHead + "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets>\(sheetEntries)</sheets><calcPr fullCalcOnLoad=\"1\"/></workbook>")
-        try put("xl/_rels/workbook.xml.rels", xmlHead + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\(rels)<Relationship Id=\"rId\(n + 1)\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/></Relationships>")
-        try put("xl/styles.xml", xmlHead + "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><numFmts count=\"1\"><numFmt numFmtId=\"164\" formatCode=\"yyyy-mm-dd\"/></numFmts><fonts count=\"1\"><font><sz val=\"11\"/><name val=\"Calibri\"/></font></fonts><fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill></fills><borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs><cellXfs count=\"2\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/><xf numFmtId=\"164\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/></cellXfs></styleSheet>")
+        try put(
+            "[Content_Types].xml",
+            xmlHead
+                + "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>\(overrides)</Types>"
+        )
+        try put(
+            "_rels/.rels",
+            xmlHead
+                + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>"
+        )
+        try put(
+            "xl/workbook.xml",
+            xmlHead
+                + "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets>\(sheetEntries)</sheets><calcPr fullCalcOnLoad=\"1\"/></workbook>"
+        )
+        try put(
+            "xl/_rels/workbook.xml.rels",
+            xmlHead
+                + "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\(rels)<Relationship Id=\"rId\(n + 1)\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/></Relationships>"
+        )
+        try put(
+            "xl/styles.xml",
+            xmlHead
+                + "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><numFmts count=\"1\"><numFmt numFmtId=\"164\" formatCode=\"yyyy-mm-dd\"/></numFmts><fonts count=\"1\"><font><sz val=\"11\"/><name val=\"Calibri\"/></font></fonts><fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill></fills><borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs><cellXfs count=\"2\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/><xf numFmtId=\"164\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/></cellXfs></styleSheet>"
+        )
         let tmp = AtomicWrite.tempNear(dest, ext: "xlsx")
         try Zip.pack(directory: work, to: tmp)
         _ = try SpreadsheetReader.readXLSX(url: tmp)

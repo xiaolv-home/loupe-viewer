@@ -56,10 +56,11 @@ final class AIConversations: ObservableObject {
     func save(_ c: AIConversation) {
         guard let data = try? JSONEncoder.loupe.encode(c) else { return }
         try? data.write(to: url(c.id), options: .atomic)
-        let preview = c.items.reversed().lazy.compactMap { item -> String? in
-            if case .assistant(let t) = item.kind { return t }
-            return nil
-        }.first.map { MarkdownParser.plain($0).replacingOccurrences(of: "\n", with: " ") } ?? ""
+        let preview =
+            c.items.reversed().lazy.compactMap { item -> String? in
+                if case .assistant(let t) = item.kind { return t }
+                return nil
+            }.first.map { MarkdownParser.plain($0).replacingOccurrences(of: "\n", with: " ") } ?? ""
         let s = Summary(id: c.id, title: c.title, updated: c.updated, model: c.model, file: c.file, preview: String(preview.prefix(80)))
         list.removeAll { $0.id == c.id }
         list.insert(s, at: 0)
@@ -100,9 +101,13 @@ final class AIConversations: ObservableObject {
     /// The list grouped the way people think about time: 今天 / 昨天 / 7 天内 / 30 天内 / 更早.
     func grouped(matching query: String) -> [(String, [Summary])] {
         let q = query.trimmingCharacters(in: .whitespaces)
-        let items = q.isEmpty ? list : list.filter {
-            $0.title.localizedCaseInsensitiveContains(q) || $0.preview.localizedCaseInsensitiveContains(q) || ($0.file?.localizedCaseInsensitiveContains(q) ?? false)
-        }
+        let items =
+            q.isEmpty
+            ? list
+            : list.filter {
+                $0.title.localizedCaseInsensitiveContains(q) || $0.preview.localizedCaseInsensitiveContains(q)
+                    || ($0.file?.localizedCaseInsensitiveContains(q) ?? false)
+            }
         let cal = Calendar.current
         let now = Date()
         func bucket(_ d: Date) -> String {

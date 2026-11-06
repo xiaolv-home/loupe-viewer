@@ -53,8 +53,10 @@ public final class LineIndex: @unchecked Sendable {
                         if unit == 2 {
                             isNL = be ? (base[p] == 0 && base[p + 1] == 0x0A) : (base[p] == 0x0A && base[p + 1] == 0)
                         } else {
-                            isNL = be ? (base[p + 3] == 0x0A && base[p] == 0 && base[p + 1] == 0 && base[p + 2] == 0)
-                                      : (base[p] == 0x0A && base[p + 1] == 0 && base[p + 2] == 0 && base[p + 3] == 0)
+                            isNL =
+                                be
+                                ? (base[p + 3] == 0x0A && base[p] == 0 && base[p + 1] == 0 && base[p + 2] == 0)
+                                : (base[p] == 0x0A && base[p + 1] == 0 && base[p + 2] == 0 && base[p + 3] == 0)
                         }
                         if isNL && p + unit < total { local.append(p + unit) }
                         p += unit
@@ -88,7 +90,8 @@ public final class LineIndex: @unchecked Sendable {
             range = range.lowerBound..<cut
             clipped = true
         }
-        var s = TextEncodingDetector.decode(data.subdata(in: range), as: DetectedEncoding(encoding.encoding, encoding.name, bom: 0, unit: encoding.unitWidth, bigEndian: encoding.bigEndian))
+        var s = TextEncodingDetector.decode(
+            data.subdata(in: range), as: DetectedEncoding(encoding.encoding, encoding.name, bom: 0, unit: encoding.unitWidth, bigEndian: encoding.bigEndian))
         while let last = s.unicodeScalars.last, last == "\n" || last == "\r" { s.unicodeScalars.removeLast() }
         if clipped { s += " …" }
         return s

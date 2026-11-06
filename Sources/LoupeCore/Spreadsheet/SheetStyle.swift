@@ -72,7 +72,7 @@ public enum NumberFormat {
         45: "mm:ss", 46: "[h]:mm:ss", 47: "mm:ss.0", 48: "##0.0E+0", 49: "@",
         50: "yyyy\"年\"m\"月\"", 51: "m\"月\"d\"日\"", 52: "yyyy\"年\"m\"月\"", 53: "m\"月\"d\"日\"",
         54: "m\"月\"d\"日\"", 55: "上午/下午h\"时\"mm\"分\"", 56: "上午/下午h\"时\"mm\"分\"ss\"秒\"",
-        57: "yyyy\"年\"m\"月\"", 58: "m\"月\"d\"日\""
+        57: "yyyy\"年\"m\"月\"", 58: "m\"月\"d\"日\"",
     ]
 
     public struct Result: Equatable {
@@ -84,7 +84,7 @@ public enum NumberFormat {
         "red": RGBA(r: 0xD9, g: 0x2D, b: 0x20), "blue": RGBA(r: 0x00, g: 0x4F, b: 0xC4), "green": RGBA(r: 0x1F, g: 0x7A, b: 0x34),
         "black": RGBA(r: 0, g: 0, b: 0), "white": RGBA(r: 255, g: 255, b: 255), "magenta": RGBA(r: 0xB0, g: 0x1E, b: 0xA6),
         "cyan": RGBA(r: 0x00, g: 0x8B, b: 0x9E), "yellow": RGBA(r: 0xB0, g: 0x8A, b: 0x00),
-        "红色": RGBA(r: 0xD9, g: 0x2D, b: 0x20), "蓝色": RGBA(r: 0x00, g: 0x4F, b: 0xC4), "绿色": RGBA(r: 0x1F, g: 0x7A, b: 0x34)
+        "红色": RGBA(r: 0xD9, g: 0x2D, b: 0x20), "蓝色": RGBA(r: 0x00, g: 0x4F, b: 0xC4), "绿色": RGBA(r: 0x1F, g: 0x7A, b: 0x34),
     ]
 
     /// Splits on top-level ';' (not inside quotes or brackets).
@@ -114,8 +114,9 @@ public enum NumberFormat {
             if !inQ && ch == "[", let close = s[i...].firstIndex(of: "]") {
                 let tag = String(s[s.index(after: i)..<close])
                 let lower = tag.lowercased()
-                if let c = colorNames[lower] { color = c }
-                else if lower.hasPrefix("$") {
+                if let c = colorNames[lower] {
+                    color = c
+                } else if lower.hasPrefix("$") {
                     // [$¥-804] → "¥"; [$-804] → nothing
                     let sym = tag.dropFirst().prefix { $0 != "-" }
                     if !sym.isEmpty { out += "\"\(sym)\"" }
@@ -155,8 +156,7 @@ public enum NumberFormat {
         case .number(let d), .date(let d):
             var sec = secs[0]
             var v = d
-            if d < 0, secs.count >= 2 { sec = secs[1]; v = abs(d) }
-            else if d == 0, secs.count >= 3 { sec = secs[2] }
+            if d < 0, secs.count >= 2 { sec = secs[1]; v = abs(d) } else if d == 0, secs.count >= 3 { sec = secs[2] }
             let (s, color, elapsed) = stripBrackets(sec)
             if s.lowercased() == "general" { return Result(text: CellValue.format(v), color: color) }
             if isDateSection(s) { return Result(text: formatDate(v, s, elapsed: elapsed), color: color) }
@@ -202,10 +202,13 @@ public enum NumberFormat {
         var i = 0
         while i < chars.count {
             let ch = chars[i]
-            if ch == "\"" { inQ.toggle() }
-            else if !inQ && ch == "\\" { i += 2; continue }
-            else if !inQ && (ch == "_" || ch == "*") { i += 2; continue }
-            else if !inQ && "0#?.,".contains(ch) {
+            if ch == "\"" {
+                inQ.toggle()
+            } else if !inQ && ch == "\\" {
+                i += 2; continue
+            } else if !inQ && (ch == "_" || ch == "*") {
+                i += 2; continue
+            } else if !inQ && "0#?.,".contains(ch) {
                 if "0#?".contains(ch) || first != nil { if first == nil { first = i }; last = i }
             } else if !inQ && (ch == "E" || ch == "e"), first != nil, i + 1 < chars.count, chars[i + 1] == "+" || chars[i + 1] == "-" {
                 last = min(chars.count - 1, i + 1 + chars[(i + 2)...].prefix { "0#".contains($0) }.count)
@@ -274,10 +277,14 @@ public enum NumberFormat {
             default: tokens.append(.literal(String(ch)))
             }
         }
-        let pointAt = tokens.firstIndex { if case .point = $0 { return true }; return false }
+        let pointAt = tokens.firstIndex {
+            if case .point = $0 { return true }; return false
+        }
         let intTokens = pointAt.map { Array(tokens[..<$0]) } ?? tokens
         let fracTokens = pointAt.map { Array(tokens[($0 + 1)...]) } ?? []
-        let fracCount = fracTokens.filter { if case .digit = $0 { return true }; return false }.count
+        let fracCount = fracTokens.filter {
+            if case .digit = $0 { return true }; return false
+        }.count
         let scaled = (abs(value) * pow(10, Double(fracCount))).rounded(.toNearestOrAwayFromZero)
         var digits = String(format: "%.0f", scaled)
         if digits.count <= fracCount { digits = String(repeating: "0", count: fracCount - digits.count + 1) + digits }
@@ -285,7 +292,9 @@ public enum NumberFormat {
         if intDigits == ["0"] { intDigits = [] }
         let fracDigits = Array(digits.suffix(fracCount))
 
-        let leftmost = intTokens.firstIndex { if case .digit = $0 { return true }; return false }
+        let leftmost = intTokens.firstIndex {
+            if case .digit = $0 { return true }; return false
+        }
         var pieces: [String] = []
         for (index, token) in intTokens.enumerated().reversed() {
             switch token {
@@ -355,10 +364,15 @@ public enum NumberFormat {
                 let rest = String(chars[(i + n)...]).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: ":\"分 "))
                 let isMinute = n <= 2 && (lastWasHour || rest.hasPrefix("s"))
                 i += n
-                if isMinute { out += pad(comps.minute ?? 0, n) }
-                else if n >= 4 { out += "\(comps.month ?? 1)月" }
-                else if n == 3 { out += monthsShort[((comps.month ?? 1) - 1) % 12] }
-                else { out += pad(comps.month ?? 0, n) }
+                if isMinute {
+                    out += pad(comps.minute ?? 0, n)
+                } else if n >= 4 {
+                    out += "\(comps.month ?? 1)月"
+                } else if n == 3 {
+                    out += monthsShort[((comps.month ?? 1) - 1) % 12]
+                } else {
+                    out += pad(comps.month ?? 0, n)
+                }
                 lastWasHour = false
                 continue
             case "h":
@@ -376,7 +390,9 @@ public enum NumberFormat {
                     out += (comps.hour ?? 0) < 12 ? "AM" : "PM"; i += 5
                 } else if lower[lower.index(lower.startIndex, offsetBy: i)...].hasPrefix("a/p") {
                     out += (comps.hour ?? 0) < 12 ? "A" : "P"; i += 3
-                } else { out.append(ch); i += 1 }
+                } else {
+                    out.append(ch); i += 1
+                }
             case "上":
                 if String(chars[i...]).hasPrefix("上午/下午") { out += (comps.hour ?? 0) < 12 ? "上午" : "下午"; i += 5 } else { out.append(ch); i += 1 }
             case "_", "*": i += 2
@@ -388,7 +404,9 @@ public enum NumberFormat {
                     let frac = Double(comps.nanosecond ?? 0) / 1e9
                     out += String(format: "%.\(zeros)f", frac).dropFirst()
                     i += 1 + zeros
-                } else { out.append(ch); i += 1 }
+                } else {
+                    out.append(ch); i += 1
+                }
             default:
                 out.append(ch); i += 1
             }

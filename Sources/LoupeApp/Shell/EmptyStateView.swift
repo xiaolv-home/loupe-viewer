@@ -47,7 +47,7 @@ struct EmptyStateView: View {
     private let categories: [(FormatCategory, String)] = [
         (.document, "PDF · Office · iWork"), (.image, "照片 · RAW · HDR"), (.media, "视频 · 音频"),
         (.code, "文本 · 代码 · Markdown"), (.data, "CSV · JSON · Plist"), (.archive, "压缩包 · 文件夹"),
-        (.font, "TTF · OTF · WOFF"), (.web, "HTML · SVG")
+        (.font, "TTF · OTF · WOFF"), (.web, "HTML · SVG"),
     ]
 
     var body: some View {
@@ -131,8 +131,10 @@ struct EmptyStateView: View {
 
     private func legend(width: CGFloat) -> some View {
         let cols = width > 420 ? 2 : 1
-        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 18, alignment: .leading), count: cols),
-                         alignment: .leading, spacing: 9) {
+        return LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: 18, alignment: .leading), count: cols),
+            alignment: .leading, spacing: 9
+        ) {
             ForEach(categories, id: \.0) { c, detail in
                 HStack(spacing: 9) {
                     Rectangle().fill(Theme.tint(c)).frame(width: 9, height: 9)
@@ -148,8 +150,10 @@ struct EmptyStateView: View {
             HStack {
                 SectionLabel(text: "最近打开")
                 Spacer()
-                Button("清除") { RecentFiles.clear(); withAnimation { recents = [] } }
-                    .buttonStyle(.plain).font(.system(size: 10.5)).tracking(1).foregroundStyle(.secondary)
+                Button("清除") {
+                    RecentFiles.clear(); withAnimation { recents = [] }
+                }
+                .buttonStyle(.plain).font(.system(size: 10.5)).tracking(1).foregroundStyle(.secondary)
             }
             VStack(spacing: 0) {
                 ForEach(Array(recents.prefix(6).enumerated()), id: \.element) { i, url in
@@ -173,7 +177,9 @@ private extension View {
 private struct OpenButton: View {
     @State private var hover = false
     var body: some View {
-        Button { NSApp.sendAction(#selector(AppActions.showOpenPanel(_:)), to: nil, from: nil) } label: {
+        Button {
+            NSApp.sendAction(#selector(AppActions.showOpenPanel(_:)), to: nil, from: nil)
+        } label: {
             HStack(spacing: 10) {
                 Text("打开文件").font(.system(size: 12.5, weight: .semibold))
                 Text("⌘O").font(.system(size: 10.5, weight: .medium, design: .rounded))

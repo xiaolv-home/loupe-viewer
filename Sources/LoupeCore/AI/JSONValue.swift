@@ -94,7 +94,8 @@ public enum AIJSON: Sendable, Equatable {
 }
 
 extension AIJSON: ExpressibleByStringLiteral, ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral,
-                     ExpressibleByBooleanLiteral, ExpressibleByArrayLiteral, ExpressibleByDictionaryLiteral, ExpressibleByNilLiteral {
+    ExpressibleByBooleanLiteral, ExpressibleByArrayLiteral, ExpressibleByDictionaryLiteral, ExpressibleByNilLiteral
+{
     public init(stringLiteral v: String) { self = .string(v) }
     public init(integerLiteral v: Int) { self = .number(Double(v)) }
     public init(floatLiteral v: Double) { self = .number(v) }
@@ -109,12 +110,19 @@ extension AIJSON: ExpressibleByStringLiteral, ExpressibleByIntegerLiteral, Expre
 extension AIJSON: Codable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
-        if c.decodeNil() { self = .null }
-        else if let b = try? c.decode(Bool.self) { self = .bool(b) }
-        else if let d = try? c.decode(Double.self) { self = .number(d) }
-        else if let s = try? c.decode(String.self) { self = .string(s) }
-        else if let a = try? c.decode([AIJSON].self) { self = .array(a) }
-        else { self = .object(try c.decode([String: AIJSON].self)) }
+        if c.decodeNil() {
+            self = .null
+        } else if let b = try? c.decode(Bool.self) {
+            self = .bool(b)
+        } else if let d = try? c.decode(Double.self) {
+            self = .number(d)
+        } else if let s = try? c.decode(String.self) {
+            self = .string(s)
+        } else if let a = try? c.decode([AIJSON].self) {
+            self = .array(a)
+        } else {
+            self = .object(try c.decode([String: AIJSON].self))
+        }
     }
 
     public func encode(to encoder: Encoder) throws {

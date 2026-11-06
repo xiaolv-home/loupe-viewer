@@ -81,7 +81,7 @@ struct FloatingLens: View {
             }
         }
         .animation(.easeOut(duration: 0.18), value: model.controlsPlacement == .floating)
-        .padding(20) // room for the shadow
+        .padding(20)  // room for the shadow
         .padding(-20)
     }
 }
@@ -102,7 +102,9 @@ struct BannerOverlay: View {
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Theme.ember)
                     }
-                    Button { withAnimation { model.notice = nil } } label: {
+                    Button {
+                        withAnimation { model.notice = nil }
+                    } label: {
                         Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.secondary)
                             .frame(width: 18, height: 18).contentShape(Rectangle())
                     }.buttonStyle(.plain)
@@ -119,10 +121,18 @@ struct BannerOverlay: View {
     }
 
     func icon(_ s: NoticeStyle) -> String {
-        switch s { case .info: return "info.circle.fill"; case .warning: return "exclamationmark.triangle.fill"; case .success: return "checkmark.circle.fill" }
+        switch s {
+        case .info: return "info.circle.fill";
+        case .warning: return "exclamationmark.triangle.fill";
+        case .success: return "checkmark.circle.fill"
+        }
     }
     func color(_ s: NoticeStyle) -> Color {
-        switch s { case .info: return .accentColor; case .warning: return Theme.ember; case .success: return .green }
+        switch s {
+        case .info: return .accentColor;
+        case .warning: return Theme.ember;
+        case .success: return .green
+        }
     }
 }
 

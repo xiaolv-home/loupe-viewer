@@ -78,8 +78,11 @@ public struct SheetQuery: Sendable {
                 // Numbers before text regardless of direction; direction applies within a type.
                 if (x == nil) != (y == nil) { return x != nil }
                 var cmp: ComparisonResult
-                if let x, let y { cmp = x < y ? .orderedAscending : (x > y ? .orderedDescending : .orderedSame) }
-                else { cmp = a.v.display.compare(b.v.display, options: [.caseInsensitive, .numeric], locale: Locale(identifier: "zh_CN")) }
+                if let x, let y {
+                    cmp = x < y ? .orderedAscending : (x > y ? .orderedDescending : .orderedSame)
+                } else {
+                    cmp = a.v.display.compare(b.v.display, options: [.caseInsensitive, .numeric], locale: Locale(identifier: "zh_CN"))
+                }
                 if cmp == .orderedSame { return a.r < b.r }
                 return ascending ? cmp == .orderedAscending : cmp == .orderedDescending
             }.map(\.r)

@@ -10,11 +10,16 @@ extension MarkdownRenderer: AIDocumentTools {
 
     var aiTools: [AIToolSpec] {
         [
-            AIToolSpec("edit_document", "修改当前打开的 Markdown 文档：把 find 换成 replace。find 必须和原文一字不差且只出现一次（不唯一时多带几个字），all=true 时替换所有出现处。改动会显示在编辑器里，可撤销。",
-                       Schema.object(["find": Schema.string("要替换的原文"), "replace": Schema.string("替换成的内容"),
-                                      "all": Schema.boolean("替换所有出现处")], required: ["find", "replace"])),
-            AIToolSpec("rewrite_document", "用新内容整篇替换当前 Markdown 文档（大幅改写、重排结构时用）。可撤销，用户保存前不会写入文件。",
-                       Schema.object(["content": Schema.string("新的完整内容")], required: ["content"]))
+            AIToolSpec(
+                "edit_document", "修改当前打开的 Markdown 文档：把 find 换成 replace。find 必须和原文一字不差且只出现一次（不唯一时多带几个字），all=true 时替换所有出现处。改动会显示在编辑器里，可撤销。",
+                Schema.object(
+                    [
+                        "find": Schema.string("要替换的原文"), "replace": Schema.string("替换成的内容"),
+                        "all": Schema.boolean("替换所有出现处"),
+                    ], required: ["find", "replace"])),
+            AIToolSpec(
+                "rewrite_document", "用新内容整篇替换当前 Markdown 文档（大幅改写、重排结构时用）。可撤销，用户保存前不会写入文件。",
+                Schema.object(["content": Schema.string("新的完整内容")], required: ["content"])),
         ]
     }
 

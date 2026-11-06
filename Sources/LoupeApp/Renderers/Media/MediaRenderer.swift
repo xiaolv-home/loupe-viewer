@@ -33,8 +33,7 @@ enum SubtitleFinder {
         let dir = url.deletingLastPathComponent()
         let items = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
         return items.filter { u in
-            SubtitleParser.extensions.contains(u.pathExtension.lowercased()) &&
-                u.deletingPathExtension().lastPathComponent.lowercased().hasPrefix(base)
+            SubtitleParser.extensions.contains(u.pathExtension.lowercased()) && u.deletingPathExtension().lastPathComponent.lowercased().hasPrefix(base)
         }.sorted { a, b in
             // Prefer SRT, then ASS/SSA, then VTT; then by name.
             let rank = ["srt": 0, "ass": 1, "ssa": 1, "vtt": 2]
@@ -177,7 +176,9 @@ final class MediaRenderer: NSObject, Renderer, AVPictureInPictureControllerDeleg
             }
         }
         endObs = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.model.isPlaying = false; self?.stage?.reveal() }
+            MainActor.assumeIsolated {
+                self?.model.isPlaying = false; self?.stage?.reveal()
+            }
         }
 
         model.onPlayPause = { [weak self] in
@@ -185,7 +186,9 @@ final class MediaRenderer: NSObject, Renderer, AVPictureInPictureControllerDeleg
             if p.timeControlStatus == .paused {
                 if let d = p.currentItem?.duration.seconds, d.isFinite, p.currentTime().seconds >= d - 0.05 { p.seek(to: .zero) }
                 p.rate = Float(self.model.rate)
-            } else { p.pause() }
+            } else {
+                p.pause()
+            }
             self.stage?.reveal()
         }
         model.onSeek = { [weak self] t in
@@ -196,7 +199,9 @@ final class MediaRenderer: NSObject, Renderer, AVPictureInPictureControllerDeleg
             self?.player?.pause()
             self?.player?.currentItem?.step(byCount: n)
         }
-        model.onVolume = { [weak self] v in self?.player?.volume = Float(v); self?.player?.isMuted = false }
+        model.onVolume = { [weak self] v in
+            self?.player?.volume = Float(v); self?.player?.isMuted = false
+        }
         model.onMute = { [weak self] m in self?.player?.isMuted = m }
         model.onRate = { [weak self] r in
             guard let p = self?.player else { return }
@@ -278,8 +283,9 @@ final class MediaRenderer: NSObject, Renderer, AVPictureInPictureControllerDeleg
             do {
                 let (img, actual) = try await gen.image(at: t)
                 let url = try MediaSnapshot.save(img, name: name, time: actual.seconds)
-                host?.showNotice("截图已保存到桌面：\(url.lastPathComponent)", style: .success,
-                                 action: NoticeAction(title: "显示") { NSWorkspace.shared.activateFileViewerSelecting([url]) })
+                host?.showNotice(
+                    "截图已保存到桌面：\(url.lastPathComponent)", style: .success,
+                    action: NoticeAction(title: "显示") { NSWorkspace.shared.activateFileViewerSelecting([url]) })
             } catch {
                 host?.showNotice("截图失败：\(error.localizedDescription)", style: .warning, action: nil)
             }

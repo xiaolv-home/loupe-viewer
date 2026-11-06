@@ -21,8 +21,10 @@ enum AIVision {
     static func knownVisionModel(_ model: String) -> Bool {
         let m = model.lowercased()
         if m.hasPrefix("deepseek") || m.contains("deepseek-ai/deepseek-v") || m.contains("deepseek-r") { return m.contains("vl") }
-        let markers = ["claude", "gpt-4o", "gpt-4.1", "gpt-5", "o3", "o4", "gemini", "vl", "vision", "4v", "-v-", "qwen3.5", "qwen3.6",
-                       "kimi-latest", "kimi-k2.5", "glm-4.5v", "glm-4.6v", "doubao-seed", "doubao-1.5-vision", "llava", "pixtral", "openrouter/auto"]
+        let markers = [
+            "claude", "gpt-4o", "gpt-4.1", "gpt-5", "o3", "o4", "gemini", "vl", "vision", "4v", "-v-", "qwen3.5", "qwen3.6",
+            "kimi-latest", "kimi-k2.5", "glm-4.5v", "glm-4.6v", "doubao-seed", "doubao-1.5-vision", "llava", "pixtral", "openrouter/auto",
+        ]
         return markers.contains { m.contains($0) }
     }
 
@@ -31,8 +33,9 @@ enum AIVision {
         if root.lastPathComponent == "v1" { root.deleteLastPathComponent() }
         // LM Studio
         if let (d, r) = try? await AIHTTP.session.data(from: root.appendingPathComponent("api/v0/models")),
-           (r as? HTTPURLResponse)?.statusCode == 200,
-           let m = AIJSON.parse(d)?["data"]?.array?.first(where: { $0["id"]?.string == e.model }) {
+            (r as? HTTPURLResponse)?.statusCode == 200,
+            let m = AIJSON.parse(d)?["data"]?.array?.first(where: { $0["id"]?.string == e.model })
+        {
             return m["type"]?.string == "vlm"
         }
         // Ollama
@@ -64,8 +67,10 @@ enum AIVision {
             cg = c
         } else {
             guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { throw AIError("图片打不开") }
-            let opts: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true,
-                                         kCGImageSourceThumbnailMaxPixelSize: maxPixels]
+            let opts: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: maxPixels,
+            ]
             guard let c = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { throw AIError("图片打不开") }
             cg = c
         }
@@ -87,8 +92,10 @@ enum AIVision {
         let w = cg.width, h = cg.height
         let flat: CGImage = {
             guard cg.alphaInfo != .none, cg.alphaInfo != .noneSkipLast, cg.alphaInfo != .noneSkipFirst,
-                  let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
-                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return cg }
+                let ctx = CGContext(
+                    data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+            else { return cg }
             ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
             ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
             ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
@@ -102,7 +109,8 @@ enum AIVision {
     /// Text recognised in pictures, for models that cannot see.
     nonisolated static func describe(_ image: AIImage) -> String {
         guard let d = Data(base64Encoded: image.base64), let src = CGImageSourceCreateWithData(d as CFData, nil),
-              let cg = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return "（图片无法识别）" }
+            let cg = CGImageSourceCreateImageAtIndex(src, 0, nil)
+        else { return "（图片无法识别）" }
         return (try? DocumentText.ocr(cg)) ?? "（图片里没有识别到文字）"
     }
 }

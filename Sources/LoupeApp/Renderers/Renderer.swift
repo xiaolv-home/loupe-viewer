@@ -16,8 +16,10 @@ final class FileContext: @unchecked Sendable {
 
     init(url: URL) {
         self.url = url
-        let rv = try? url.resourceValues(forKeys: [.fileSizeKey, .totalFileAllocatedSizeKey, .creationDateKey,
-                                                   .contentModificationDateKey, .isDirectoryKey, .contentTypeKey])
+        let rv = try? url.resourceValues(forKeys: [
+            .fileSizeKey, .totalFileAllocatedSizeKey, .creationDateKey,
+            .contentModificationDateKey, .isDirectoryKey, .contentTypeKey,
+        ])
         isDirectory = rv?.isDirectory ?? false
         size = Int64(isDirectory ? FileContext.directorySize(url) : (rv?.fileSize ?? 0))
         created = rv?.creationDate
@@ -199,12 +201,12 @@ extension Renderer {
 }
 
 #if DEBUG
-/// Renderers that the test automation can drive with `--cmd sheet:<verb>:<args>` and `--cmd dump`.
-@MainActor
-protocol DebugScriptable: AnyObject {
-    func debugRun(verb: String, arg: String, window: NSWindow) async
-    func debugDump() -> String
-}
+    /// Renderers that the test automation can drive with `--cmd sheet:<verb>:<args>` and `--cmd dump`.
+    @MainActor
+    protocol DebugScriptable: AnyObject {
+        func debugRun(verb: String, arg: String, window: NSWindow) async
+        func debugDump() -> String
+    }
 #endif
 
 /// Picks the ordered list of renderers to try for a file:
@@ -219,8 +221,10 @@ enum RendererRegistry {
         case .image: out = [ImageRenderer.self]
         case .svg: out = [ImageRenderer.self, HTMLRenderer.self]
         case .video, .audio:
-            let preferMPV = MPVLibrary.isAvailable && (ExtensionTable.mpvPreferred.contains(f.ext)
-                || AppSettings.shared.preferMPV || f.format.token == "MKV" || f.format.token == "WEBM")
+            let preferMPV =
+                MPVLibrary.isAvailable
+                && (ExtensionTable.mpvPreferred.contains(f.ext)
+                    || AppSettings.shared.preferMPV || f.format.token == "MKV" || f.format.token == "WEBM")
             out = preferMPV ? [MPVRenderer.self, MediaRenderer.self] : [MediaRenderer.self, MPVRenderer.self]
         case .text, .code: out = [TextRenderer.self]
         case .markdown: out = [MarkdownRenderer.self, TextRenderer.self]
@@ -237,7 +241,8 @@ enum RendererRegistry {
         case .binary: out = []
         }
         out = out.filter { $0.canHandle(f) }
-        let previewableBinary = fam == .binary && (f.utType.map { !$0.isDynamic && $0 != .data && $0.conforms(to: .content) && !$0.conforms(to: .text) } ?? false)
+        let previewableBinary =
+            fam == .binary && (f.utType.map { !$0.isDynamic && $0 != .data && $0.conforms(to: .content) && !$0.conforms(to: .text) } ?? false)
         if [.office, .iwork, .quicklook, .svg, .font].contains(fam) || previewableBinary {
             out.append(QuickLookRenderer.self)
         }

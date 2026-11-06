@@ -5,34 +5,34 @@ import Testing
 struct LineMergeTests {
     // On disk, as the user wrote it.
     let original = """
-    # 周报
+        # 周报
 
-    这是第一段。
+        这是第一段。
 
-    - [x] 已完成
-    - [ ] 待办
-    | 区域 | 营业额 |
-    | --- | ---: |
-    | 华东 | 1 |
+        - [x] 已完成
+        - [ ] 待办
+        | 区域 | 营业额 |
+        | --- | ---: |
+        | 华东 | 1 |
 
-    结尾。
-    """
+        结尾。
+        """
     // How the editor tidies it (task markers, blank line, table padding).
     let base = """
-    # 周报
+        # 周报
 
-    这是第一段。
+        这是第一段。
 
-    - [X]  已完成
-    - [ ]  待办
+        - [X]  已完成
+        - [ ]  待办
 
 
-    | 区域 | 营业额 |
-    | ---- | -----: |
-    | 华东 |      1 |
+        | 区域 | 营业额 |
+        | ---- | -----: |
+        | 华东 |      1 |
 
-    结尾。
-    """
+        结尾。
+        """
 
     @Test("没改就原样不动")
     func untouched() {

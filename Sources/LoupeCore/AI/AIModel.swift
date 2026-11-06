@@ -179,9 +179,10 @@ public enum AIHTTP {
     public static func check(_ resp: URLResponse, _ body: Data, endpoint: AIEndpoint) throws {
         guard let http = resp as? HTTPURLResponse else { return }
         guard !(200..<300).contains(http.statusCode) else { return }
-        let detail = AIJSON.parse(body).flatMap { j in
-            j["error"]?["message"]?.string ?? j["error"]?.string ?? j["message"]?.string
-        } ?? String(decoding: body.prefix(300), as: UTF8.self)
+        let detail =
+            AIJSON.parse(body).flatMap { j in
+                j["error"]?["message"]?.string ?? j["error"]?.string ?? j["message"]?.string
+            } ?? String(decoding: body.prefix(300), as: UTF8.self)
         switch http.statusCode {
         case 401, 403: throw AIError("API Key 不对或没有权限（\(detail)）")
         case 404: throw AIError("找不到模型「\(endpoint.model)」或接口地址不对（\(detail)）")
@@ -197,8 +198,9 @@ public enum AIHTTP {
         if ns.domain == NSURLErrorDomain {
             switch ns.code {
             case NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost:
-                return endpoint.isLocal ? "连不上本地模型（\(endpoint.baseURL.host ?? "")）。LM Studio / Ollama 打开了吗？"
-                                        : "连不上 \(endpoint.baseURL.host ?? "服务器")，检查一下网络"
+                return endpoint.isLocal
+                    ? "连不上本地模型（\(endpoint.baseURL.host ?? "")）。LM Studio / Ollama 打开了吗？"
+                    : "连不上 \(endpoint.baseURL.host ?? "服务器")，检查一下网络"
             case NSURLErrorTimedOut: return "等太久没有回应，模型可能太忙了"
             case NSURLErrorNotConnectedToInternet: return "没有网络连接"
             case NSURLErrorCancelled: return "已停止"

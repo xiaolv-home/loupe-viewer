@@ -23,8 +23,11 @@ public struct Skill: Sendable, Identifiable, Equatable {
 
     /// Other files in the skill's folder, relative paths (for reading references on demand).
     public func resourceFiles(limit: Int = 200) -> [String] {
-        guard let e = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey],
-                                                     options: [.skipsHiddenFiles]) else { return [] }
+        guard
+            let e = FileManager.default.enumerator(
+                at: folder, includingPropertiesForKeys: [.isRegularFileKey],
+                options: [.skipsHiddenFiles])
+        else { return [] }
         var out: [String] = []
         let base = folder.standardizedFileURL.path + "/"
         for case let u as URL in e {
@@ -65,13 +68,15 @@ public enum SkillLibrary {
 
     public static func load(_ folder: URL, builtIn: Bool = false) -> Skill? {
         guard let f = fileName(in: folder),
-              let text = try? String(contentsOf: folder.appendingPathComponent(f), encoding: .utf8) else { return nil }
+            let text = try? String(contentsOf: folder.appendingPathComponent(f), encoding: .utf8)
+        else { return nil }
         let (meta, body) = parseFrontMatter(text)
         let name = meta["name"].flatMap { $0.isEmpty ? nil : $0 } ?? folder.lastPathComponent
         var desc = meta["description"] ?? ""
         if desc.isEmpty {
             // No front matter: the first paragraph of the body describes it.
-            desc = body.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+            desc =
+                body.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
                 .first { !$0.isEmpty && !$0.hasPrefix("#") } ?? ""
         }
         let source = (try? Data(contentsOf: folder.appendingPathComponent(sourceFile)))
@@ -92,7 +97,9 @@ public enum SkillLibrary {
         return scored.filter { $0.1 > 0 }.sorted { $0.1 > $1.1 }.prefix(limit).map(\.0)
     }
 
-    static let stopTerms: Set<String> = ["the", "and", "for", "with", "use", "when", "you", "this", "that", "from", "user", "帮我", "一下", "这个", "一份", "我的", "进行", "可以", "需要", "使用", "用于", "适用"]
+    static let stopTerms: Set<String> = [
+        "the", "and", "for", "with", "use", "when", "you", "this", "that", "from", "user", "帮我", "一下", "这个", "一份", "我的", "进行", "可以", "需要", "使用", "用于", "适用",
+    ]
 
     static func terms(_ text: String) -> Set<String> {
         var out = Set<String>()
@@ -106,9 +113,13 @@ public enum SkillLibrary {
             han = []
         }
         for ch in lower {
-            if ch.unicodeScalars.first.map({ (0x4E00...0x9FFF).contains($0.value) }) == true { endWord(); han.append(ch) }
-            else if ch.isLetter || ch.isNumber { endHan(); word.append(ch) }
-            else { endWord(); endHan() }
+            if ch.unicodeScalars.first.map({ (0x4E00...0x9FFF).contains($0.value) }) == true {
+                endWord(); han.append(ch)
+            } else if ch.isLetter || ch.isNumber {
+                endHan(); word.append(ch)
+            } else {
+                endWord(); endHan()
+            }
         }
         endWord(); endHan()
         return out
@@ -120,7 +131,8 @@ public enum SkillLibrary {
         var lines = text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n")
         if lines.first?.hasPrefix("\u{FEFF}") == true { lines[0].removeFirst() }
         guard lines.first?.trimmingCharacters(in: .whitespaces) == "---",
-              let end = lines.dropFirst().firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }) else {
+            let end = lines.dropFirst().firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" })
+        else {
             return ([:], text)
         }
         var meta: [String: String] = [:]
@@ -140,8 +152,11 @@ public enum SkillLibrary {
                 value = parts.joined(separator: value.hasPrefix(">") ? " " : "\n").trimmingCharacters(in: .whitespacesAndNewlines)
             } else if value.count >= 2, let q = value.first, (q == "\"" || q == "'"), value.last == q {
                 value = String(value.dropFirst().dropLast())
-                if q == "\"" { value = value.replacingOccurrences(of: "\\\"", with: "\"").replacingOccurrences(of: "\\n", with: "\n") }
-                else { value = value.replacingOccurrences(of: "''", with: "'") }
+                if q == "\"" {
+                    value = value.replacingOccurrences(of: "\\\"", with: "\"").replacingOccurrences(of: "\\n", with: "\n")
+                } else {
+                    value = value.replacingOccurrences(of: "''", with: "'")
+                }
             }
             meta[key] = value
         }
@@ -186,8 +201,10 @@ public enum SkillInstaller {
 
     /// Downloads the repository and copies every skill folder under `source.path` into `destination`.
     /// Returns the installed skills. Existing skills with the same folder name are replaced.
-    public static func install(_ source: Source, into destination: URL, session: URLSession = .shared,
-                               progress: @Sendable (Progress) async -> Void = { _ in }) async throws -> [Skill] {
+    public static func install(
+        _ source: Source, into destination: URL, session: URLSession = .shared,
+        progress: @Sendable (Progress) async -> Void = { _ in }
+    ) async throws -> [Skill] {
         await progress(.downloading)
         let ref = try await resolveRef(source, session: session)
         let zipURL = URL(string: "https://codeload.github.com/\(source.owner)/\(source.repo)/zip/\(ref)")!
@@ -237,8 +254,10 @@ public enum SkillInstaller {
             let folderName = dir.isEmpty ? source.repo : (dir as NSString).lastPathComponent
             var target = destination.appendingPathComponent(sanitize(folderName))
             // Same folder name from another repository: keep both.
-            if let existing = SkillLibrary.load(target)?.source, !existing.lowercased().hasPrefix("https://github.com/\(source.owner)/\(source.repo)/".lowercased()),
-               existing.lowercased() != "https://github.com/\(source.owner)/\(source.repo)".lowercased() {
+            if let existing = SkillLibrary.load(target)?.source,
+                !existing.lowercased().hasPrefix("https://github.com/\(source.owner)/\(source.repo)/".lowercased()),
+                existing.lowercased() != "https://github.com/\(source.owner)/\(source.repo)".lowercased()
+            {
                 target = destination.appendingPathComponent(sanitize(folderName + "-" + source.owner))
             }
             let staging = destination.appendingPathComponent(".staging-\(UUID().uuidString)")

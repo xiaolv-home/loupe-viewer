@@ -51,8 +51,8 @@ public enum ArchiveReader {
             if isCancelled() { throw ArchiveError.cancelled }
             let r = archive_read_next_header(a, &entry)
             if r == LA_ARCHIVE_EOF { break }
-            if r == LA_ARCHIVE_WARN { /* keep going */ }
-            else if r != LA_ARCHIVE_OK {
+            if r == LA_ARCHIVE_WARN { /* keep going */
+            } else if r != LA_ARCHIVE_OK {
                 err = errorString(a)
                 break
             }
@@ -61,12 +61,13 @@ public enum ArchiveReader {
             let type = archive_entry_filetype(e) & 0o170000
             let size: Int64? = archive_entry_size_is_set(e) != 0 ? archive_entry_size(e) : nil
             let mtime = archive_entry_mtime(e)
-            entries.append(ArchiveEntry(
-                path: path, size: size,
-                modified: mtime > 0 ? Date(timeIntervalSince1970: TimeInterval(mtime)) : nil,
-                isDirectory: type == 0o040000 || path.hasSuffix("/"),
-                isEncrypted: archive_entry_is_encrypted(e) != 0,
-                isSymlink: type == 0o120000))
+            entries.append(
+                ArchiveEntry(
+                    path: path, size: size,
+                    modified: mtime > 0 ? Date(timeIntervalSince1970: TimeInterval(mtime)) : nil,
+                    isDirectory: type == 0o040000 || path.hasSuffix("/"),
+                    isEncrypted: archive_entry_is_encrypted(e) != 0,
+                    isSymlink: type == 0o120000))
             if entries.count % 500 == 0 { progress?(entries.count) }
             if entries.count >= maxEntries { truncated = true; break }
             // Skipping data still decompresses streams (tar.gz); acceptable and cancellable per entry.
@@ -81,8 +82,9 @@ public enum ArchiveReader {
         }
         let fmt = archive_format_name(a).map { String(cString: $0) } ?? "未知"
         if entries.isEmpty, let err { throw ArchiveError.openFailed(err) }
-        return ArchiveListing(entries: entries, formatName: fmt, filterName: filters.joined(separator: " + "),
-                              truncated: truncated, errorMessage: err)
+        return ArchiveListing(
+            entries: entries, formatName: fmt, filterName: filters.joined(separator: " + "),
+            truncated: truncated, errorMessage: err)
     }
 
     /// Extracts a single small entry (e.g. iWork preview.jpg) into memory.

@@ -17,10 +17,14 @@ final class GridColumnHeader: NSView {
         guard let grid, let owner = grid.owner else { return }
         let L = owner.gridLayout
         let ox = gridX
-        let letterAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: 10, weight: .semibold), .foregroundColor: Theme.gutterText]
+        let letterAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedSystemFont(ofSize: 10, weight: .semibold), .foregroundColor: Theme.gutterText,
+        ]
         let selAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: 10, weight: .bold), .foregroundColor: Theme.emberNS]
         let markAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 9, weight: .bold), .foregroundColor: Theme.emberNS]
-        let chevAttrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 8, weight: .bold), .foregroundColor: Theme.gutterText.withAlphaComponent(0.55)]
+        let chevAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 8, weight: .bold), .foregroundColor: Theme.gutterText.withAlphaComponent(0.55),
+        ]
         for i in L.colIndices(from: dirtyRect.minX + ox, to: dirtyRect.maxX + ox) {
             let c = L.cols[i]
             let x0 = L.xs[i] - ox, x1 = L.xs[i + 1] - ox
@@ -149,8 +153,10 @@ final class GridRowGutter: NSView {
             Theme.hairline.setFill()
             NSRect(x: 3, y: y1 - 0.5, width: bounds.width - 6, height: 0.5).fill()
             guard y1 - y0 >= 9 else { continue }
-            let attrs: [NSAttributedString.Key: Any] = [.font: info.selected ? bold : font,
-                                                        .foregroundColor: info.selected ? Theme.emberNS : Theme.gutterText]
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: info.selected ? bold : font,
+                .foregroundColor: info.selected ? Theme.emberNS : Theme.gutterText,
+            ]
             let s = info.text as NSString
             let size = s.size(withAttributes: attrs)
             s.draw(at: NSPoint(x: bounds.width - size.width - 8, y: (y0 + y1 - size.height) / 2), withAttributes: attrs)
@@ -198,8 +204,9 @@ final class GridRowGutter: NSView {
         let (rects, _, _) = owner.gridSelection()
         let whole = rects.contains { $0.r0 <= r && r <= $0.r1 && $0.c0 <= (L.cols.first ?? 0) && $0.c1 >= (L.cols.last ?? 0) }
         if !whole, let first = L.cols.first, let last = L.cols.last {
-            owner.gridSelect([GridRect(GridPoint(row: r, col: first), GridPoint(row: r, col: last))],
-                             active: GridPoint(row: r, col: first), anchor: GridPoint(row: r, col: first))
+            owner.gridSelect(
+                [GridRect(GridPoint(row: r, col: first), GridPoint(row: r, col: last))],
+                active: GridPoint(row: r, col: first), anchor: GridPoint(row: r, col: first))
         }
         return owner.gridRowMenu(row: r)
     }

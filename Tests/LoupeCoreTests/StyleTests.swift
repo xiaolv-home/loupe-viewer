@@ -83,7 +83,7 @@ struct StyleReaderTests {
         #expect(title.hAlign == .center)
         #expect(s.merges.contains(MergeRange(r0: 0, c0: 0, r1: 0, c1: 5)))
         let header = try #require(wb.style(0, 1, 0))
-        #expect(header.fill != nil)             // theme accent with tint
+        #expect(header.fill != nil)  // theme accent with tint
         #expect(header.borders.contains(.bottom))
         #expect(s.frozenRows == 2)
         #expect(s.hiddenColumns.contains(5))
@@ -94,6 +94,6 @@ struct StyleReaderTests {
         let neg = wb.formatted(0, 3, 4)
         #expect(neg.text == "-5.2%")
         #expect(neg.color != nil)
-        #expect(wb.formatted(0, 6, 3).text == "¥3,468,652.65")    // uncached SUM computed by Loupe
+        #expect(wb.formatted(0, 6, 3).text == "¥3,468,652.65")  // uncached SUM computed by Loupe
     }
 }

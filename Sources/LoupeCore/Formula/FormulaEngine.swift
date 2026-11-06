@@ -20,9 +20,9 @@ public struct FormulaContext {
 
 public enum FormulaEngine {
     public static func evaluate(_ text: String, in ctx: FormulaContext) -> FValue {
-        do { return try eval(FormulaParser.parse(text), ctx) }
-        catch let e as FormulaError { return .error("#ERROR: " + e.message) }
-        catch { return .error("#ERROR") }
+        do { return try eval(FormulaParser.parse(text), ctx) } catch let e as FormulaError { return .error("#ERROR: " + e.message) } catch {
+            return .error("#ERROR")
+        }
     }
 
     public static func evaluate(_ expr: Expr, in ctx: FormulaContext) -> FValue {
@@ -146,7 +146,12 @@ public enum FormulaEngine {
     static func compare(_ a: FValue, _ b: FValue) -> Int {
         let a = a.first, b = b.first
         func rank(_ v: FValue) -> Int {
-            switch v { case .number, .empty: return 0; case .text: return 1; case .bool: return 2; default: return 3 }
+            switch v {
+            case .number, .empty: return 0;
+            case .text: return 1;
+            case .bool: return 2;
+            default: return 3
+            }
         }
         if case .empty = a, case .text(let s) = b { return s.isEmpty ? 0 : -1 }
         if case .text(let s) = a, case .empty = b { return s.isEmpty ? 0 : 1 }
@@ -203,17 +208,19 @@ public enum FormulaEngine {
             for p in [">=", "<=", "<>", ">", "<", "="] where s.hasPrefix(p) { op = p; rest = String(s.dropFirst(p.count)); break }
             let target: FValue = CellValue.parseNumber(rest).map { .number($0) } ?? (rest.isEmpty ? .empty : .text(rest))
             let wildcard = (op == "=" || op == "<>") && (rest.contains("*") || rest.contains("?"))
-            let regex: NSRegularExpression? = wildcard ? {
-                var pat = "^"
-                for ch in rest {
-                    switch ch {
-                    case "*": pat += ".*"
-                    case "?": pat += "."
-                    default: pat += NSRegularExpression.escapedPattern(for: String(ch))
+            let regex: NSRegularExpression? =
+                wildcard
+                ? {
+                    var pat = "^"
+                    for ch in rest {
+                        switch ch {
+                        case "*": pat += ".*"
+                        case "?": pat += "."
+                        default: pat += NSRegularExpression.escapedPattern(for: String(ch))
+                        }
                     }
-                }
-                return try? NSRegularExpression(pattern: pat + "$", options: [.caseInsensitive])
-            }() : nil
+                    return try? NSRegularExpression(pattern: pat + "$", options: [.caseInsensitive])
+                }() : nil
             return { v in
                 if let regex {
                     let t = text(v)

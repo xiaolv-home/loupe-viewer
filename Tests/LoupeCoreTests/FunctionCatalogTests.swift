@@ -7,7 +7,7 @@ struct FunctionCatalogTests {
     func coverage() {
         let documented = Set(FunctionCatalog.all.map(\.name))
         #expect(documented == Set(FormulaEngine.supportedFunctions))
-        #expect(FunctionCatalog.all.count == documented.count)               // no duplicates
+        #expect(FunctionCatalog.all.count == documented.count)  // no duplicates
         for d in FunctionCatalog.all { #expect(FunctionCatalog.categories.contains(d.category), "\(d.name)") }
     }
 
@@ -28,7 +28,7 @@ struct FunctionCatalogTests {
         #expect(FunctionCatalog.context(beforeCursor: "=COUNTIF(B:B, ")?.argument == 1)
         #expect(FunctionCatalog.context(beforeCursor: "=IFERROR(VLOOKUP(A2, ")?.doc.name == "VLOOKUP")
         #expect(FunctionCatalog.context(beforeCursor: "=IFERROR(VLOOKUP(A2, T!A:C, 3, FALSE), ")?.doc.name == "IFERROR")
-        #expect(FunctionCatalog.context(beforeCursor: "=IF(A1=\"a,b\", ")?.argument == 1)       // comma inside a string
+        #expect(FunctionCatalog.context(beforeCursor: "=IF(A1=\"a,b\", ")?.argument == 1)  // comma inside a string
         #expect(FunctionCatalog.context(beforeCursor: "=SUM(A1:A3)") == nil)
         #expect(FunctionCatalog.search("查找").contains { $0.name == "VLOOKUP" })
         #expect(FunctionCatalog.search("vlo").first?.name == "VLOOKUP")

@@ -55,7 +55,7 @@ final class SheetFrameView: NSView {
             shadowView.leadingAnchor.constraint(equalTo: paper.leadingAnchor),
             shadowView.trailingAnchor.constraint(equalTo: paper.trailingAnchor),
             shadowView.topAnchor.constraint(equalTo: paper.topAnchor),
-            shadowView.bottomAnchor.constraint(equalTo: paper.bottomAnchor)
+            shadowView.bottomAnchor.constraint(equalTo: paper.bottomAnchor),
         ])
         updateInsets()
         updateColors()
@@ -76,7 +76,7 @@ final class SheetFrameView: NSView {
             paper.leadingAnchor.constraint(equalTo: leadingAnchor, constant: m.left),
             paper.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -m.right),
             paper.topAnchor.constraint(equalTo: topAnchor, constant: m.top),
-            paper.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -m.bottom)
+            paper.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -m.bottom),
         ]
         NSLayoutConstraint.activate(insetConstraints)
     }
@@ -114,8 +114,10 @@ final class SheetFrameView: NSView {
         let p = NSBezierPath()
         p.lineWidth = 0.75
         let g = markGap, l = markLength
-        for (x, y, dx, dy) in [(r.minX, r.minY, -1.0, -1.0), (r.maxX, r.minY, 1.0, -1.0),
-                               (r.minX, r.maxY, -1.0, 1.0), (r.maxX, r.maxY, 1.0, 1.0)] {
+        for (x, y, dx, dy) in [
+            (r.minX, r.minY, -1.0, -1.0), (r.maxX, r.minY, 1.0, -1.0),
+            (r.minX, r.maxY, -1.0, 1.0), (r.maxX, r.maxY, 1.0, 1.0),
+        ] {
             // horizontal mark, offset from the corner along the edge line
             p.move(to: NSPoint(x: x + dx * g, y: y)); p.line(to: NSPoint(x: x + dx * (g + l), y: y))
             p.move(to: NSPoint(x: x, y: y + dy * g)); p.line(to: NSPoint(x: x, y: y + dy * (g + l)))
@@ -257,7 +259,7 @@ final class StageViewController: NSViewController {
             drop.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             drop.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             drop.topAnchor.constraint(equalTo: root.topAnchor),
-            drop.bottomAnchor.constraint(equalTo: root.bottomAnchor)
+            drop.bottomAnchor.constraint(equalTo: root.bottomAnchor),
         ])
         if startsOnHome { showEmpty() }
     }
@@ -269,7 +271,7 @@ final class StageViewController: NSViewController {
             v.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             v.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             v.topAnchor.constraint(equalTo: container.topAnchor),
-            v.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            v.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
     }
 
@@ -293,10 +295,11 @@ final class StageViewController: NSViewController {
         // old view — and none at all when no one can see it (hidden windows never animate).
         guard old != nil, view.window?.occlusionState.contains(.visible) == true else { finish(); return }
         host.alphaValue = 0
-        NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = 0.12
-            host.animator().alphaValue = 1
-        }, completionHandler: { MainActor.assumeIsolated { finish() } })
+        NSAnimationContext.runAnimationGroup(
+            { ctx in
+                ctx.duration = 0.12
+                host.animator().alphaValue = 1
+            }, completionHandler: { MainActor.assumeIsolated { finish() } })
     }
 
     func clear() {

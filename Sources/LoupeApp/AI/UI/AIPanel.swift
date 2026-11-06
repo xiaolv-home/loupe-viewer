@@ -15,9 +15,13 @@ struct AIPanel: View {
         VStack(spacing: 0) {
             header
             Divider()
-            if session.showHistory { AIHistoryView(session: session, close: { session.showHistory = false }) }
-            else if session.isEmpty { AIWelcome(session: session, tabs: tabs, showHistory: { session.showHistory = true }) }
-            else { AITranscript(session: session) }
+            if session.showHistory {
+                AIHistoryView(session: session, close: { session.showHistory = false })
+            } else if session.isEmpty {
+                AIWelcome(session: session, tabs: tabs, showHistory: { session.showHistory = true })
+            } else {
+                AITranscript(session: session)
+            }
             Divider()
             composer
         }
@@ -34,12 +38,18 @@ struct AIPanel: View {
                 Text(session.showHistory ? "历史对话" : (session.conversation?.title ?? "AI 助手"))
                     .font(.system(size: 13, weight: .semibold)).lineLimit(1).truncationMode(.tail)
                 Spacer()
-                Button { session.showHistory.toggle() } label: {
+                Button {
+                    session.showHistory.toggle()
+                } label: {
                     Image(systemName: "clock.arrow.circlepath").foregroundStyle(session.showHistory ? Theme.ember : Color.secondary)
                 }
                 .buttonStyle(.borderless).help("历史对话")
-                Button { session.newChat(); session.showHistory = false } label: { Image(systemName: "square.and.pencil") }
-                    .buttonStyle(.borderless).help("新对话").disabled(session.isEmpty && !session.running && !session.showHistory)
+                Button {
+                    session.newChat(); session.showHistory = false
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                }
+                .buttonStyle(.borderless).help("新对话").disabled(session.isEmpty && !session.running && !session.showHistory)
                 Menu {
                     Button("技能库…") { AISkillsWindow.show() }
                     Button("AI 设置…") { AppDelegate.showAISettings() }
@@ -47,8 +57,10 @@ struct AIPanel: View {
                         Divider()
                         Button("删除当前对话") { session.deleteConversation(c.id) }.disabled(session.running)
                     }
-                } label: { Image(systemName: "slider.horizontal.3") }
-                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("技能与设置")
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("技能与设置")
             }
             HStack(spacing: 8) {
                 Picker("", selection: $config.mode) {
@@ -66,15 +78,20 @@ struct AIPanel: View {
     private var modelMenu: some View {
         Menu {
             if config.mode == .local {
-                if models.loading { Text("正在查找本地模型…") }
-                else if models.models.isEmpty { Text(models.error ?? "没有找到本地模型") }
+                if models.loading { Text("正在查找本地模型…") } else if models.models.isEmpty { Text(models.error ?? "没有找到本地模型") }
                 ForEach(models.models, id: \.self) { m in
-                    Button { config.localModel = m } label: { Text((m == config.localModel ? "✓ " : "　") + m) }
+                    Button {
+                        config.localModel = m
+                    } label: {
+                        Text((m == config.localModel ? "✓ " : "　") + m)
+                    }
                 }
             } else {
                 Section("服务") {
                     ForEach(CloudProvider.all) { p in
-                        Button { config.providerID = p.id; models.refresh() } label: {
+                        Button {
+                            config.providerID = p.id; models.refresh()
+                        } label: {
                             Text((p.id == config.providerID ? "✓ " : "　") + p.name + (config.apiKey(p) == nil ? "（未填 Key）" : ""))
                         }
                     }
@@ -82,7 +99,9 @@ struct AIPanel: View {
                 if !models.models.isEmpty {
                     Section("模型") {
                         ForEach(models.models.prefix(40), id: \.self) { m in
-                            Button { config.cloudModels[config.providerID] = m } label: {
+                            Button {
+                                config.cloudModels[config.providerID] = m
+                            } label: {
                                 Text((m == config.cloudModel(config.provider) ? "✓ " : "　") + m)
                             }
                         }
@@ -122,8 +141,12 @@ struct AIPanel: View {
                 HStack(spacing: 4) {
                     Image(systemName: "sparkles").font(.system(size: 9.5))
                     Text("技能：\(s.name)").font(.system(size: 11, weight: .medium))
-                    Button { session.pinnedSkill = nil } label: { Image(systemName: "xmark").font(.system(size: 8, weight: .bold)) }
-                        .buttonStyle(.borderless)
+                    Button {
+                        session.pinnedSkill = nil
+                    } label: {
+                        Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
+                    }
+                    .buttonStyle(.borderless)
                 }
                 .padding(.horizontal, 7).padding(.vertical, 3)
                 .background(Capsule().fill(Theme.emberSoft))
@@ -135,7 +158,9 @@ struct AIPanel: View {
                         ForEach(session.attachments) { a in
                             AIThumbnail(base64: a.thumbnail, size: 44)
                                 .overlay(alignment: .topTrailing) {
-                                    Button { session.attachments.removeAll { $0.id == a.id } } label: {
+                                    Button {
+                                        session.attachments.removeAll { $0.id == a.id }
+                                    } label: {
                                         Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(.white, .black.opacity(0.6))
                                     }
                                     .buttonStyle(.plain).offset(x: 4, y: -4)
@@ -151,16 +176,29 @@ struct AIPanel: View {
                     Text(placeholder).font(.system(size: 12.5)).foregroundStyle(.tertiary).padding(.top, 1).padding(.leading, 5)
                         .allowsHitTesting(false)
                 }
-                AIInputField(text: $session.input, height: $inputHeight, onSubmit: { session.send(); session.showHistory = false },
-                             onPasteImage: { session.attach(image: $0) })
-                    .frame(height: min(140, max(18, inputHeight)))
+                AIInputField(
+                    text: $session.input, height: $inputHeight,
+                    onSubmit: {
+                        session.send(); session.showHistory = false
+                    },
+                    onPasteImage: { session.attach(image: $0) }
+                )
+                .frame(height: min(140, max(18, inputHeight)))
             }
             HStack(spacing: 8) {
-                Button { pickImages() } label: { Image(systemName: "paperclip").font(.system(size: 12)) }
-                    .buttonStyle(.borderless).foregroundStyle(.secondary).help("附上图片（也可以直接粘贴截图）")
+                Button {
+                    pickImages()
+                } label: {
+                    Image(systemName: "paperclip").font(.system(size: 12))
+                }
+                .buttonStyle(.borderless).foregroundStyle(.secondary).help("附上图片（也可以直接粘贴截图）")
                 Menu {
                     ForEach(skills.enabled) { s in
-                        Button { session.pinnedSkill = s } label: { Text(s.name + "　" + String(s.description.prefix(28))) }
+                        Button {
+                            session.pinnedSkill = s
+                        } label: {
+                            Text(s.name + "　" + String(s.description.prefix(28)))
+                        }
                     }
                     Divider()
                     Button("技能库…") { AISkillsWindow.show() }
@@ -178,13 +216,21 @@ struct AIPanel: View {
                 }
                 Spacer()
                 if session.running {
-                    Button { session.stop() } label: { Image(systemName: "stop.fill").font(.system(size: 10)) }
-                        .buttonStyle(AISendButtonStyle(enabled: true)).help("停止")
+                    Button {
+                        session.stop()
+                    } label: {
+                        Image(systemName: "stop.fill").font(.system(size: 10))
+                    }
+                    .buttonStyle(AISendButtonStyle(enabled: true)).help("停止")
                 } else {
-                    Button { session.send(); session.showHistory = false } label: { Image(systemName: "arrow.up").font(.system(size: 11, weight: .bold)) }
-                        .buttonStyle(AISendButtonStyle(enabled: !session.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
-                        .keyboardShortcut(.return, modifiers: .command)
-                        .help("发送（⏎；换行用 ⇧⏎）")
+                    Button {
+                        session.send(); session.showHistory = false
+                    } label: {
+                        Image(systemName: "arrow.up").font(.system(size: 11, weight: .bold))
+                    }
+                    .buttonStyle(AISendButtonStyle(enabled: !session.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .help("发送（⏎；换行用 ⇧⏎）")
                 }
             }
         }
@@ -283,7 +329,8 @@ struct AIInputField: NSViewRepresentable {
             let pb = NSPasteboard.general
             // A copied picture (not a file) or a copied image file becomes an attachment.
             if !pb.canReadObject(forClasses: [NSString.self], options: nil) || pb.availableType(from: [.fileURL]) != nil,
-               let images = pb.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage], !images.isEmpty {
+                let images = pb.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage], !images.isEmpty
+            {
                 images.forEach { onPasteImage?($0) }
                 return
             }

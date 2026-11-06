@@ -24,7 +24,7 @@ let package = Package(
             linkerSettings: [
                 .linkedFramework("AppKit"), .linkedFramework("Quartz"), .linkedFramework("PDFKit"),
                 .linkedFramework("AVKit"), .linkedFramework("AVFoundation"), .linkedFramework("WebKit"),
-                .linkedFramework("CoreText"), .linkedFramework("OpenGL"), .linkedFramework("Vision")
+                .linkedFramework("CoreText"), .linkedFramework("OpenGL"), .linkedFramework("Vision"),
             ]
         ),
         .executableTarget(
@@ -41,6 +41,6 @@ let package = Package(
             name: "LoupeCoreTests",
             dependencies: ["LoupeCore"],
             path: "Tests/LoupeCoreTests"
-        )
+        ),
     ]
 )

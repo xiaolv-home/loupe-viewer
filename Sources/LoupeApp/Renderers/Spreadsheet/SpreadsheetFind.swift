@@ -14,7 +14,9 @@ extension SpreadsheetRenderer {
         guard !q.isEmpty else { searchInfo = ""; return }
         let cols = layout.cols
         for (vr, r) in visible.enumerated() {
-            for c in cols where workbook.formatted(sheetIndex, r, c).text.localizedCaseInsensitiveContains(q) || sheet.cell(r, c).display.localizedCaseInsensitiveContains(q) {
+            for c in cols
+            where workbook.formatted(sheetIndex, r, c).text.localizedCaseInsensitiveContains(q) || sheet.cell(r, c).display.localizedCaseInsensitiveContains(q)
+            {
                 matchKeys.insert(Sheet.key(r, c))
                 matchList.append(GridPoint(row: vr, col: c))
                 if matchList.count >= 100_000 { break }
@@ -34,7 +36,9 @@ extension SpreadsheetRenderer {
         recomputeMatches()
         grid.redrawAll()
         // Start from the active cell, so the first jump lands on the next hit below it.
-        if let i = matchList.firstIndex(where: { $0.row > active.row || ($0.row == active.row && (layout.position(of: $0.col) ?? 0) >= (layout.position(of: active.col) ?? 0)) }) {
+        if let i = matchList.firstIndex(where: {
+            $0.row > active.row || ($0.row == active.row && (layout.position(of: $0.col) ?? 0) >= (layout.position(of: active.col) ?? 0))
+        }) {
             matchCursor = i - 1
         }
         findNext(1)

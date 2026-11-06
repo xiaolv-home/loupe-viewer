@@ -111,17 +111,22 @@ final class MPVRenderer: NSObject, Renderer {
                 }
             }
         }
-        model.onPlayPause = { [weak self] in self?.player?.command(["cycle", "pause"]); self?.stage?.reveal() }
-        model.onSeek = { [weak self] t in self?.player?.command(["seek", String(format: "%.3f", t), "absolute+exact"]); self?.model.time = t }
+        model.onPlayPause = { [weak self] in
+            self?.player?.command(["cycle", "pause"]); self?.stage?.reveal()
+        }
+        model.onSeek = { [weak self] t in
+            self?.player?.command(["seek", String(format: "%.3f", t), "absolute+exact"]); self?.model.time = t
+        }
         model.onStep = { [weak self] n in self?.player?.command([n > 0 ? "frame-step" : "frame-back-step"]) }
-        model.onVolume = { [weak self] v in self?.player?.set("volume", double: v * 100); self?.player?.set("mute", flag: false) }
+        model.onVolume = { [weak self] v in
+            self?.player?.set("volume", double: v * 100); self?.player?.set("mute", flag: false)
+        }
         model.onMute = { [weak self] m in self?.player?.set("mute", flag: m) }
         model.onRate = { [weak self] r in self?.player?.set("speed", double: r) }
         model.onSnapshot = { [weak self] in self?.snapshot() }
         model.onSelectSubtitle = { [weak self] i in
             guard let self, let p = self.player else { return }
-            if i < 0 || i >= self.subtitleIDs.count { p.command(["set", "sid", "no"]) }
-            else { p.command(["set", "sid", "\(self.subtitleIDs[i])"]) }
+            if i < 0 || i >= self.subtitleIDs.count { p.command(["set", "sid", "no"]) } else { p.command(["set", "sid", "\(self.subtitleIDs[i])"]) }
         }
         model.onLoadSubtitle = { [weak self] u in
             self?.player?.command(["sub-add", u.path, "select"])
@@ -149,10 +154,12 @@ final class MPVRenderer: NSObject, Renderer {
         let w = p.string("video-params/w") ?? p.string("width") ?? ""
         let h = p.string("video-params/h") ?? p.string("height") ?? ""
         let fps = Double(p.string("container-fps") ?? "") ?? 0
-        videoParams = [model.hasVideo && !w.isEmpty ? "\(w) × \(h)" : nil,
-                       fps > 0 && model.hasVideo ? String(format: "%.3g fps", fps) : nil,
-                       vcodec.isEmpty || !model.hasVideo ? nil : vcodec.uppercased(),
-                       acodec.isEmpty ? nil : acodec.uppercased()].compactMap { $0 }.joined(separator: " · ")
+        videoParams = [
+            model.hasVideo && !w.isEmpty ? "\(w) × \(h)" : nil,
+            fps > 0 && model.hasVideo ? String(format: "%.3g fps", fps) : nil,
+            vcodec.isEmpty || !model.hasVideo ? nil : vcodec.uppercased(),
+            acodec.isEmpty ? nil : acodec.uppercased(),
+        ].compactMap { $0 }.joined(separator: " · ")
         model.videoInfo = videoParams
         host?.rendererDidUpdate()
     }
@@ -165,7 +172,8 @@ final class MPVRenderer: NSObject, Renderer {
         var selected = -1
         for i in 0..<n where p.string("track-list/\(i)/type") == "sub" {
             let id = Int(p.string("track-list/\(i)/id") ?? "") ?? 0
-            let title = p.string("track-list/\(i)/title") ?? p.string("track-list/\(i)/external-filename").map { URL(fileURLWithPath: $0).lastPathComponent } ?? ""
+            let title =
+                p.string("track-list/\(i)/title") ?? p.string("track-list/\(i)/external-filename").map { URL(fileURLWithPath: $0).lastPathComponent } ?? ""
             let lang = p.string("track-list/\(i)/lang") ?? ""
             let ext = p.string("track-list/\(i)/external") == "yes"
             names.append((ext ? "外挂：" : "内嵌：") + ([title, lang].filter { !$0.isEmpty }.joined(separator: " · ").ifEmpty("轨道 \(id)")))
@@ -180,12 +188,14 @@ final class MPVRenderer: NSObject, Renderer {
     private func snapshot() {
         guard let p = player, let file else { return }
         let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
-        let url = desktop.appendingPathComponent("\(file.url.deletingPathExtension().lastPathComponent) 截图 \(Fmt.duration(model.time).replacingOccurrences(of: ":", with: ".")).png")
+        let url = desktop.appendingPathComponent(
+            "\(file.url.deletingPathExtension().lastPathComponent) 截图 \(Fmt.duration(model.time).replacingOccurrences(of: ":", with: ".")).png")
         p.command(["screenshot-to-file", url.path, "video"])
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             if FileManager.default.fileExists(atPath: url.path) {
-                self?.host?.showNotice("截图已保存到桌面：\(url.lastPathComponent)", style: .success,
-                                       action: NoticeAction(title: "显示") { NSWorkspace.shared.activateFileViewerSelecting([url]) })
+                self?.host?.showNotice(
+                    "截图已保存到桌面：\(url.lastPathComponent)", style: .success,
+                    action: NoticeAction(title: "显示") { NSWorkspace.shared.activateFileViewerSelecting([url]) })
             }
         }
     }
@@ -233,7 +243,9 @@ final class MPVRenderer: NSObject, Renderer {
         switch mode {
         case "missing": return "需要 mpv"
         case "external": return "mpv 独立窗口"
-        default: return ([model.duration > 0 ? Fmt.duration(model.duration) : nil, videoParams.isEmpty ? nil : videoParams] as [String?]).compactMap { $0 }.joined(separator: " · ")
+        default:
+            return ([model.duration > 0 ? Fmt.duration(model.duration) : nil, videoParams.isEmpty ? nil : videoParams] as [String?]).compactMap { $0 }.joined(
+                separator: " · ")
         }
     }
 

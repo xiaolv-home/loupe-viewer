@@ -34,8 +34,11 @@ enum DocumentWriter {
 
     static func attributed(_ markdown: String, title: String) throws -> NSAttributedString {
         let html = MarkdownHTML.document(markdown, title: title)
-        guard let s = NSAttributedString(html: Data(html.utf8), options: [.characterEncoding: String.Encoding.utf8.rawValue],
-                                         documentAttributes: nil) else {
+        guard
+            let s = NSAttributedString(
+                html: Data(html.utf8), options: [.characterEncoding: String.Encoding.utf8.rawValue],
+                documentAttributes: nil)
+        else {
             throw AIError("排版失败")
         }
         return s

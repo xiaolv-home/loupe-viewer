@@ -88,7 +88,7 @@ extension SpreadsheetRenderer {
 
     func gridMagnify(_ factor: CGFloat, done: Bool) {
         var z = zoom * factor
-        if done, abs(z - 1) < 0.04 { z = 1 }      // settle on 100% when close
+        if done, abs(z - 1) < 0.04 { z = 1 }  // settle on 100% when close
         setZoom(z)
     }
 

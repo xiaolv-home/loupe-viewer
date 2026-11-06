@@ -103,11 +103,12 @@ public struct SpreadsheetDocument: Sendable {
             workbook.apply(op, sheet: si)
             structure[si, default: []].append(op)
             if let keys = edited[si] {
-                edited[si] = Set(keys.compactMap { k in
-                    let r = k / 16384, c = k % 16384
-                    if op.isRowOp { return op.map(r).map { Sheet.key($0, c) } }
-                    return op.map(c).map { Sheet.key(r, $0) }
-                })
+                edited[si] = Set(
+                    keys.compactMap { k in
+                        let r = k / 16384, c = k % 16384
+                        if op.isRowOp { return op.map(r).map { Sheet.key($0, c) } }
+                        return op.map(c).map { Sheet.key(r, $0) }
+                    })
             }
             if var lay = layoutEdits[si] {
                 if op.isRowOp { lay.rows = Set(lay.rows.compactMap(op.map)) } else { lay.cols = Set(lay.cols.compactMap(op.map)) }
@@ -140,9 +141,11 @@ public struct SpreadsheetDocument: Sendable {
     public func cellsClearedByMerging(_ m: MergeRange, sheet si: Int) -> Int {
         let s = workbook.sheets[si]
         var n = 0
-        for r in m.r0...m.r1 { for c in m.c0...m.c1 where !(r == m.r0 && c == m.c0) {
-            if !s.cell(r, c).isEmpty || s.formulas[Sheet.key(r, c)] != nil { n += 1 }
-        } }
+        for r in m.r0...m.r1 {
+            for c in m.c0...m.c1 where !(r == m.r0 && c == m.c0) {
+                if !s.cell(r, c).isEmpty || s.formulas[Sheet.key(r, c)] != nil { n += 1 }
+            }
+        }
         return n
     }
 
@@ -152,11 +155,13 @@ public struct SpreadsheetDocument: Sendable {
         guard m.r1 > m.r0 || m.c1 > m.c0 else { return }
         var clear: [CellChange] = []
         let s = workbook.sheets[si]
-        for r in m.r0...m.r1 { for c in m.c0...m.c1 where !(r == m.r0 && c == m.c0) {
-            if !s.cell(r, c).isEmpty || s.formulas[Sheet.key(r, c)] != nil {
-                clear.append(CellChange(sheet: si, row: r, col: c, value: .empty, formula: nil))
+        for r in m.r0...m.r1 {
+            for c in m.c0...m.c1 where !(r == m.r0 && c == m.c0) {
+                if !s.cell(r, c).isEmpty || s.formulas[Sheet.key(r, c)] != nil {
+                    clear.append(CellChange(sheet: si, row: r, col: c, value: .empty, formula: nil))
+                }
             }
-        } }
+        }
         if !clear.isEmpty { apply(clear) }
         workbook.sheets[si].merges.removeAll { $0.overlaps(m) }
         workbook.sheets[si].merges.append(m)
@@ -207,8 +212,9 @@ public struct SpreadsheetDocument: Sendable {
             return try CSVWriter.write(rows: workbook.sheets[si].rows, format: fmt, to: dest)
         }
         if let base {
-            try XLSXPatcher.save(base: base, to: dest, workbook: workbook, edited: edited, structure: structure,
-                                 layout: layoutEdits, mergesChanged: mergesChanged)
+            try XLSXPatcher.save(
+                base: base, to: dest, workbook: workbook, edited: edited, structure: structure,
+                layout: layoutEdits, mergesChanged: mergesChanged)
         } else {
             try XLSXWriter.write(sheets: workbook.sheets.map { (name: $0.name, rows: $0.rows, formulas: $0.formulas) }, to: dest)
         }

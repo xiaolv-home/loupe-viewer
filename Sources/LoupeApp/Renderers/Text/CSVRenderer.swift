@@ -31,7 +31,9 @@ final class CSVRenderer: NSObject, Renderer, ObservableObject, NSTableViewDataSo
         if wide.unitWidth > 1 && file.size > SpreadsheetReader.wideTextLimit {
             throw RenderError.unreadable("UTF-16/32 表格超过 32MB，已停止载入以免占满内存")
         }
-        delimiter = file.format.delimiter ?? (file.ext == "tsv" || file.ext == "tab" ? 9 : (CSVSniffer.sniffDelimiter(TextSniffer.leadingText(file.head, max: 16 * 1024)) ?? 44))
+        delimiter =
+            file.format.delimiter
+            ?? (file.ext == "tsv" || file.ext == "tab" ? 9 : (CSVSniffer.sniffDelimiter(TextSniffer.leadingText(file.head, max: 16 * 1024)) ?? 44))
         let url = file.url
         let delim = delimiter
         let size = max(file.size, 1)
@@ -100,8 +102,10 @@ final class CSVRenderer: NSObject, Renderer, ObservableObject, NSTableViewDataSo
         }
     }
 
-    nonisolated static func parse(url: URL, delimiter: UInt8, size: Int64,
-                                  cont: AsyncStream<([[String]], Double, String, Bool)>.Continuation) {
+    nonisolated static func parse(
+        url: URL, delimiter: UInt8, size: Int64,
+        cont: AsyncStream<([[String]], Double, String, Bool)>.Continuation
+    ) {
         defer { cont.finish() }
         guard let h = try? FileHandle(forReadingFrom: url) else { return }
         defer { try? h.close() }
@@ -185,21 +189,23 @@ final class CSVRenderer: NSObject, Renderer, ObservableObject, NSTableViewDataSo
 
     func tableView(_ tableView: NSTableView, viewFor col: NSTableColumn?, row: Int) -> NSView? {
         guard let id = col?.identifier else { return nil }
-        let cell = (tableView.makeView(withIdentifier: id, owner: nil) as? NSTableCellView) ?? {
-            let v = NSTableCellView()
-            v.identifier = id
-            let t = NSTextField(labelWithString: "")
-            t.lineBreakMode = .byTruncatingTail
-            t.translatesAutoresizingMaskIntoConstraints = false
-            v.addSubview(t)
-            v.textField = t
-            NSLayoutConstraint.activate([
-                t.leadingAnchor.constraint(equalTo: v.leadingAnchor, constant: 7),
-                t.trailingAnchor.constraint(equalTo: v.trailingAnchor, constant: -7),
-                t.centerYAnchor.constraint(equalTo: v.centerYAnchor)
-            ])
-            return v
-        }()
+        let cell =
+            (tableView.makeView(withIdentifier: id, owner: nil) as? NSTableCellView)
+            ?? {
+                let v = NSTableCellView()
+                v.identifier = id
+                let t = NSTextField(labelWithString: "")
+                t.lineBreakMode = .byTruncatingTail
+                t.translatesAutoresizingMaskIntoConstraints = false
+                v.addSubview(t)
+                v.textField = t
+                NSLayoutConstraint.activate([
+                    t.leadingAnchor.constraint(equalTo: v.leadingAnchor, constant: 7),
+                    t.trailingAnchor.constraint(equalTo: v.trailingAnchor, constant: -7),
+                    t.centerYAnchor.constraint(equalTo: v.centerYAnchor),
+                ])
+                return v
+            }()
         guard let t = cell.textField else { return cell }
         if id.rawValue == "#" {
             t.font = numFont
@@ -234,8 +240,14 @@ final class CSVRenderer: NSObject, Renderer, ObservableObject, NSTableViewDataSo
         return s
     }
     var infoSections: [InfoSection] {
-        [InfoSection("表格", [InfoItem("行数", Fmt.number(dataRows) + (progress < 1 ? "（加载中）" : "")),
-                              InfoItem("列数", "\(columnCount)"), InfoItem("编码", encodingName)])]
+        [
+            InfoSection(
+                "表格",
+                [
+                    InfoItem("行数", Fmt.number(dataRows) + (progress < 1 ? "（加载中）" : "")),
+                    InfoItem("列数", "\(columnCount)"), InfoItem("编码", encodingName),
+                ])
+        ]
     }
     var controls: AnyView? { AnyView(CSVControls(r: self)) }
     var initialFirstResponder: NSView? { table }

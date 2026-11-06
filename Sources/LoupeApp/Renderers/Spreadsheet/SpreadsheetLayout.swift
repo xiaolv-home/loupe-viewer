@@ -71,8 +71,11 @@ extension SpreadsheetRenderer {
             if budget == 0 { break }
             let size = workbook.styles[id].fontSize.map { CGFloat($0) * SheetMetrics.fontScale } ?? 11 * SheetMetrics.fontScale
             let font = NSFont.systemFont(ofSize: size, weight: workbook.styles[id].bold ? .semibold : .regular)
-            let h = (text as NSString).boundingRect(with: NSSize(width: max(10, width - SheetMetrics.padX * 2), height: .greatestFiniteMagnitude),
-                                                     options: [.usesLineFragmentOrigin], attributes: [.font: font]).height + 6
+            let h =
+                (text as NSString).boundingRect(
+                    with: NSSize(width: max(10, width - SheetMetrics.padX * 2), height: .greatestFiniteMagnitude),
+                    options: [.usesLineFragmentOrigin], attributes: [.font: font]
+                ).height + 6
             fitHeights[r] = max(fitHeights[r] ?? 0, ceil(h))
         }
     }
@@ -183,4 +186,3 @@ extension SpreadsheetRenderer {
         return (tl, GridRect(tl, GridPoint(row: mv.vr1, col: mv.m.c1)))
     }
 }
-

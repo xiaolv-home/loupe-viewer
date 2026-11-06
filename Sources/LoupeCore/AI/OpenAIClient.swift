@@ -57,10 +57,13 @@ public enum OpenAIWire {
             case .assistant:
                 var o: [String: AIJSON] = ["role": "assistant", "content": m.text.isEmpty ? .null : .string(m.text)]
                 if !m.toolCalls.isEmpty {
-                    o["tool_calls"] = .array(m.toolCalls.map { c in
-                        ["id": .string(c.id), "type": "function",
-                         "function": ["name": .string(c.name), "arguments": .string(c.arguments.isEmpty ? "{}" : c.arguments)]]
-                    })
+                    o["tool_calls"] = .array(
+                        m.toolCalls.map { c in
+                            [
+                                "id": .string(c.id), "type": "function",
+                                "function": ["name": .string(c.name), "arguments": .string(c.arguments.isEmpty ? "{}" : c.arguments)],
+                            ]
+                        })
                 }
                 if echoReasoning, let r = m.reasoning { o["reasoning_content"] = .string(r) }
                 wire.append(.object(o))
@@ -75,9 +78,10 @@ public enum OpenAIWire {
         // such as OpenAI's reject max_tokens, and their providers cap replies themselves.)
         if endpoint.isLocal { body["max_tokens"] = 16384 }
         if !tools.isEmpty {
-            body["tools"] = .array(tools.map { t in
-                ["type": "function", "function": ["name": .string(t.name), "description": .string(t.description), "parameters": t.parameters]]
-            })
+            body["tools"] = .array(
+                tools.map { t in
+                    ["type": "function", "function": ["name": .string(t.name), "description": .string(t.description), "parameters": t.parameters]]
+                })
         }
         return .object(body)
     }

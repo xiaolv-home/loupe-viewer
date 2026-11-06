@@ -11,20 +11,22 @@ struct FormatDetectorTests {
     }
     func detect(_ text: String, _ name: String) -> DetectedFormat { detect(Array(text.utf8), name) }
 
-    @Test("常见二进制签名", arguments: [
-        ([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31], FormatFamily.pdf, "PDF"),
-        ([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], .image, "PNG"),
-        ([0xFF, 0xD8, 0xFF, 0xE0], .image, "JPEG"),
-        (Array("GIF89a".utf8), .image, "GIF"),
-        ([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C], .archive, "7Z"),
-        (Array("Rar!\u{1A}\u{07}".utf8), .archive, "RAR"),
-        ([0x1A, 0x45, 0xDF, 0xA3, 0, 0, 0], .video, "MKV"),
-        (Array("fLaC".utf8), .audio, "FLAC"),
-        (Array("ID3".utf8), .audio, "MP3"),
-        (Array("wOF2".utf8), .font, "WOFF2"),
-        (Array("bplist00".utf8), .plist, "PLIST"),
-        (Array("8BPS".utf8), .image, "PSD")
-    ] as [([UInt8], FormatFamily, String)])
+    @Test(
+        "常见二进制签名",
+        arguments: [
+            ([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31], FormatFamily.pdf, "PDF"),
+            ([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], .image, "PNG"),
+            ([0xFF, 0xD8, 0xFF, 0xE0], .image, "JPEG"),
+            (Array("GIF89a".utf8), .image, "GIF"),
+            ([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C], .archive, "7Z"),
+            (Array("Rar!\u{1A}\u{07}".utf8), .archive, "RAR"),
+            ([0x1A, 0x45, 0xDF, 0xA3, 0, 0, 0], .video, "MKV"),
+            (Array("fLaC".utf8), .audio, "FLAC"),
+            (Array("ID3".utf8), .audio, "MP3"),
+            (Array("wOF2".utf8), .font, "WOFF2"),
+            (Array("bplist00".utf8), .plist, "PLIST"),
+            (Array("8BPS".utf8), .image, "PSD"),
+        ] as [([UInt8], FormatFamily, String)])
     func magic(bytes: [UInt8], family: FormatFamily, token: String) {
         let f = detect(bytes + [UInt8](repeating: 0, count: 32), "file")
         #expect(f.family == family)

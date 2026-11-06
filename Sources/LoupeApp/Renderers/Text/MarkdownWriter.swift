@@ -195,8 +195,10 @@ private final class WriterBridge: NSObject, WKScriptMessageHandlerWithReply {
     weak var writer: MarkdownWriter?
     init(writer: MarkdownWriter) { self.writer = writer }
 
-    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage,
-                               replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void) {
+    func userContentController(
+        _ controller: WKUserContentController, didReceive message: WKScriptMessage,
+        replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void
+    ) {
         guard let body = message.body as? [String: Any] else { replyHandler(nil, nil); return }
         MainActor.assumeIsolated {
             Task { @MainActor [weak self] in

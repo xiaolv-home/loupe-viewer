@@ -136,8 +136,9 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
                 converted = "由 Numbers 转换"
                 saveBase = source
             } catch ExportError.notAuthorized {
-                host.showNotice("需要允许 Loupe 控制 Numbers 才能用表格工具打开此文件（系统设置 › 隐私与安全性 › 自动化）。", style: .warning,
-                                action: NoticeAction(title: "打开设置") { DocumentExporter.openAutomationSettings() })
+                host.showNotice(
+                    "需要允许 Loupe 控制 Numbers 才能用表格工具打开此文件（系统设置 › 隐私与安全性 › 自动化）。", style: .warning,
+                    action: NoticeAction(title: "打开设置") { DocumentExporter.openAutomationSettings() })
                 throw RenderError.unsupported("没有「自动化」权限")
             }
         } else if file.size > 4 << 20 {
@@ -158,17 +159,21 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
         queries = wb.sheets.map { s in
             var q = SheetQuery()
             // A frozen pane's last row is the header (rows above it, like a title, stay pinned).
-            if s.frozenRows >= 1 && s.frozenRows <= 12 && s.frozenRows < s.rows.count { q.headerRowIndex = s.frozenRows - 1 }
-            else { q.headerRowIndex = Self.looksLikeHeader(s) ? 0 : nil }
+            if s.frozenRows >= 1 && s.frozenRows <= 12 && s.frozenRows < s.rows.count {
+                q.headerRowIndex = s.frozenRows - 1
+            } else {
+                q.headerRowIndex = Self.looksLikeHeader(s) ? 0 : nil
+            }
             q.hiddenRows = s.hiddenRows
             q.hiddenColumns = s.hiddenColumns
             return q
         }
         // Open where the file opens (its active tab), unless that one is hidden or blank.
         let shown = wb.sheets.indices.filter { !wb.sheets[$0].isHidden }
-        sheetIndex = ([wb.activeSheet] + shown).first { i in
-            shown.contains(i) && (!wb.sheets[i].rows.isEmpty || wb.sheets[i].isChartSheet)
-        } ?? shown.first ?? 0
+        sheetIndex =
+            ([wb.activeSheet] + shown).first { i in
+                shown.contains(i) && (!wb.sheets[i].rows.isEmpty || wb.sheets[i].isChartSheet)
+            } ?? shown.first ?? 0
         workbookLoaded = true
         originalSheetZoom = CGFloat(wb.sheets[sheetIndex].zoomScale) / 100
         reloadSheet(resetSelection: true)
@@ -194,14 +199,21 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
         }
     }
 
-
     /// A first row of all-text cells above a row containing numbers reads as a header.
     static func looksLikeHeader(_ s: Sheet) -> Bool {
         guard s.rows.count > 1 else { return false }
         let first = s.rows[0]
-        guard !first.isEmpty, first.allSatisfy({ if case .text = $0 { return true }; return $0.isEmpty }) else { return false }
+        guard !first.isEmpty,
+            first.allSatisfy({
+                if case .text = $0 { return true }; return $0.isEmpty
+            })
+        else { return false }
         let probe = s.rows.dropFirst().prefix(20)
-        return probe.contains { row in row.contains { if case .number = $0 { return true }; if case .date = $0 { return true }; return false } }
+        return probe.contains { row in
+            row.contains {
+                if case .number = $0 { return true }; if case .date = $0 { return true }; return false
+            }
+        }
             || Set(first.map(\.display)).count == first.count
     }
 
@@ -233,7 +245,7 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
             tabs.topAnchor.constraint(equalTo: grid.bottomAnchor),
             tabs.leadingAnchor.constraint(equalTo: body.leadingAnchor),
             tabs.trailingAnchor.constraint(equalTo: body.trailingAnchor),
-            tabs.bottomAnchor.constraint(equalTo: body.bottomAnchor)
+            tabs.bottomAnchor.constraint(equalTo: body.bottomAnchor),
         ])
     }
 
@@ -259,7 +271,7 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
                 container.addSubview(o)
                 NSLayoutConstraint.activate([
                     o.topAnchor.constraint(equalTo: body.topAnchor), o.bottomAnchor.constraint(equalTo: body.bottomAnchor),
-                    o.leadingAnchor.constraint(equalTo: body.leadingAnchor), o.trailingAnchor.constraint(equalTo: body.trailingAnchor)
+                    o.leadingAnchor.constraint(equalTo: body.leadingAnchor), o.trailingAnchor.constraint(equalTo: body.trailingAnchor),
                 ])
                 original = o
             }
@@ -479,12 +491,20 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
 
     var infoSections: [InfoSection] {
         guard workbookLoaded else {
-            return [InfoSection("表格", [InfoItem("显示方式", "原样（系统快速查看）"),
-                                         InfoItem("说明", "切换到「表格工具」后读取工作表，可筛选、计算和编辑")])]
+            return [
+                InfoSection(
+                    "表格",
+                    [
+                        InfoItem("显示方式", "原样（系统快速查看）"),
+                        InfoItem("说明", "切换到「表格工具」后读取工作表，可筛选、计算和编辑"),
+                    ])
+            ]
         }
-        var items = [InfoItem("来源", workbook.source + (converted.map { " · \($0)" } ?? "")),
-                     InfoItem("工作表", workbook.sheets.map(\.name).joined(separator: "、")),
-                     InfoItem("当前表", "\(sheet.name) · \(Fmt.number(sheet.rows.count)) 行 × \(sheet.columnCount) 列")]
+        var items = [
+            InfoItem("来源", workbook.source + (converted.map { " · \($0)" } ?? "")),
+            InfoItem("工作表", workbook.sheets.map(\.name).joined(separator: "、")),
+            InfoItem("当前表", "\(sheet.name) · \(Fmt.number(sheet.rows.count)) 行 × \(sheet.columnCount) 列"),
+        ]
         if !sheet.formulas.isEmpty { items.append(InfoItem("公式单元格", Fmt.number(sheet.formulas.count))) }
         if !sheet.merges.isEmpty { items.append(InfoItem("合并单元格", Fmt.number(sheet.merges.count))) }
         if !sheet.conditionalFormats.isEmpty { items.append(InfoItem("条件格式", "\(Fmt.number(sheet.conditionalFormats.count)) 条（数据条 / 色阶）")) }

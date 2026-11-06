@@ -14,7 +14,8 @@ struct FormulaBar: View {
         VStack(alignment: .leading, spacing: 0) {
             bar
             if r.viewMode == 0, calcFocused || r.calcText.hasPrefix("="),
-               let ctx = FunctionCatalog.context(beforeCursor: r.normalizedCalc) {
+                let ctx = FunctionCatalog.context(beforeCursor: r.normalizedCalc)
+            {
                 FunctionHint(doc: ctx.doc, argument: ctx.argument)
             }
         }
@@ -63,16 +64,16 @@ struct FormulaBar: View {
 
         // The calculator.
         HStack(spacing: 6) {
-            Button { showFunctions.toggle() } label: {
+            Button {
+                showFunctions.toggle()
+            } label: {
                 Text("ƒx").font(.system(size: 13, weight: .semibold, design: .serif)).italic().foregroundStyle(Theme.ember)
             }
             .buttonStyle(.plain)
             .help("函数说明（求和、VLOOKUP、SUMIF…）")
             .popover(isPresented: $showFunctions, arrowEdge: .bottom) {
                 FunctionPanel { text, replace in
-                    if replace { r.calcText = text }
-                    else if r.calcText.hasPrefix("=") { r.calcText += text }
-                    else { r.calcText = "=" + text }
+                    if replace { r.calcText = text } else if r.calcText.hasPrefix("=") { r.calcText += text } else { r.calcText = "=" + text }
                     showFunctions = false
                     calcFocused = true
                 }
@@ -87,8 +88,12 @@ struct FormulaBar: View {
                     Text("=").foregroundStyle(.secondary)
                     Text(r.resultText).lineLimit(1).textSelection(.enabled)
                         .foregroundStyle(r.resultIsError ? Theme.ember : Color.primary)
-                    Button { r.copyResult() } label: { Image(systemName: "doc.on.doc").font(.system(size: 10)) }
-                        .buttonStyle(.plain).foregroundStyle(.secondary).help("拷贝结果")
+                    Button {
+                        r.copyResult()
+                    } label: {
+                        Image(systemName: "doc.on.doc").font(.system(size: 10))
+                    }
+                    .buttonStyle(.plain).foregroundStyle(.secondary).help("拷贝结果")
                 }
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
                 .padding(.horizontal, 7).padding(.vertical, 2)
@@ -168,7 +173,9 @@ struct SheetTabs: View {
                     .padding(.horizontal, 8)
                 }
                 if hidden > 0 {
-                    Button { r.setShowHiddenSheets(!r.showHiddenSheets) } label: {
+                    Button {
+                        r.setShowHiddenSheets(!r.showHiddenSheets)
+                    } label: {
                         Label(r.showHiddenSheets ? "收起隐藏的工作表" : "显示隐藏的 \(hidden) 张", systemImage: r.showHiddenSheets ? "eye.slash" : "eye")
                             .font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 10).frame(height: 26)
@@ -187,7 +194,9 @@ struct SheetTabs: View {
 
     private func tab(_ i: Int, _ s: Sheet) -> some View {
         let current = i == r.sheetIndex
-        return Button { r.switchSheet(i) } label: {
+        return Button {
+            r.switchSheet(i)
+        } label: {
             HStack(spacing: 5) {
                 if s.isHidden { Image(systemName: "eye.slash").font(.system(size: 9.5)) }
                 Text(s.name).font(.system(size: 11.5, weight: current ? .semibold : .regular)).italic(s.isHidden)
@@ -236,7 +245,7 @@ struct ColumnPanel: View {
 
     enum Cond: String, CaseIterable, Identifiable {
         case none = "不按条件", contains = "包含", notContains = "不包含", equals = "等于", greater = "大于", less = "小于",
-             between = "介于", blank = "为空", notBlank = "非空"
+            between = "介于", blank = "为空", notBlank = "非空"
         var id: String { rawValue }
     }
 
@@ -260,9 +269,21 @@ struct ColumnPanel: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
             HStack(spacing: 6) {
-                Button { r.sort(column: column, ascending: true); close() } label: { Label("升序", systemImage: "arrow.up") }
-                Button { r.sort(column: column, ascending: false); close() } label: { Label("降序", systemImage: "arrow.down") }
-                if r.query.sortColumn == column { Button("取消排序") { r.sort(column: column, ascending: nil); close() } }
+                Button {
+                    r.sort(column: column, ascending: true); close()
+                } label: {
+                    Label("升序", systemImage: "arrow.up")
+                }
+                Button {
+                    r.sort(column: column, ascending: false); close()
+                } label: {
+                    Label("降序", systemImage: "arrow.down")
+                }
+                if r.query.sortColumn == column {
+                    Button("取消排序") {
+                        r.sort(column: column, ascending: nil); close()
+                    }
+                }
             }
             .controlSize(.small)
 
@@ -313,15 +334,25 @@ struct ColumnPanel: View {
                 .disabled(checked.isEmpty)
                 Spacer()
                 if r.query.filters[column] != nil {
-                    Button("清除此列筛选") { r.setFilter(nil, column: column); close() }.controlSize(.small)
+                    Button("清除此列筛选") {
+                        r.setFilter(nil, column: column); close()
+                    }.controlSize(.small)
                 }
             }
 
             Divider()
             HStack {
-                Button { r.gridHeaderClicked(column: column, extend: false); close() } label: { Label("选中整列", systemImage: "rectangle.portrait") }
+                Button {
+                    r.gridHeaderClicked(column: column, extend: false); close()
+                } label: {
+                    Label("选中整列", systemImage: "rectangle.portrait")
+                }
                 Spacer()
-                Button { r.hideColumns([column]); close() } label: { Label("隐藏此列", systemImage: "eye.slash") }
+                Button {
+                    r.hideColumns([column]); close()
+                } label: {
+                    Label("隐藏此列", systemImage: "eye.slash")
+                }
             }
             .buttonStyle(.plain).font(.system(size: 11.5)).foregroundStyle(.secondary)
         }

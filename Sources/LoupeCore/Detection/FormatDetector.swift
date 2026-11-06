@@ -12,8 +12,9 @@ public enum FormatDetector {
         }
         let head = readHead(url, length: headLength)
         let tail = { readTail(url, length: 256 * 1024) }
-        return detect(head: head, ext: url.pathExtension.lowercased(),
-                      name: url.lastPathComponent.lowercased(), tail: tail)
+        return detect(
+            head: head, ext: url.pathExtension.lowercased(),
+            name: url.lastPathComponent.lowercased(), tail: tail)
     }
 
     /// Pure function used by `detect(url:)` and by tests.
@@ -43,9 +44,10 @@ public enum FormatDetector {
                 // text content wins over a binary family.
                 if !head.isEmpty, TextSniffer.isLikelyText(head) {
                     if let lang = ExtensionTable.language[ext] ?? (ext == "ts" || ext == "mts" ? "typescript" : nil) {
-                        return DetectedFormat(family: .code, token: ext.uppercased(),
-                                              label: "\(ExtensionTable.languageDisplayName(lang)) 源代码",
-                                              language: lang, source: .sniff)
+                        return DetectedFormat(
+                            family: .code, token: ext.uppercased(),
+                            label: "\(ExtensionTable.languageDisplayName(lang)) 源代码",
+                            language: lang, source: .sniff)
                     }
                     var t = sniffText(head, ext: ext)
                     t.extensionMismatch = true
@@ -57,8 +59,9 @@ public enum FormatDetector {
         }
         // Unknown extension: sniff content.
         if head.isEmpty {
-            return DetectedFormat(family: .text, token: ext.isEmpty ? "TXT" : ext.uppercased(),
-                                  label: "空文件", language: "plain", source: .sniff)
+            return DetectedFormat(
+                family: .text, token: ext.isEmpty ? "TXT" : ext.uppercased(),
+                label: "空文件", language: "plain", source: .sniff)
         }
         if TextSniffer.isLikelyText(head) {
             return sniffText(head, ext: ext)
@@ -76,10 +79,11 @@ public enum FormatDetector {
         }
         if ext.isEmpty || T.specialNames[name] != nil {
             if let lang = T.specialNames[name] {
-                return DetectedFormat(family: lang == "plain" ? .text : .code,
-                                      token: lang == "plain" ? "TXT" : lang.uppercased(),
-                                      label: ExtensionTable.languageDisplayName(lang) + (lang == "plain" ? "" : " 源代码"),
-                                      language: lang, source: .extension)
+                return DetectedFormat(
+                    family: lang == "plain" ? .text : .code,
+                    token: lang == "plain" ? "TXT" : lang.uppercased(),
+                    label: ExtensionTable.languageDisplayName(lang) + (lang == "plain" ? "" : " 源代码"),
+                    language: lang, source: .extension)
             }
             return nil
         }
@@ -153,7 +157,8 @@ public enum FormatDetector {
         }
         if ascii(0, "8BPS") { return m(.image, "PSD", "Photoshop 文档") }
         if at(0, [0x00, 0x00, 0x01, 0x00]) && b.count > 6 && b[4] > 0 && b[5] == 0
-            && (ext == "ico" || ext == "cur" || ext.isEmpty || b[4] < 64) {
+            && (ext == "ico" || ext == "cur" || ext.isEmpty || b[4] < 64)
+        {
             // ICO: reserved 0, type 1, count < 64. Weak, so require plausible count.
             if ext == "ico" || ext == "cur" || ext.isEmpty { return m(.image, "ICO", "图标文件") }
         }
@@ -165,7 +170,7 @@ public enum FormatDetector {
             if ExtensionTable.rawImage.contains(ext) { return m(.image, ext.uppercased(), "相机 RAW 图像") }
             return m(.image, "TIFF", "TIFF 图像")
         }
-        if at(0, [0x49, 0x49, 0x55, 0x00]) { return m(.image, "RW2", "相机 RAW 图像") } // Panasonic
+        if at(0, [0x49, 0x49, 0x55, 0x00]) { return m(.image, "RW2", "相机 RAW 图像") }  // Panasonic
         if ascii(0, "FUJIFILMCCD-RAW") { return m(.image, "RAF", "相机 RAW 图像") }
         if at(0, [0x76, 0x2F, 0x31, 0x01]) { return m(.image, "EXR", "OpenEXR 图像") }
         if ascii(0, "#?RADIANCE") || ascii(0, "#?RGBE") { return m(.image, "HDR", "Radiance HDR") }
@@ -195,7 +200,8 @@ public enum FormatDetector {
         }
         if at(0, [0x1A, 0x45, 0xDF, 0xA3]) {
             let isWebm = d.prefix(64).range(of: Data("webm".utf8)) != nil
-            return isWebm ? m(.video, "WEBM", "WebM 视频") : (ExtensionTable.audio.contains(ext) ? m(.audio, "MKA", "Matroska 音频") : m(.video, "MKV", "Matroska 视频"))
+            return isWebm
+                ? m(.video, "WEBM", "WebM 视频") : (ExtensionTable.audio.contains(ext) ? m(.audio, "MKA", "Matroska 音频") : m(.video, "MKV", "Matroska 视频"))
         }
         if ascii(0, "FLV") && b.count > 3 && b[3] == 1 { return m(.video, "FLV", "Flash 视频") }
         if at(0, [0x30, 0x26, 0xB2, 0x75, 0x8E, 0x66, 0xCF, 0x11]) {
@@ -279,7 +285,9 @@ public enum FormatDetector {
                     return DetectedFormat(family: .plist, token: "PLIST", label: "属性列表", language: "xml", source: .magic)
                 }
                 if prefix.contains("<svg") { return m(.svg, "SVG", "SVG 矢量图") }
-                if prefix.contains("<html") || prefix.contains("<!doctype html") { return DetectedFormat(family: .html, token: "XHTML", label: "HTML 网页", language: "html", source: .magic) }
+                if prefix.contains("<html") || prefix.contains("<!doctype html") {
+                    return DetectedFormat(family: .html, token: "XHTML", label: "HTML 网页", language: "html", source: .magic)
+                }
                 // generic XML: let extension refine (e.g. .storyboard, .xml); default to XML code.
                 if ExtensionTable.language[ext] != nil || ExtensionTable.office.contains(ext) { return nil }
                 return DetectedFormat(family: .code, token: "XML", label: "XML 文档", language: "xml", source: .magic)
@@ -295,7 +303,8 @@ public enum FormatDetector {
                 if ext.isEmpty || ExtensionTable.language[ext] == nil {
                     let line = trimmed.prefix(while: { $0 != "\n" })
                     let lang = shebangLanguage(String(line))
-                    return DetectedFormat(family: .code, token: lang.uppercased(), label: "\(ExtensionTable.languageDisplayName(lang)) 脚本", language: lang, source: .magic)
+                    return DetectedFormat(
+                        family: .code, token: lang.uppercased(), label: "\(ExtensionTable.languageDisplayName(lang)) 脚本", language: lang, source: .magic)
                 }
             }
         }
@@ -347,7 +356,9 @@ public enum FormatDetector {
         if has("xl/workbook.xml") || has("xl/_rels") { return m(.office, "XLSX", "Excel 工作簿") }
         if has("ppt/presentation.xml") || has("ppt/_rels") { return m(.office, "PPTX", "PowerPoint 演示文稿") }
         if has("Index/Document.iwa") || has("Index/Slide") || has("Index/Tables/") || has("Index/CalculationEngine") {
-            let kind: IWorkKind = has("Index/Slide") || has("Index/MasterSlide") ? .keynote
+            let kind: IWorkKind =
+                has("Index/Slide") || has("Index/MasterSlide")
+                ? .keynote
                 : (has("Index/CalculationEngine") || has("Index/Tables/") ? .numbers : .pages)
             var f = m(.iwork, kind == .keynote ? "KEY" : kind.rawValue.uppercased(), "\(kind.appName) 文稿")
             f.iwork = kind
@@ -365,7 +376,7 @@ public enum FormatDetector {
             [.video, .audio],
             [.text, .code, .markdown, .json, .csv, .html, .plist, .svg],
             [.archive, .office, .iwork, .quicklook],
-            [.image, .svg]
+            [.image, .svg],
         ]
         if magic.family == .pdf && ["ai", "eps"].contains(extString) { return true }  // Illustrator files are PDF
         return groups.contains { $0.contains(magic.family) && $0.contains(e.family) }
@@ -376,16 +387,18 @@ public enum FormatDetector {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let token = ext.isEmpty ? "TXT" : ext.uppercased()
         if (trimmed.hasPrefix("{") || trimmed.hasPrefix("[")),
-           head.count < headLength, let d = trimmed.data(using: .utf8),
-           (try? JSONSerialization.jsonObject(with: d, options: [.fragmentsAllowed])) != nil {
+            head.count < headLength, let d = trimmed.data(using: .utf8),
+            (try? JSONSerialization.jsonObject(with: d, options: [.fragmentsAllowed])) != nil
+        {
             return DetectedFormat(family: .json, token: "JSON", label: "JSON 数据", language: "json", source: .sniff)
         }
         if trimmed.hasPrefix("{") && (trimmed.contains("\":") || trimmed.contains("\" :")) {
             return DetectedFormat(family: .json, token: "JSON", label: "JSON 数据", language: "json", source: .sniff)
         }
         if let delim = CSVSniffer.sniffDelimiter(text) {
-            return DetectedFormat(family: .csv, token: delim == 9 ? "TSV" : "CSV",
-                                  label: delim == 9 ? "TSV 表格" : "CSV 表格", delimiter: delim, source: .sniff)
+            return DetectedFormat(
+                family: .csv, token: delim == 9 ? "TSV" : "CSV",
+                label: delim == 9 ? "TSV 表格" : "CSV 表格", delimiter: delim, source: .sniff)
         }
         let mdSignals = ["\n# ", "\n## ", "\n- [ ]", "\n```", "](http", "\n* ", "\n> "]
         let hits = mdSignals.filter { ("\n" + text).contains($0) }.count

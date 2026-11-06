@@ -224,8 +224,9 @@ final class AppDelegate: NSObject, AppActions, NSApplicationDelegate, NSMenuDele
     @objc func showAbout(_ sender: Any?) {
         NSApp.orderFrontStandardAboutPanel(options: [
             .applicationName: "Loupe 览",
-            .credits: NSAttributedString(string: "轻量、离线、原生的万能文件查看器。\n不联网、不执行文档脚本。",
-                                         attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor])
+            .credits: NSAttributedString(
+                string: "轻量、离线、原生的万能文件查看器。\n不联网、不执行文档脚本。",
+                attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor]),
         ])
     }
 
@@ -290,11 +291,11 @@ final class AppDelegate: NSObject, AppActions, NSApplicationDelegate, NSMenuDele
             if e.window?.firstResponder is NSTextField { return e }
             let r = wc.model.renderer
             switch e.keyCode {
-            case 123, 124: // ← →
+            case 123, 124:  // ← →
                 if r?.wantsArrowKeys == true { return e }
                 wc.model.navigate(e.keyCode == 123 ? -1 : 1)
                 return nil
-            case 49: // space
+            case 49:  // space
                 if r?.wantsSpaceKey == true { wc.model.perform(.playPause); return nil }
                 return e
             default:

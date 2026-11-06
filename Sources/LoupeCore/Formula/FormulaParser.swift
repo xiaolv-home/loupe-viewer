@@ -11,8 +11,10 @@ struct Lexer {
     var i = 0
     init(_ text: String) { s = Array(text) }
 
-    static let refPattern = try! NSRegularExpression(pattern:
-        #"^(?:(?:'(?:[^']|'')+'|(?:\[[^\]\[]+\])?[A-Za-z_\p{L}][\w.\p{L}]*)!)?(?:\$?[A-Za-z]{1,3}\$?\d+(?::\$?[A-Za-z]{1,3}\$?\d+)?|\$?[A-Za-z]{1,3}:\$?[A-Za-z]{1,3}|\$?\d+:\$?\d+)"#)
+    static let refPattern = try! NSRegularExpression(
+        pattern:
+            #"^(?:(?:'(?:[^']|'')+'|(?:\[[^\]\[]+\])?[A-Za-z_\p{L}][\w.\p{L}]*)!)?(?:\$?[A-Za-z]{1,3}\$?\d+(?::\$?[A-Za-z]{1,3}\$?\d+)?|\$?[A-Za-z]{1,3}:\$?[A-Za-z]{1,3}|\$?\d+:\$?\d+)"#
+    )
 
     mutating func all() throws -> [Tok] {
         var out: [Tok] = []
@@ -165,8 +167,7 @@ public struct FormulaParser {
                 var args: [Expr] = []
                 if peek != .rparen {
                     while true {
-                        if peek == .comma || peek == .rparen { args.append(.literal(.empty)) }
-                        else { args.append(try comparison()) }
+                        if peek == .comma || peek == .rparen { args.append(.literal(.empty)) } else { args.append(try comparison()) }
                         if peek == .comma { _ = advance(); continue }
                         break
                     }
@@ -199,7 +200,7 @@ public struct FormulaParser {
             let letters = t.prefix { $0.isLetter }
             t = t.dropFirst(letters.count)
             if t.hasPrefix("$") { absR = true; t = t.dropFirst() }
-            if letters.isEmpty { absR = absC; absC = false }   // "$1" style row-only part
+            if letters.isEmpty { absR = absC; absC = false }  // "$1" style row-only part
             let col = letters.isEmpty ? nil : Sheet.columnIndex(String(letters))
             let row = Int(t).map { $0 - 1 }
             return (row, col, absR, absC)
@@ -211,8 +212,10 @@ public struct FormulaParser {
         }
         let (r0, c0, ar0, ac0) = cell(parts[0])
         let (r1, c1, ar1, ac1) = cell(parts[1])
-        return .range(RangeRef(sheet: sheet, r0: min(r0 ?? 0, r1 ?? 0), c0: min(c0 ?? 0, c1 ?? 0),
-                               r1: r0 == nil ? Int.max : max(r0!, r1 ?? r0!), c1: c0 == nil ? Int.max : max(c0!, c1 ?? c0!),
-                               absR0: ar0, absR1: ar1, absC0: ac0, absC1: ac1))
+        return .range(
+            RangeRef(
+                sheet: sheet, r0: min(r0 ?? 0, r1 ?? 0), c0: min(c0 ?? 0, c1 ?? 0),
+                r1: r0 == nil ? Int.max : max(r0!, r1 ?? r0!), c1: c0 == nil ? Int.max : max(c0!, c1 ?? c0!),
+                absR0: ar0, absR1: ar1, absC0: ac0, absC1: ac1))
     }
 }

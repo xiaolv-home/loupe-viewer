@@ -46,12 +46,10 @@ public enum ChartParser {
         guard let kind = kinds[node.name] else { return nil }
         var p = ChartPlot(kind: kind)
         p.horizontal = node.value(of: "barDir") == "bar"
-        if let g = node.value(of: "grouping") { p.grouping = g }
-        else if kind == .line || kind == .area { p.grouping = "standard" }
+        if let g = node.value(of: "grouping") { p.grouping = g } else if kind == .line || kind == .area { p.grouping = "standard" }
         p.varyColors = node.value(of: "varyColors").map(flag) ?? (kind == .pie || kind == .doughnut)
         if let v = node.value(of: "gapWidth").flatMap(Double.init) { p.gapWidth = v }
-        if let v = node.value(of: "overlap").flatMap(Double.init) { p.overlap = v }
-        else if p.isStacked { p.overlap = 100 }
+        if let v = node.value(of: "overlap").flatMap(Double.init) { p.overlap = v } else if p.isStacked { p.overlap = 100 }
         if let v = node.value(of: "holeSize").flatMap(Double.init) { p.holeSize = v }
         if let v = node.value(of: "firstSliceAng").flatMap(Double.init) { p.firstSliceAngle = v }
         if kind == .line { p.markers = node.value(of: "marker").map(flag) ?? true }
@@ -75,8 +73,11 @@ public enum ChartParser {
     static func series(_ s: XMLTree, kind: ChartKind, position: Int, theme: DrawingTheme) -> ChartSeries {
         var out = ChartSeries()
         if let tx = s.child("tx") {
-            if let r = tx.child("strRef") { out.name = ChartText(text: r.child("strCache").flatMap { firstPoint($0) }, reference: r.child("f")?.text) }
-            else if let v = tx.child("v") { out.name = ChartText(text: v.text) }
+            if let r = tx.child("strRef") {
+                out.name = ChartText(text: r.child("strCache").flatMap { firstPoint($0) }, reference: r.child("f")?.text)
+            } else if let v = tx.child("v") {
+                out.name = ChartText(text: v.text)
+            }
         }
         out.categories = values(s.child("cat") ?? s.child("xVal"))
         out.values = values(s.child("val") ?? s.child("yVal"))

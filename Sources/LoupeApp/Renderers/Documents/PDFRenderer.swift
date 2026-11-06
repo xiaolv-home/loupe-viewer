@@ -46,9 +46,10 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
         // main thread, inside the ObjC bridge; a background task would not.
         var reason: NSString?
         var opened: PDFDocument?
-        let caught = LPTry({
-            opened = PDFDocument(url: url)
-        }, &reason)
+        let caught = LPTry(
+            {
+                opened = PDFDocument(url: url)
+            }, &reason)
         guard caught, let doc = opened, doc.pageCount > 0 || doc.isLocked else {
             let detail = reason as String?
             throw RenderError.unreadable(detail ?? "PDF 无法解析（文件可能已损坏）")
@@ -74,18 +75,19 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
 
         outlineList.root = doc.outlineRoot
         outlineList.onSelect = { [weak self] o in
-            if let d = o.destination { self?.pdfView.go(to: d) }
-            else if let a = o.action as? PDFActionGoTo { self?.pdfView.go(to: a.destination) }
+            if let d = o.destination { self?.pdfView.go(to: d) } else if let a = o.action as? PDFActionGoTo { self?.pdfView.go(to: a.destination) }
         }
 
         buildLayout()
         let nc = NotificationCenter.default
-        observers.append(nc.addObserver(forName: .PDFViewPageChanged, object: pdfView, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.syncState() }
-        })
-        observers.append(nc.addObserver(forName: .PDFViewScaleChanged, object: pdfView, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.syncState() }
-        })
+        observers.append(
+            nc.addObserver(forName: .PDFViewPageChanged, object: pdfView, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.syncState() }
+            })
+        observers.append(
+            nc.addObserver(forName: .PDFViewScaleChanged, object: pdfView, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.syncState() }
+            })
         if doc.isLocked { showUnlock() }
         pdfView.pendingInitialPage = true
         syncState()
@@ -114,7 +116,7 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
             outlineList.topAnchor.constraint(equalTo: seg.bottomAnchor, constant: 8),
             outlineList.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor),
             outlineList.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor),
-            outlineList.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor)
+            outlineList.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor),
         ])
         let divider = NSBox()
         divider.boxType = .separator
@@ -124,7 +126,7 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
             divider.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor),
             divider.topAnchor.constraint(equalTo: sidebar.topAnchor),
             divider.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor),
-            divider.widthAnchor.constraint(equalToConstant: 1)
+            divider.widthAnchor.constraint(equalToConstant: 1),
         ])
         sidebar.isHidden = true
         updateSidebarTab()
@@ -152,7 +154,7 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: bar.leadingAnchor), stack.trailingAnchor.constraint(equalTo: bar.trailingAnchor),
             stack.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
-            searchField.widthAnchor.constraint(greaterThanOrEqualToConstant: 220)
+            searchField.widthAnchor.constraint(greaterThanOrEqualToConstant: 220),
         ])
         searchBar = bar
         bar.isHidden = true
@@ -175,7 +177,7 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
             pdfView.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor),
             pdfView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             pdfView.topAnchor.constraint(equalTo: bar.bottomAnchor),
-            pdfView.bottomAnchor.constraint(equalTo: root.bottomAnchor)
+            pdfView.bottomAnchor.constraint(equalTo: root.bottomAnchor),
         ])
     }
 
@@ -198,7 +200,7 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
             t.topAnchor.constraint(equalTo: seg.bottomAnchor, constant: 8),
             t.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 8),
             t.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -8),
-            t.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor)
+            t.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor),
         ])
         thumbs = t
     }
@@ -236,7 +238,7 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
         root.addSubview(v)
         NSLayoutConstraint.activate([
             v.leadingAnchor.constraint(equalTo: root.leadingAnchor), v.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            v.topAnchor.constraint(equalTo: root.topAnchor), v.bottomAnchor.constraint(equalTo: root.bottomAnchor)
+            v.topAnchor.constraint(equalTo: root.topAnchor), v.bottomAnchor.constraint(equalTo: root.bottomAnchor),
         ])
         lockHost = v
     }
@@ -317,8 +319,9 @@ final class PDFRenderer: NSObject, Renderer, ObservableObject, PDFViewDelegate, 
     nonisolated func pdfViewWillClick(onLink sender: PDFView, with url: URL) {
         // External links are never opened automatically; offer it as an explicit action.
         MainActor.assumeIsolated {
-            host?.showNotice("已阻止自动打开链接：\(url.absoluteString)", style: .info,
-                             action: NoticeAction(title: "在浏览器中打开") { NSWorkspace.shared.open(url) })
+            host?.showNotice(
+                "已阻止自动打开链接：\(url.absoluteString)", style: .info,
+                action: NoticeAction(title: "在浏览器中打开") { NSWorkspace.shared.open(url) })
         }
     }
 
@@ -432,7 +435,9 @@ private struct PDFControls: View {
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .multilineTextAlignment(.trailing)
                     .frame(width: 34)
-                    .onSubmit { if let n = Int(pageText) { r.go(toPage: n - 1) }; pageText = "\(r.pageIndex + 1)" }
+                    .onSubmit {
+                        if let n = Int(pageText) { r.go(toPage: n - 1) }; pageText = "\(r.pageIndex + 1)"
+                    }
                 Text("/ \(r.pageCount)").font(.system(size: 11, design: .monospaced)).foregroundStyle(.secondary)
             }
             .help("输入页码后回车跳转")

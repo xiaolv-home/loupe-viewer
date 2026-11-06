@@ -47,16 +47,18 @@ extension ChartPainter {
         for i in groups.indices {
             let lo = groups[i].plots.map { range($0).0 }.min() ?? 0, hi = groups[i].plots.map { range($0).1 }.max() ?? 1
             let a = groups[i].axis
-            groups[i].scale = Self.niceScale(lo, hi, fixedMin: a?.min, fixedMax: a?.max, unit: a?.majorUnit,
-                                             targetTicks: max(3, Int((horizontal ? area.width : area.height) / (40 * scale))))
+            groups[i].scale = Self.niceScale(
+                lo, hi, fixedMin: a?.min, fixedMax: a?.max, unit: a?.majorUnit,
+                targetTicks: max(3, Int((horizontal ? area.width : area.height) / (40 * scale))))
         }
         // Scatter: x is a value axis too.
         var xScale: Scale?
         if !xyPlots.isEmpty {
             let xs = xyPlots.flatMap { $0.series }.flatMap { s in s.xValues ?? s.values.indices.map { Double($0 + 1) } }.compactMap { $0 }
             let ax = axis(xyPlots[0].plot.axisIDs.first)
-            xScale = Self.niceScale(xs.min() ?? 0, xs.max() ?? 1, fixedMin: ax?.min, fixedMax: ax?.max, unit: ax?.majorUnit,
-                                    targetTicks: max(3, Int(area.width / (70 * scale))))
+            xScale = Self.niceScale(
+                xs.min() ?? 0, xs.max() ?? 1, fixedMin: ax?.min, fixedMax: ax?.max, unit: ax?.majorUnit,
+                targetTicks: max(3, Int(area.width / (70 * scale))))
         }
 
         let catAxis = axis(plots[0].plot.axisIDs.first)
@@ -85,13 +87,15 @@ extension ChartPainter {
         var plotRect: CGRect
         if horizontal {
             let left = (showCat ? min(catLabelW, area.width * 0.35) : 0) + titleLeft
-            plotRect = CGRect(x: area.minX + left, y: area.minY + 4 * scale,
-                              width: area.width - left - 8 * scale, height: area.height - lineH - 8 * scale - titleBottom)
+            plotRect = CGRect(
+                x: area.minX + left, y: area.minY + 4 * scale,
+                width: area.width - left - 8 * scale, height: area.height - lineH - 8 * scale - titleBottom)
         } else {
             let left = valLabelW(primary) + titleLeft
             let right = max(8 * scale, valLabelW(secondary))
-            plotRect = CGRect(x: area.minX + left, y: area.minY + 6 * scale,
-                              width: area.width - left - right, height: area.height - (showCat ? lineH + 6 * scale : 0) - 6 * scale - titleBottom)
+            plotRect = CGRect(
+                x: area.minX + left, y: area.minY + 6 * scale,
+                width: area.width - left - right, height: area.height - (showCat ? lineH + 6 * scale : 0) - 6 * scale - titleBottom)
         }
         guard plotRect.width > 10, plotRect.height > 10 else { return }
         if let bg = spec.plotBackground { ns(bg).setFill(); plotRect.fill() }
@@ -118,16 +122,23 @@ extension ChartPainter {
                 NSColor(white: 0.88, alpha: 1).setFill()
                 for t in g.scale.ticks {
                     let p = valuePos(g, t)
-                    if horizontal { CGRect(x: p - 0.5, y: plotRect.minY, width: 1, height: plotRect.height).fill() }
-                    else { CGRect(x: plotRect.minX, y: p - 0.5, width: plotRect.width, height: 1).fill() }
+                    if horizontal {
+                        CGRect(x: p - 0.5, y: plotRect.minY, width: 1, height: plotRect.height).fill()
+                    } else {
+                        CGRect(x: plotRect.minX, y: p - 0.5, width: plotRect.width, height: 1).fill()
+                    }
                 }
             }
             guard g.axis?.deleted != true, g.axis?.labelsShown != false else { continue }
             for t in g.scale.ticks {
                 let p = valuePos(g, t)
-                if horizontal { label(fmt(g, t), at: CGPoint(x: p, y: plotRect.maxY + 3 * scale), anchor: (0.5, 0)) }
-                else if gi == 0 { label(fmt(g, t), at: CGPoint(x: plotRect.minX - 4 * scale, y: p), anchor: (1, 0.5)) }
-                else { label(fmt(g, t), at: CGPoint(x: plotRect.maxX + 4 * scale, y: p), anchor: (0, 0.5)) }
+                if horizontal {
+                    label(fmt(g, t), at: CGPoint(x: p, y: plotRect.maxY + 3 * scale), anchor: (0.5, 0))
+                } else if gi == 0 {
+                    label(fmt(g, t), at: CGPoint(x: plotRect.minX - 4 * scale, y: p), anchor: (1, 0.5))
+                } else {
+                    label(fmt(g, t), at: CGPoint(x: plotRect.maxX + 4 * scale, y: p), anchor: (0, 0.5))
+                }
             }
         }
         if let xScale {
@@ -140,14 +151,18 @@ extension ChartPainter {
         // Category axis line and labels.
         NSColor(white: 0.75, alpha: 1).setFill()
         let zero = valuePos(primary, max(primary.scale.min, min(primary.scale.max, 0)))
-        if horizontal { CGRect(x: zero - 0.5, y: plotRect.minY, width: 1, height: plotRect.height).fill() }
-        else if xScale == nil || plots.count > xyPlots.count { CGRect(x: plotRect.minX, y: zero - 0.5, width: plotRect.width, height: 1).fill() }
+        if horizontal {
+            CGRect(x: zero - 0.5, y: plotRect.minY, width: 1, height: plotRect.height).fill()
+        } else if xScale == nil || plots.count > xyPlots.count {
+            CGRect(x: plotRect.minX, y: zero - 0.5, width: plotRect.width, height: 1).fill()
+        }
         if showCat && plots.count > xyPlots.count {
             let every = horizontal ? max(1, Int(ceil(lineH / max(1, slot)))) : max(1, Int(ceil(catLabelW / max(1, slot))))
             for (i, c) in catLabels.enumerated() where i % every == 0 {
                 let s0 = catStart(i)
                 if horizontal {
-                    let r = CGRect(x: area.minX + titleLeft, y: s0 + slot / 2 - lineH / 2, width: plotRect.minX - area.minX - titleLeft - 4 * scale, height: lineH)
+                    let r = CGRect(
+                        x: area.minX + titleLeft, y: s0 + slot / 2 - lineH / 2, width: plotRect.minX - area.minX - titleLeft - 4 * scale, height: lineH)
                     drawText(c, font: font, color: labelColor, in: r, align: .right)
                 } else {
                     let w = slot * CGFloat(every)
@@ -159,12 +174,18 @@ extension ChartPainter {
         // Axis titles.
         let titleFont = NSFont.systemFont(ofSize: px(9), weight: .medium)
         if let t = catTitle {
-            if horizontal { verticalTitle(t, font: titleFont, x: area.minX, rect: plotRect) }
-            else { label(t, at: CGPoint(x: plotRect.midX, y: area.maxY - lineH), anchor: (0.5, 0), font: titleFont) }
+            if horizontal {
+                verticalTitle(t, font: titleFont, x: area.minX, rect: plotRect)
+            } else {
+                label(t, at: CGPoint(x: plotRect.midX, y: area.maxY - lineH), anchor: (0.5, 0), font: titleFont)
+            }
         }
         if let t = valTitle {
-            if horizontal { label(t, at: CGPoint(x: plotRect.midX, y: area.maxY - lineH), anchor: (0.5, 0), font: titleFont) }
-            else { verticalTitle(t, font: titleFont, x: area.minX, rect: plotRect) }
+            if horizontal {
+                label(t, at: CGPoint(x: plotRect.midX, y: area.maxY - lineH), anchor: (0.5, 0), font: titleFont)
+            } else {
+                verticalTitle(t, font: titleFont, x: area.minX, rect: plotRect)
+            }
         }
 
         // Series. Bars of every bar plot are laid out together within each category.
@@ -197,8 +218,10 @@ extension ChartPainter {
         ctx.restoreGState()
     }
 
-    func drawBars(_ p: ResolvedPlot, group: Group, slots: Int, first: Int, slot: CGFloat, horizontal: Bool,
-                          catStart: (Int) -> CGFloat, valuePos: (Double) -> CGFloat) {
+    func drawBars(
+        _ p: ResolvedPlot, group: Group, slots: Int, first: Int, slot: CGFloat, horizontal: Bool,
+        catStart: (Int) -> CGFloat, valuePos: (Double) -> CGFloat
+    ) {
         let n = CGFloat(max(1, slots))
         let gap = CGFloat(p.plot.gapWidth) / 100
         let overlap = p.plot.isStacked ? 1 : CGFloat(p.plot.overlap) / 100
@@ -218,7 +241,8 @@ extension ChartPainter {
                 let lane = CGFloat(first + (p.plot.isStacked ? 0 : k))
                 let offset = catStart(i) + (slot - clusterW) / 2 + lane * step
                 let a = valuePos(base), b = valuePos(base + v)
-                let r = horizontal
+                let r =
+                    horizontal
                     ? CGRect(x: min(a, b), y: offset, width: abs(b - a), height: barW)
                     : CGRect(x: offset, y: min(a, b), width: barW, height: abs(b - a))
                 let fill = s.series.pointColors[i].map(ns) ?? (p.plot.varyColors && p.series.count == 1 ? ns(theme.seriesColor(i)) : color(s))
@@ -239,12 +263,14 @@ extension ChartPainter {
                         label(text, at: CGPoint(x: r.midX, y: r.midY), anchor: (0.5, 0.5), font: font, color: ink)
                     } else if horizontal {
                         let inside = l.position == "inEnd", base = l.position == "inBase"
-                        let edge = base ? (high ? r.minX + pad : r.maxX - pad) : inside ? (high ? r.maxX - pad : r.minX + pad) : (high ? r.maxX + pad : r.minX - pad)
+                        let edge =
+                            base ? (high ? r.minX + pad : r.maxX - pad) : inside ? (high ? r.maxX - pad : r.minX + pad) : (high ? r.maxX + pad : r.minX - pad)
                         let leading = base ? high : inside ? !high : high
                         label(text, at: CGPoint(x: edge, y: r.midY), anchor: (leading ? 0 : 1, 0.5), font: font, color: ink)
                     } else {
                         let inside = l.position == "inEnd", base = l.position == "inBase"
-                        let edge = base ? (high ? r.maxY - pad : r.minY + pad) : inside ? (high ? r.minY + pad : r.maxY - pad) : (high ? r.minY - pad : r.maxY + pad)
+                        let edge =
+                            base ? (high ? r.maxY - pad : r.minY + pad) : inside ? (high ? r.minY + pad : r.maxY - pad) : (high ? r.minY - pad : r.maxY + pad)
                         let above = base ? high : inside ? !high : high
                         label(text, at: CGPoint(x: r.midX, y: edge), anchor: (0.5, above ? 1 : 0), font: font, color: ink)
                     }
@@ -335,8 +361,9 @@ extension ChartPainter {
             let pts = points(s, slot: slot, onBetween: onBetween, catStart: catStart, y: valuePos, values: vals)
             let c = lineColor(s)
             if !s.series.noLine {
-                stroke(pts, color: c, width: CGFloat(s.series.lineWidth ?? 2.25) * scale, dashed: s.series.dashed, smooth: s.series.smooth,
-                       spanGaps: spec.displayBlanksAs == "span")
+                stroke(
+                    pts, color: c, width: CGFloat(s.series.lineWidth ?? 2.25) * scale, dashed: s.series.dashed, smooth: s.series.smooth,
+                    spanGaps: spec.displayBlanksAs == "span")
             }
             if p.plot.markers { for case let q? in pts { marker(q, s, color: c) } }
             let labels = s.series.labels ?? p.plot.labels

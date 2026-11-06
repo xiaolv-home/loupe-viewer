@@ -17,8 +17,12 @@ struct AIHistoryView: View {
                 Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundStyle(.secondary)
                 TextField("搜索对话", text: $query).textFieldStyle(.plain).font(.system(size: 12))
                 if !query.isEmpty {
-                    Button { query = "" } label: { Image(systemName: "xmark.circle.fill").font(.system(size: 11)) }
-                        .buttonStyle(.borderless).foregroundStyle(.secondary)
+                    Button {
+                        query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill").font(.system(size: 11))
+                    }
+                    .buttonStyle(.borderless).foregroundStyle(.secondary)
                 }
             }
             .padding(.horizontal, 9).padding(.vertical, 6)
@@ -39,9 +43,12 @@ struct AIHistoryView: View {
                             Text(title).font(Theme.label).foregroundStyle(.secondary)
                                 .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 3)
                             ForEach(items) { s in
-                                AIHistoryRow(summary: s, current: s.id == session.conversation?.id, disabled: session.running,
-                                             open: { session.open(s.id); close() },
-                                             delete: { session.deleteConversation(s.id) })
+                                AIHistoryRow(
+                                    summary: s, current: s.id == session.conversation?.id, disabled: session.running,
+                                    open: {
+                                        session.open(s.id); close()
+                                    },
+                                    delete: { session.deleteConversation(s.id) })
                             }
                         }
                     }
@@ -61,7 +68,9 @@ struct AIHistoryView: View {
                 session.newChat()
                 store.deleteAll()
             }
-        } message: { Text("删除后无法恢复。") }
+        } message: {
+            Text("删除后无法恢复。")
+        }
     }
 }
 
@@ -94,8 +103,10 @@ private struct AIHistoryRow: View {
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 7)
-        .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
-            .fill(current ? Theme.emberSoft : Color.primary.opacity(hover ? 0.05 : 0)))
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(current ? Theme.emberSoft : Color.primary.opacity(hover ? 0.05 : 0))
+        )
         .padding(.horizontal, 6)
         .contentShape(Rectangle())
         .onHover { hover = $0 }
@@ -111,7 +122,9 @@ private struct AIHistoryRow: View {
     static func time(_ d: Date) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "zh_CN")
-        f.dateFormat = Calendar.current.isDateInToday(d) || Calendar.current.isDateInYesterday(d) ? "HH:mm"
+        f.dateFormat =
+            Calendar.current.isDateInToday(d) || Calendar.current.isDateInYesterday(d)
+            ? "HH:mm"
             : Calendar.current.isDate(d, equalTo: Date(), toGranularity: .year) ? "M月d日 HH:mm" : "yyyy年M月d日"
         return f.string(from: d)
     }

@@ -17,7 +17,8 @@ final class FolderBrowser: ObservableObject {
 
     init() {
         let last = UserDefaults.standard.string(forKey: Self.lastDirKey).map { URL(fileURLWithPath: $0) }
-        let start = last.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+        let start =
+            last.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
             ?? FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
         if let start { show(start) }
     }
@@ -112,8 +113,11 @@ final class FolderBrowser: ObservableObject {
     /// Folders first, then files and packages (iWork documents open as files), by name.
     nonisolated static func list(_ dir: URL, showHidden: Bool) -> [Item] {
         let keys: [URLResourceKey] = [.isDirectoryKey, .isPackageKey]
-        guard let urls = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: keys,
-                                                                       options: showHidden ? [] : [.skipsHiddenFiles]) else { return [] }
+        guard
+            let urls = try? FileManager.default.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: keys,
+                options: showHidden ? [] : [.skipsHiddenFiles])
+        else { return [] }
         let items = urls.map { u -> Item in
             let rv = try? u.resourceValues(forKeys: Set(keys))
             return Item(url: u.standardizedFileURL, isFolder: rv?.isDirectory == true && rv?.isPackage != true)

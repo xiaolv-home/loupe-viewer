@@ -35,7 +35,9 @@ public enum TextEncodingDetector {
         let b = [UInt8](sample.prefix(4))
         if b.count >= 3 && b[0] == 0xEF && b[1] == 0xBB && b[2] == 0xBF { return DetectedEncoding(.utf8, "UTF-8 (BOM)", bom: 3) }
         if b.count >= 4 && b[0] == 0xFF && b[1] == 0xFE && b[2] == 0 && b[3] == 0 { return DetectedEncoding(.utf32LittleEndian, "UTF-32 LE", bom: 4, unit: 4) }
-        if b.count >= 4 && b[0] == 0 && b[1] == 0 && b[2] == 0xFE && b[3] == 0xFF { return DetectedEncoding(.utf32BigEndian, "UTF-32 BE", bom: 4, unit: 4, bigEndian: true) }
+        if b.count >= 4 && b[0] == 0 && b[1] == 0 && b[2] == 0xFE && b[3] == 0xFF {
+            return DetectedEncoding(.utf32BigEndian, "UTF-32 BE", bom: 4, unit: 4, bigEndian: true)
+        }
         if b.count >= 2 && b[0] == 0xFF && b[1] == 0xFE { return DetectedEncoding(.utf16LittleEndian, "UTF-16 LE", bom: 2, unit: 2) }
         if b.count >= 2 && b[0] == 0xFE && b[1] == 0xFF { return DetectedEncoding(.utf16BigEndian, "UTF-16 BE", bom: 2, unit: 2, bigEndian: true) }
 
@@ -49,7 +51,7 @@ public enum TextEncodingDetector {
             DetectedEncoding(gb18030, "GB18030"),
             DetectedEncoding(big5, "Big5"),
             DetectedEncoding(shiftJIS, "Shift_JIS"),
-            DetectedEncoding(eucKR, "EUC-KR")
+            DetectedEncoding(eucKR, "EUC-KR"),
         ]
         let trimmed = trimToLastNewline(sample)
         for c in candidates {
@@ -116,10 +118,15 @@ public enum TextEncodingDetector {
                 let c = p[i]
                 if c < 0x80 { i += 1; continue }
                 var need = 0
-                if c & 0xE0 == 0xC0 { need = 1; if c < 0xC2 { return false } }
-                else if c & 0xF0 == 0xE0 { need = 2 }
-                else if c & 0xF8 == 0xF0 { need = 3; if c > 0xF4 { return false } }
-                else { return false }
+                if c & 0xE0 == 0xC0 {
+                    need = 1; if c < 0xC2 { return false }
+                } else if c & 0xF0 == 0xE0 {
+                    need = 2
+                } else if c & 0xF8 == 0xF0 {
+                    need = 3; if c > 0xF4 { return false }
+                } else {
+                    return false
+                }
                 if i + need >= n {
                     // Truncated at the end of the sample.
                     if !allowTruncatedTail { return false }
@@ -147,7 +154,7 @@ public enum TextEncodingDetector {
             case 0x4E00...0x9FFF: good += 1; han += 1
             case 0x3400...0x4DBF: good += 1; han += 1
             case 0x3040...0x30FF: good += 1; kana += 1
-            case 0xFF61...0xFF9F: break   // half-width katakana: typical of mis-decoded GBK
+            case 0xFF61...0xFF9F: break  // half-width katakana: typical of mis-decoded GBK
             case 0xAC00...0xD7AF: good += 1; hangul += 1
             case 0x3000...0x303F, 0xFF00...0xFFEF, 0x2010...0x206F, 0x00B7, 0x00D7, 0x2460...0x24FF, 0x2500...0x257F: good += 1
             case 0xE000...0xF8FF: privateUse += 1
@@ -161,8 +168,7 @@ public enum TextEncodingDetector {
         // Prefer the encoding whose script mix matches its region.
         switch name {
         case "Shift_JIS":
-            if kana == 0 { score -= 0.2 }
-            else if Double(kana) / Double(nonASCII) > 0.1 { score += 0.3 }  // real Japanese text is kana-rich
+            if kana == 0 { score -= 0.2 } else if Double(kana) / Double(nonASCII) > 0.1 { score += 0.3 }  // real Japanese text is kana-rich
         case "EUC-KR": if hangul == 0 { score -= 0.3 }
         case "Big5": score -= 0.02  // tie-break toward GB18030 for zh-Hans users
         default: break

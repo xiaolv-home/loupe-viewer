@@ -59,9 +59,11 @@ enum MPVLibrary {
         var c: [String] = []
         let custom = UserDefaults.standard.string(forKey: "mpvPath") ?? ""
         if !custom.isEmpty { c.append(custom) }
-        c += ["/opt/homebrew/lib/libmpv.2.dylib", "/opt/homebrew/lib/libmpv.dylib", "/opt/homebrew/opt/mpv/lib/libmpv.2.dylib",
-              "/usr/local/lib/libmpv.2.dylib", "/usr/local/lib/libmpv.dylib", "/usr/local/opt/mpv/lib/libmpv.2.dylib",
-              "/opt/local/lib/libmpv.2.dylib"]
+        c += [
+            "/opt/homebrew/lib/libmpv.2.dylib", "/opt/homebrew/lib/libmpv.dylib", "/opt/homebrew/opt/mpv/lib/libmpv.2.dylib",
+            "/usr/local/lib/libmpv.2.dylib", "/usr/local/lib/libmpv.dylib", "/usr/local/opt/mpv/lib/libmpv.2.dylib",
+            "/opt/local/lib/libmpv.2.dylib",
+        ]
         return c
     }
 
@@ -76,17 +78,22 @@ enum MPVLibrary {
                 return unsafeBitCast(p, to: T.self)
             }
             if let a = sym("mpv_create", FnCreate.self), let b = sym("mpv_initialize", FnInit.self),
-               let c = sym("mpv_set_option_string", FnSetOpt.self), let d = sym("mpv_command", FnCommand.self),
-               let e = sym("mpv_set_property", FnSetProp.self), let f = sym("mpv_get_property_string", FnGetPropStr.self),
-               let g = sym("mpv_free", FnFree.self), let i = sym("mpv_observe_property", FnObserve.self),
-               let j = sym("mpv_wait_event", FnWaitEvent.self), let k = sym("mpv_set_wakeup_callback", FnWakeup.self),
-               let l = sym("mpv_terminate_destroy", FnDestroy.self), let m = sym("mpv_render_context_create", FnRCCreate.self),
-               let n = sym("mpv_render_context_set_update_callback", FnRCSetUpdate.self),
-               let o = sym("mpv_render_context_render", FnRCRender.self), let p = sym("mpv_render_context_free", FnRCFree.self),
-               let q = sym("mpv_error_string", FnErrorString.self) {
-                result = (path, API(create: a, initialize: b, setOption: c, command: d, setProperty: e, getPropertyString: f, free: g,
-                                    observe: i, waitEvent: j, setWakeup: k, terminateDestroy: l, rcCreate: m, rcSetUpdate: n,
-                                    rcRender: o, rcFree: p, errorString: q))
+                let c = sym("mpv_set_option_string", FnSetOpt.self), let d = sym("mpv_command", FnCommand.self),
+                let e = sym("mpv_set_property", FnSetProp.self), let f = sym("mpv_get_property_string", FnGetPropStr.self),
+                let g = sym("mpv_free", FnFree.self), let i = sym("mpv_observe_property", FnObserve.self),
+                let j = sym("mpv_wait_event", FnWaitEvent.self), let k = sym("mpv_set_wakeup_callback", FnWakeup.self),
+                let l = sym("mpv_terminate_destroy", FnDestroy.self), let m = sym("mpv_render_context_create", FnRCCreate.self),
+                let n = sym("mpv_render_context_set_update_callback", FnRCSetUpdate.self),
+                let o = sym("mpv_render_context_render", FnRCRender.self), let p = sym("mpv_render_context_free", FnRCFree.self),
+                let q = sym("mpv_error_string", FnErrorString.self)
+            {
+                result = (
+                    path,
+                    API(
+                        create: a, initialize: b, setOption: c, command: d, setProperty: e, getPropertyString: f, free: g,
+                        observe: i, waitEvent: j, setWakeup: k, terminateDestroy: l, rcCreate: m, rcSetUpdate: n,
+                        rcRender: o, rcFree: p, errorString: q)
+                )
                 break
             }
         }
@@ -104,8 +111,10 @@ enum MPVLibrary {
     /// The mpv command-line player next to the library, for the external-window fallback.
     static var executable: String? {
         let lib = load()?.path ?? ""
-        let guesses = [URL(fileURLWithPath: lib).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("bin/mpv").path,
-                       "/opt/homebrew/bin/mpv", "/usr/local/bin/mpv", "/Applications/mpv.app/Contents/MacOS/mpv"]
+        let guesses = [
+            URL(fileURLWithPath: lib).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("bin/mpv").path,
+            "/opt/homebrew/bin/mpv", "/usr/local/bin/mpv", "/Applications/mpv.app/Contents/MacOS/mpv",
+        ]
         return guesses.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 }

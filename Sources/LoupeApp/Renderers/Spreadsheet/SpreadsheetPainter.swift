@@ -18,8 +18,8 @@ struct CellLookKey: Hashable {
     var style: Int
     var numeric: Bool
     var color: UInt32?
-    var flags: UInt8          // 1 error, 2 formula without own colour, 4 unstyled header row
-    var align: UInt8          // value-based default alignment
+    var flags: UInt8  // 1 error, 2 formula without own colour, 4 unstyled header row
+    var align: UInt8  // value-based default alignment
 }
 
 /// Drawing: resolved cell looks and the paint pass for a block of rows.
@@ -30,7 +30,9 @@ extension SpreadsheetRenderer {
         let key = Sheet.key(sr, c)
         let styleID = sheet.styleIDs[key] ?? 0
         let style = workbook.style(sheetIndex, sr, c)
-        let numeric: Bool = { if case .number = value { return true }; if case .date = value { return true }; return false }()
+        let numeric: Bool = {
+            if case .number = value { return true }; if case .date = value { return true }; return false
+        }()
         var flags: UInt8 = 0
         if case .error = value { flags |= 1 }
         if style?.fontColor == nil && colorOverride == nil && sheet.formulas[key] != nil { flags |= 2 }
@@ -42,8 +44,9 @@ extension SpreadsheetRenderer {
             default: return 0
             }
         }()
-        let ck = CellLookKey(style: styleID, numeric: numeric, color: colorOverride.map { UInt32($0.r) << 24 | UInt32($0.g) << 16 | UInt32($0.b) << 8 | UInt32($0.a) },
-                             flags: flags, align: defaultAlign)
+        let ck = CellLookKey(
+            style: styleID, numeric: numeric, color: colorOverride.map { UInt32($0.r) << 24 | UInt32($0.g) << 16 | UInt32($0.b) << 8 | UInt32($0.a) },
+            flags: flags, align: defaultAlign)
         if let hit = lookCache[ck] { return hit }
 
         // Fill and text colour. Dark "automatic" text on no fill follows the theme so it stays
@@ -68,8 +71,10 @@ extension SpreadsheetRenderer {
 
         let size = (style?.fontSize.map { max(6, min(48, CGFloat($0))) } ?? 11) * SheetMetrics.fontScale * zoom
         let bold = style?.bold == true || flags & 4 != 0
-        var f = numeric ? NSFont.monospacedDigitSystemFont(ofSize: size, weight: bold ? .semibold : .regular)
-                        : NSFont.systemFont(ofSize: size, weight: bold ? .semibold : .regular)
+        var f =
+            numeric
+            ? NSFont.monospacedDigitSystemFont(ofSize: size, weight: bold ? .semibold : .regular)
+            : NSFont.systemFont(ofSize: size, weight: bold ? .semibold : .regular)
         if style?.italic == true { f = NSFontManager.shared.convert(f, toHaveTrait: .italicFontMask) }
 
         let align: NSTextAlignment
@@ -87,9 +92,10 @@ extension SpreadsheetRenderer {
         var attrs: [NSAttributedString.Key: Any] = [.font: f, .foregroundColor: textColor, .paragraphStyle: para]
         if style?.underline == true { attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue }
         if style?.strike == true { attrs[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
-        let lk = CellLook(attrs: attrs, font: f, lineHeight: ceil(f.ascender - f.descender + f.leading), fill: fill, align: align,
-                          vAlign: style?.vAlign ?? workbook.styles.first?.vAlign ?? .bottom, wraps: wraps, borders: style?.borders ?? [],
-                          borderColor: style?.borderColor.map(Self.color) ?? NSColor(white: 0.55, alpha: 1))
+        let lk = CellLook(
+            attrs: attrs, font: f, lineHeight: ceil(f.ascender - f.descender + f.leading), fill: fill, align: align,
+            vAlign: style?.vAlign ?? workbook.styles.first?.vAlign ?? .bottom, wraps: wraps, borders: style?.borders ?? [],
+            borderColor: style?.borderColor.map(Self.color) ?? NSColor(white: 0.55, alpha: 1))
         lookCache[ck] = lk
         return lk
     }
@@ -99,7 +105,7 @@ extension SpreadsheetRenderer {
     private struct TextItem {
         var text: String
         var look: CellLook
-        var rect: NSRect        // where the text is laid out
+        var rect: NSRect  // where the text is laid out
         var clip: NSRect
         /// Parts of the text in their own formats (red, bold…), when the cell mixes formats.
         var rich: [RichRun]? = nil
@@ -226,7 +232,9 @@ extension SpreadsheetRenderer {
             if !lk.borders.isEmpty { borders.append((rect, lk.borders, lk.borderColor)) }
             var text = formatted.text
             if !lk.wraps { text = text.replacingOccurrences(of: "\n", with: " ") }
-            if !text.isEmpty && cf?.showValue != false { texts.append(TextItem(text: text, look: lk, rect: rect.insetBy(dx: pad, dy: 0), clip: rect, rich: richRuns(sr, c, value))) }
+            if !text.isEmpty && cf?.showValue != false {
+                texts.append(TextItem(text: text, look: lk, rect: rect.insetBy(dx: pad, dy: 0), clip: rect, rich: richRuns(sr, c, value)))
+            }
         }
 
         // 4. Text.

@@ -7,13 +7,14 @@ extension SpreadsheetRenderer {
 
     private func menu(_ build: (_ item: (String, @escaping () -> Void) -> Void, _ sep: () -> Void) -> Void) -> NSMenu {
         let m = NSMenu()
-        build({ t, f in
-            let i = NSMenuItem(title: t, action: #selector(MenuAction.fire), keyEquivalent: "")
-            let a = MenuAction(f)
-            i.target = a
-            i.representedObject = a
-            m.addItem(i)
-        }, { m.addItem(.separator()) })
+        build(
+            { t, f in
+                let i = NSMenuItem(title: t, action: #selector(MenuAction.fire), keyEquivalent: "")
+                let a = MenuAction(f)
+                i.target = a
+                i.representedObject = a
+                m.addItem(i)
+            }, { m.addItem(.separator()) })
         return m
     }
 

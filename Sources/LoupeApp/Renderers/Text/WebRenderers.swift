@@ -43,7 +43,7 @@ class WebDocumentRenderer: NSObject, ObservableObject {
             body.topAnchor.constraint(equalTo: findBar.bottomAnchor),
             body.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             body.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            body.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            body.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
         if let wv { attachWeb(wv) }
     }
@@ -102,7 +102,7 @@ class WebDocumentRenderer: NSObject, ObservableObject {
         body.addSubview(v)
         NSLayoutConstraint.activate([
             v.leadingAnchor.constraint(equalTo: body.leadingAnchor), v.trailingAnchor.constraint(equalTo: body.trailingAnchor),
-            v.topAnchor.constraint(equalTo: body.topAnchor), v.bottomAnchor.constraint(equalTo: body.bottomAnchor)
+            v.topAnchor.constraint(equalTo: body.topAnchor), v.bottomAnchor.constraint(equalTo: body.bottomAnchor),
         ])
     }
 
@@ -223,11 +223,11 @@ final class HTMLRenderer: WebDocumentRenderer, Renderer {
         if isSVG {
             // <img> never runs SVG scripts and scales cleanly.
             let html = """
-            <!doctype html><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:transparent}
-            body{display:flex;align-items:center;justify-content:center}
-            img{max-width:calc(100% - 64px);max-height:calc(100% - 64px);min-width:64px}</style>
-            <img src="\(target.absoluteString)">
-            """
+                <!doctype html><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:transparent}
+                body{display:flex;align-items:center;justify-content:center}
+                img{max-width:calc(100% - 64px);max-height:calc(100% - 64px);min-width:64px}</style>
+                <img src="\(target.absoluteString)">
+                """
             try await navigator.load(wv) { wv.loadHTMLString(html, baseURL: URL(string: "loupe://app/")) }
         } else {
             wv.setValue(true, forKey: "drawsBackground")
@@ -245,9 +245,18 @@ final class HTMLRenderer: WebDocumentRenderer, Renderer {
         return (title.isEmpty ? "" : "「\(title)」 · ") + (scripts ? "脚本已运行 · 已断网" : "JavaScript 已禁用")
     }
     var infoSections: [InfoSection] {
-        [InfoSection(isSVG ? "SVG" : "网页", [InfoItem("标题", title.isEmpty ? "—" : title),
-                                              InfoItem("安全", scripts ? "脚本只能读取本网页所在文件夹，不能联网、不能弹窗；本地存储（如阅读进度）会保留"
-                                                                        : "JavaScript 已禁用，远程资源已阻止")])]
+        [
+            InfoSection(
+                isSVG ? "SVG" : "网页",
+                [
+                    InfoItem("标题", title.isEmpty ? "—" : title),
+                    InfoItem(
+                        "安全",
+                        scripts
+                            ? "脚本只能读取本网页所在文件夹，不能联网、不能弹窗；本地存储（如阅读进度）会保留"
+                            : "JavaScript 已禁用，远程资源已阻止"),
+                ])
+        ]
     }
     var controls: AnyView? { AnyView(WebControls(r: self, labels: isSVG ? ["图像", "源码"] : ["网页", "源码"])) }
     var initialFirstResponder: NSView? { web }

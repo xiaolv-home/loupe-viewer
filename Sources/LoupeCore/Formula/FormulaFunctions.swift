@@ -13,7 +13,7 @@ extension FormulaEngine {
         "VLOOKUP", "HLOOKUP", "XLOOKUP", "INDEX", "MATCH", "XMATCH", "CHOOSE", "ROWS", "COLUMNS",
         "SUMIF", "SUMIFS", "COUNTIF", "COUNTIFS", "AVERAGEIF", "AVERAGEIFS", "MAXIFS", "MINIFS", "SUMPRODUCT",
         "ISBLANK", "ISNUMBER", "ISTEXT", "ISERROR", "ISNA", "ISEVEN", "ISODD",
-        "TODAY", "NOW", "DATE", "YEAR", "MONTH", "DAY", "WEEKDAY", "DATEDIF", "EDATE", "EOMONTH", "DAYS", "PI", "RAND", "NA"
+        "TODAY", "NOW", "DATE", "YEAR", "MONTH", "DAY", "WEEKDAY", "DATEDIF", "EDATE", "EOMONTH", "DAYS", "PI", "RAND", "NA",
     ]
 
     static func call(_ name: String, _ args: [Expr], _ ctx: FormulaContext) throws -> FValue {
@@ -31,8 +31,18 @@ extension FormulaEngine {
                 var k = 0
                 for a in args {
                     let v = try eval(a, ctx)
-                    if case .array(let rows) = v { k += rows.joined().filter { if case .number = $0 { return true }; return false }.count }
-                    else if num(v) != nil, !{ if case .empty = v { return true }; return false }() { k += 1 }
+                    if case .array(let rows) = v {
+                        k +=
+                            rows.joined().filter {
+                                if case .number = $0 { return true }; return false
+                            }.count
+                    } else if num(v) != nil,
+                        !{
+                            if case .empty = v { return true }; return false
+                        }()
+                    {
+                        k += 1
+                    }
                 }
                 return .number(Double(k))
             }
@@ -62,7 +72,11 @@ extension FormulaEngine {
             let sorted = name == "LARGE" ? xs.sorted(by: >) : xs.sorted()
             return .number(sorted[Int(k) - 1])
         case "COUNTA":
-            return .number(Double(flatten(try args.map { try eval($0, ctx) }).filter { if case .empty = $0 { return false }; return true }.count))
+            return .number(
+                Double(
+                    flatten(try args.map { try eval($0, ctx) }).filter {
+                        if case .empty = $0 { return false }; return true
+                    }.count))
         case "COUNTBLANK":
             return .number(Double(flatten(try args.map { try eval($0, ctx) }).filter { text($0).isEmpty }.count))
 
@@ -240,7 +254,12 @@ extension FormulaEngine {
             default:
                 hit = look.firstIndex { lookupEquals($0, key) }
             }
-            guard let h = hit else { return args.count > 3 && !{ if case .empty = (try? arg(3)) ?? .empty { return true }; return false }() ? try arg(3) : .error("#N/A") }
+            guard let h = hit else {
+                return args.count > 3
+                    && !{
+                        if case .empty = (try? arg(3)) ?? .empty { return true }; return false
+                    }() ? try arg(3) : .error("#N/A")
+            }
             // Return the matching row of a vertical return array, or column of a horizontal one.
             if ret.count == look.count { return ret[h].count == 1 ? ret[h][0] : .array([ret[h]]) }
             if ret.count == 1, h < ret[0].count { return ret[0][h] }
@@ -260,8 +279,11 @@ extension FormulaEngine {
             let type = Int(try n(2) ?? (name == "XMATCH" ? 0 : 1))
             var hit: Int?
             if type == 0 {
-                if case .text(let t) = key, t.contains("*") || t.contains("?") { hit = look.firstIndex(where: criterion(key)) }
-                else { hit = look.firstIndex { lookupEquals($0, key) } }
+                if case .text(let t) = key, t.contains("*") || t.contains("?") {
+                    hit = look.firstIndex(where: criterion(key))
+                } else {
+                    hit = look.firstIndex { lookupEquals($0, key) }
+                }
             } else {
                 for (i, v) in look.enumerated() {
                     let c = compare(v, key)

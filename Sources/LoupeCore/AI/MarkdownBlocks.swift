@@ -155,7 +155,8 @@ public enum MarkdownParser {
                 flush(); italic.toggle(); cur.italic = italic; i += 1; continue
             }
             if c == "[", let close = chars[i...].firstIndex(of: "]"), close + 1 < chars.count, chars[close + 1] == "(",
-               let paren = chars[(close + 1)...].firstIndex(of: ")") {
+                let paren = chars[(close + 1)...].firstIndex(of: ")")
+            {
                 flush()
                 var r = MarkdownRun(String(chars[(i + 1)..<close])); r.link = String(chars[(close + 2)..<paren]); r.bold = bold; r.italic = italic
                 out.append(r)

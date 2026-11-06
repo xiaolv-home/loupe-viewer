@@ -74,7 +74,9 @@ struct AISettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .onChange(of: config.providerID) { _, _ in keyDraft = ""; testStatus = "" }
+        .onChange(of: config.providerID) { _, _ in
+            keyDraft = ""; testStatus = ""
+        }
     }
 
     private func saveKey() {

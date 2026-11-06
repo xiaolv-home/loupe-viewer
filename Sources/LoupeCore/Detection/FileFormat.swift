@@ -67,9 +67,11 @@ public struct DetectedFormat: Sendable, Equatable {
     public var extensionMismatch: Bool
     public var source: DetectionSource
 
-    public init(family: FormatFamily, token: String, label: String, language: String? = nil,
-                iwork: IWorkKind? = nil, delimiter: UInt8? = nil,
-                extensionMismatch: Bool = false, source: DetectionSource) {
+    public init(
+        family: FormatFamily, token: String, label: String, language: String? = nil,
+        iwork: IWorkKind? = nil, delimiter: UInt8? = nil,
+        extensionMismatch: Bool = false, source: DetectionSource
+    ) {
         self.family = family
         self.token = token
         self.label = label

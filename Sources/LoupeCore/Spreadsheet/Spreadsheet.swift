@@ -7,7 +7,7 @@ public enum CellValue: Sendable, Equatable {
     case number(Double)
     case text(String)
     case bool(Bool)
-    case date(Double)          // Excel serial day number (1900 system)
+    case date(Double)  // Excel serial day number (1900 system)
     case error(String)
 
     public var isEmpty: Bool { if case .empty = self { return true }; if case .text(let s) = self { return s.isEmpty }; return false }
@@ -174,8 +174,11 @@ public struct Sheet: Sendable {
         let col = columnCount
         for r in 0..<rows.count {
             while rows[r].count < col { rows[r].append(.empty) }
-            if r == startRow - 1, let header { rows[r].append(.text(header)) }
-            else { rows[r].append(r - startRow < values.count && r >= startRow ? values[r - startRow] : .empty) }
+            if r == startRow - 1, let header {
+                rows[r].append(.text(header))
+            } else {
+                rows[r].append(r - startRow < values.count && r >= startRow ? values[r - startRow] : .empty)
+            }
         }
         columnCount += 1
     }

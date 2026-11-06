@@ -30,9 +30,10 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
     var onClose: ((ViewerWindowController) -> Void)?
 
     init(autosave: Bool) {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1080, height: 720),
-                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-                              backing: .buffered, defer: false)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1080, height: 720),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered, defer: false)
         window.minSize = NSSize(width: 560, height: 380)
         window.titleVisibility = .hidden
         window.toolbarStyle = .unified
@@ -234,7 +235,10 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
     // MARK: Toolbar
 
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [.toggleSidebar, .sidebarTrackingSeparator, .loupeTitle, .flexibleSpace, .loupeNav, .loupeShare, .loupeMore, .inspectorTrackingSeparator, .loupeInfo, .loupeAI]
+        [
+            .toggleSidebar, .sidebarTrackingSeparator, .loupeTitle, .flexibleSpace, .loupeNav, .loupeShare, .loupeMore, .inspectorTrackingSeparator, .loupeInfo,
+            .loupeAI,
+        ]
     }
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
         toolbarDefaultItemIdentifiers(toolbar) + [.space]
@@ -244,20 +248,24 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
         switch id {
         case .loupeTitle:
             let item = NSToolbarItem(itemIdentifier: id)
-            let host = NSHostingView(rootView: TabStrip(tabs: tabs,
-                                                        select: { [weak self] m in self?.select(m) },
-                                                        close: { [weak self] m in self?.closeTab(m) },
-                                                        newTab: { [weak self] in self?.addTab(nil) }))
+            let host = NSHostingView(
+                rootView: TabStrip(
+                    tabs: tabs,
+                    select: { [weak self] m in self?.select(m) },
+                    close: { [weak self] m in self?.closeTab(m) },
+                    newTab: { [weak self] in self?.addTab(nil) }))
             host.sizingOptions = [.intrinsicContentSize]
             item.view = host
             item.visibilityPriority = .high
             item.label = "标签页"
             return item
         case .loupeNav:
-            let group = NSToolbarItemGroup(itemIdentifier: id, images: [
-                NSImage(systemSymbolName: "chevron.left", accessibilityDescription: "上一个")!,
-                NSImage(systemSymbolName: "chevron.right", accessibilityDescription: "下一个")!
-            ], selectionMode: .momentary, labels: ["上一个", "下一个"], target: self, action: #selector(navGroup(_:)))
+            let group = NSToolbarItemGroup(
+                itemIdentifier: id,
+                images: [
+                    NSImage(systemSymbolName: "chevron.left", accessibilityDescription: "上一个")!,
+                    NSImage(systemSymbolName: "chevron.right", accessibilityDescription: "下一个")!,
+                ], selectionMode: .momentary, labels: ["上一个", "下一个"], target: self, action: #selector(navGroup(_:)))
             group.label = "浏览"
             group.subitems[0].toolTip = "上一个文件（←）"
             group.subitems[1].toolTip = "下一个文件（→）"

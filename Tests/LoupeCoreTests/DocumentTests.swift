@@ -14,8 +14,8 @@ struct DocumentTests {
         #expect(!d.hasChanges)
         let undo = d.apply([CellChange(sheet: 0, row: 3, col: 1, value: .number(20), formula: nil)])
         #expect(d.hasChanges)
-        #expect(d.workbook.sheets[0].cell(3, 3) == .number(40))          // =B4*C4
-        #expect(d.workbook.sheets[1].cell(0, 0) == .number(104.5))       // 汇总!A1 = 数据!D7
+        #expect(d.workbook.sheets[0].cell(3, 3) == .number(40))  // =B4*C4
+        #expect(d.workbook.sheets[1].cell(0, 0) == .number(104.5))  // 汇总!A1 = 数据!D7
         d.apply(undo)
         #expect(d.workbook.sheets[0].cell(3, 1) == .number(10))
         #expect(d.workbook.sheets[0].cell(3, 3) == .number(20))
@@ -37,7 +37,7 @@ struct DocumentTests {
         d.perform([.insertRows(at: 3, count: 1)], sheet: 0)
         #expect(d.edited[0]?.contains(Sheet.key(6, 0)) == true)
         #expect(d.edited[0]?.contains(Sheet.key(5, 0)) == false)
-        #expect(d.edited[1]?.contains(Sheet.key(0, 0)) == true)            // cross-sheet formula rewritten
+        #expect(d.edited[1]?.contains(Sheet.key(0, 0)) == true)  // cross-sheet formula rewritten
         #expect(d.structure[0] == [.insertRows(at: 3, count: 1)])
         var q = SheetQuery()
         q.headerRowIndex = 1
@@ -53,7 +53,10 @@ struct DocumentTests {
         var d = try doc()
         d.setColumnWidth(20, sheet: 0, column: 0)
         #expect(d.hasChanges)
-        var c = SpreadsheetDocument(workbook: try SpreadsheetReader.readDelimited(url: StructureTests.fixture.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("data/sales-utf8.csv"), delimiter: 44))
+        var c = SpreadsheetDocument(
+            workbook: try SpreadsheetReader.readDelimited(
+                url: StructureTests.fixture.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("data/sales-utf8.csv"), delimiter: 44
+            ))
         c.setColumnWidth(20, sheet: 0, column: 0)
         #expect(!c.hasChanges)
     }
@@ -66,13 +69,13 @@ struct DocumentTests {
         let file = dir.appendingPathComponent("m.xlsx")
         try FileManager.default.copyItem(at: src, to: file)
         var d = SpreadsheetDocument(workbook: try SpreadsheetReader.readXLSX(url: file))
-        let m = MergeRange(r0: 2, c0: 0, r1: 3, c1: 1)           // A3:B4 (苹果 3 / 香蕉 10)
+        let m = MergeRange(r0: 2, c0: 0, r1: 3, c1: 1)  // A3:B4 (苹果 3 / 香蕉 10)
         #expect(d.cellsClearedByMerging(m, sheet: 0) == 3)
         d.merge(m, sheet: 0)
         #expect(d.workbook.sheets[0].cell(2, 0) == .text("苹果"))
         #expect(d.workbook.sheets[0].cell(3, 0).isEmpty)
         #expect(d.workbook.sheets[0].merges.contains(m))
-        #expect(d.unmerge(MergeRange(r0: 0, c0: 0, r1: 0, c1: 0), sheet: 0) == 1)   // A1 → splits A1:D1
+        #expect(d.unmerge(MergeRange(r0: 0, c0: 0, r1: 0, c1: 0), sheet: 0) == 1)  // A1 → splits A1:D1
         #expect(d.hasChanges)
         _ = try d.write(to: file, base: file, sheet: 0)
         let back = try SpreadsheetReader.readXLSX(url: file).sheets[0]

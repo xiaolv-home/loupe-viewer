@@ -43,7 +43,7 @@ struct WriterTests {
         #expect(b.cell(4, 5).isEmpty)
         // Untouched content and formatting survive.
         #expect(back.style(0, 0, 0)?.fill == RGBA(hex: "C0392B"))
-        #expect(back.formatted(0, 3, 3).text == "¥999.50")          // number format kept on the edited cell
+        #expect(back.formatted(0, 3, 3).text == "¥999.50")  // number format kept on the edited cell
         #expect(back.formatted(0, 2, 2).text == "2019年3月8日")
         #expect(b.merges.contains(MergeRange(r0: 0, c0: 0, r1: 0, c1: 5)))
         #expect(b.frozenRows == 2)
@@ -54,11 +54,14 @@ struct WriterTests {
     @Test("全新 xlsx：多表、日期、公式")
     func fresh() throws {
         let out = temp("new.xlsx")
-        try XLSXWriter.write(sheets: [
-            (name: "数据", rows: [[.text("名称"), .text("值"), .text("日期")], [.text("甲"), .number(3), .date(45000)], [.text("乙"), .number(4), .empty]],
-             formulas: [:]),
-            (name: "汇总", rows: [[.text("合计"), .number(7)]], formulas: [Sheet.key(0, 1): "=SUM(数据!B2:B3)"])
-        ], to: out)
+        try XLSXWriter.write(
+            sheets: [
+                (
+                    name: "数据", rows: [[.text("名称"), .text("值"), .text("日期")], [.text("甲"), .number(3), .date(45000)], [.text("乙"), .number(4), .empty]],
+                    formulas: [:]
+                ),
+                (name: "汇总", rows: [[.text("合计"), .number(7)]], formulas: [Sheet.key(0, 1): "=SUM(数据!B2:B3)"]),
+            ], to: out)
         let wb = try SpreadsheetReader.readXLSX(url: out)
         #expect(wb.sheets.map(\.name) == ["数据", "汇总"])
         #expect(wb.sheets[0].cell(1, 1) == .number(3))

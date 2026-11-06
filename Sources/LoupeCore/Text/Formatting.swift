@@ -45,7 +45,7 @@ public enum HexDump {
     public static func row(_ data: Data, offset: Int) -> (offset: String, hex: String, ascii: String) {
         let end = min(data.count, offset + bytesPerRow)
         guard offset < end else { return (String(format: "%08X", offset), "", "") }
-        let slice = data[data.startIndex + offset ..< data.startIndex + end]
+        let slice = data[data.startIndex + offset..<data.startIndex + end]
         var hex = ""
         var ascii = ""
         hex.reserveCapacity(bytesPerRow * 3 + 1)

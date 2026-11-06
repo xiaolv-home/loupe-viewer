@@ -11,7 +11,7 @@ public struct RGBA: Hashable, Sendable {
         if h.count == 6 { h = "FF" + h }
         guard h.count == 8, let v = UInt32(h, radix: 16) else { return nil }
         a = UInt8((v >> 24) & 0xFF); r = UInt8((v >> 16) & 0xFF); g = UInt8((v >> 8) & 0xFF); b = UInt8(v & 0xFF)
-        if a == 0 { a = 255 }   // many writers leave alpha 00 for opaque colours
+        if a == 0 { a = 255 }  // many writers leave alpha 00 for opaque colours
     }
 
     public var hex: String { String(format: "FF%02X%02X%02X", r, g, b) }
@@ -51,7 +51,9 @@ public struct RGBA: Hashable, Sendable {
             return p
         }
         let rr, gg, bb: Double
-        if s == 0 { rr = l; gg = l; bb = l } else {
+        if s == 0 {
+            rr = l; gg = l; bb = l
+        } else {
             let q = l < 0.5 ? l * (1 + s) : l + s - l * s
             let p = 2 * l - q
             rr = f(p, q, h + 1 / 3); gg = f(p, q, h); bb = f(p, q, h - 1 / 3)
@@ -68,6 +70,6 @@ public struct RGBA: Hashable, Sendable {
         "000080", "FF00FF", "FFFF00", "00FFFF", "800080", "800000", "008080", "0000FF",
         "00CCFF", "CCFFFF", "CCFFCC", "FFFF99", "99CCFF", "FF99CC", "CC99FF", "FFCC99",
         "3366FF", "33CCCC", "99CC00", "FFCC00", "FF9900", "FF6600", "666699", "969696",
-        "003366", "339966", "003300", "333300", "993300", "993366", "333399", "333333"
+        "003366", "339966", "003300", "333300", "993300", "993366", "333399", "333333",
     ].map { RGBA(hex: $0)! }
 }

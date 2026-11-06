@@ -67,7 +67,7 @@ final class OutlineList: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate 
         addSubview(s)
         NSLayoutConstraint.activate([
             s.leadingAnchor.constraint(equalTo: leadingAnchor), s.trailingAnchor.constraint(equalTo: trailingAnchor),
-            s.topAnchor.constraint(equalTo: topAnchor), s.bottomAnchor.constraint(equalTo: bottomAnchor)
+            s.topAnchor.constraint(equalTo: topAnchor), s.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
     required init?(coder: NSCoder) { fatalError() }
@@ -87,13 +87,15 @@ final class OutlineList: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate 
         ((item as? PDFOutline)?.numberOfChildren ?? 0) > 0
     }
     func outlineView(_ o: NSOutlineView, viewFor col: NSTableColumn?, item: Any) -> NSView? {
-        let t = (o.makeView(withIdentifier: .init("c"), owner: nil) as? NSTextField) ?? {
-            let t = NSTextField(labelWithString: "")
-            t.identifier = .init("c")
-            t.lineBreakMode = .byTruncatingTail
-            t.font = .systemFont(ofSize: 12)
-            return t
-        }()
+        let t =
+            (o.makeView(withIdentifier: .init("c"), owner: nil) as? NSTextField)
+            ?? {
+                let t = NSTextField(labelWithString: "")
+                t.identifier = .init("c")
+                t.lineBreakMode = .byTruncatingTail
+                t.font = .systemFont(ofSize: 12)
+                return t
+            }()
         t.stringValue = (item as? PDFOutline)?.label ?? ""
         return t
     }

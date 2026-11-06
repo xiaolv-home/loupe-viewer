@@ -9,17 +9,22 @@ struct AIWireTests {
 
     func conversation() -> [AIMessage] {
         var a = AIMessage(role: .assistant, text: "我来算")
-        a.toolCalls = [AIToolCall(id: "c1", name: "calculate", arguments: #"{"formula":"SUM(B:B)"}"#),
-                       AIToolCall(id: "c2", name: "sheet_overview", arguments: "")]
-        return [.user("B 列合计？"), a,
-                .toolResult(a.toolCalls[0], AIToolOutput("42")),
-                .toolResult(a.toolCalls[1], .error("没有表格"))]
+        a.toolCalls = [
+            AIToolCall(id: "c1", name: "calculate", arguments: #"{"formula":"SUM(B:B)"}"#),
+            AIToolCall(id: "c2", name: "sheet_overview", arguments: ""),
+        ]
+        return [
+            .user("B 列合计？"), a,
+            .toolResult(a.toolCalls[0], AIToolOutput("42")),
+            .toolResult(a.toolCalls[1], .error("没有表格")),
+        ]
     }
 
     @Test("OpenAI 兼容：工具调用和结果按顺序回传")
     func openAIBody() {
-        let body = OpenAIWire.requestBody(endpoint: local, system: "sys", messages: conversation(),
-                                          tools: [AIToolSpec("calculate", "算", Schema.object(["formula": Schema.string("公式")], required: ["formula"]))])
+        let body = OpenAIWire.requestBody(
+            endpoint: local, system: "sys", messages: conversation(),
+            tools: [AIToolSpec("calculate", "算", Schema.object(["formula": Schema.string("公式")], required: ["formula"]))])
         let msgs = body["messages"]!.array!
         #expect(msgs.map { $0["role"]!.string! } == ["system", "user", "assistant", "tool", "tool"])
         #expect(msgs[2]["tool_calls"]?[1]?["function"]?["arguments"]?.string == "{}")
@@ -91,7 +96,7 @@ struct AIWireTests {
             #"{"type":"content_block_start","index":2,"content_block":{"type":"tool_use","id":"t1","name":"calculate","input":{}}}"#,
             #"{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"{\"formula\":"}}"#,
             #"{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"\"1+1\"}"}}"#,
-            #"{"type":"message_delta","delta":{"stop_reason":"tool_use"}}"#
+            #"{"type":"message_delta","delta":{"stop_reason":"tool_use"}}"#,
         ]
         var texts: [String] = []
         for e in events {
@@ -117,7 +122,7 @@ struct AIWireTests {
             #"{"choices":[{"delta":{"reasoning_content":"另一种思考"}}]}"#,
             #"{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"name":"calculate","arguments":"{\"formula\""}}]}}]}"#,
             #"{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":":\"2*3\"}"}}]}}]}"#,
-            #"{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}"#
+            #"{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}"#,
         ]
         for c in chunks { _ = acc.consume(AIJSON.parse(c)!) }
         let (m, stop) = acc.finish()
@@ -134,7 +139,9 @@ struct AIWireTests {
         var a = AIMessage(role: .assistant, text: "我来算")
         a.toolCalls = [AIToolCall(id: "t1", name: "calculate", arguments: #"{"formula":"SUM(B:B)"}"#)]
         a.reasoning = "想一想"
-        a.anthropicBlocks = [["type": "thinking", "thinking": "想一想", "signature": "SIG"], ["type": "tool_use", "id": "t1", "input": ["n": 3, "one": 1, "zero": 0, "ok": true]]]
+        a.anthropicBlocks = [
+            ["type": "thinking", "thinking": "想一想", "signature": "SIG"], ["type": "tool_use", "id": "t1", "input": ["n": 3, "one": 1, "zero": 0, "ok": true]],
+        ]
         let msgs = [AIMessage.user("合计？"), a, .toolResult(a.toolCalls[0], .error("没有表格"))]
         let back = try JSONDecoder().decode([AIMessage].self, from: JSONEncoder().encode(msgs))
         #expect(back == msgs)
@@ -176,14 +183,19 @@ struct AgentTests {
     @Test("调用工具 → 回传结果 → 得到最终回答；坏参数回错误")
     func loop() async throws {
         var first = AIMessage(role: .assistant, text: "")
-        first.toolCalls = [AIToolCall(id: "a", name: "calculate", arguments: #"{"formula":"1+1"}"#),
-                           AIToolCall(id: "b", name: "calculate", arguments: "{oops")]
+        first.toolCalls = [
+            AIToolCall(id: "a", name: "calculate", arguments: #"{"formula":"1+1"}"#),
+            AIToolCall(id: "b", name: "calculate", arguments: "{oops"),
+        ]
         let client = ScriptedClient([first, AIMessage(role: .assistant, text: "结果是 2")])
         let log = EventLog()
-        try await AIAgent.run(client: client, system: "", history: [.user("1+1")], tools: [],
-                              runTool: { call, args in AIToolOutput(args["formula"]?.string == "1+1" ? "2" : "?") },
-                              onEvent: { await log.add($0) })
-        let messages = await log.events.compactMap { e -> AIMessage? in if case .message(let m) = e { return m }; return nil }
+        try await AIAgent.run(
+            client: client, system: "", history: [.user("1+1")], tools: [],
+            runTool: { call, args in AIToolOutput(args["formula"]?.string == "1+1" ? "2" : "?") },
+            onEvent: { await log.add($0) })
+        let messages = await log.events.compactMap { e -> AIMessage? in
+            if case .message(let m) = e { return m }; return nil
+        }
         #expect(messages.map(\.role) == [.assistant, .tool, .tool, .assistant])
         #expect(messages[1].text == "2")
         #expect(messages[2].isError)
@@ -204,16 +216,16 @@ struct SkillTests {
     @Test("SKILL.md 头信息：引号、折叠块")
     func frontMatter() {
         let text = """
-        ---
-        name: contract-review
-        description: >
-          审阅合同，
-          找出风险条款
-        license: "MIT"
-        ---
-        # 合同审阅
-        步骤……
-        """
+            ---
+            name: contract-review
+            description: >
+              审阅合同，
+              找出风险条款
+            license: "MIT"
+            ---
+            # 合同审阅
+            步骤……
+            """
         let (meta, body) = SkillLibrary.parseFrontMatter(text)
         #expect(meta["name"] == "contract-review")
         #expect(meta["description"] == "审阅合同， 找出风险条款")
@@ -224,8 +236,10 @@ struct SkillTests {
     @Test("按请求挑出相关技能（中文按字对，英文按词）")
     func rank() {
         func sk(_ n: String, _ d: String) -> Skill { Skill(name: n, description: d, folder: URL(fileURLWithPath: "/x/\(n)"), builtIn: false) }
-        let all = [sk("resume-optimizer", "面向求职者的简历审计与优化"), sk("contract-review", "Review legal contracts and NDAs"),
-                   sk("合同审查-国企", "国有企业合同合规审查"), sk("mermaid", "Generate Mermaid diagrams")]
+        let all = [
+            sk("resume-optimizer", "面向求职者的简历审计与优化"), sk("contract-review", "Review legal contracts and NDAs"),
+            sk("合同审查-国企", "国有企业合同合规审查"), sk("mermaid", "Generate Mermaid diagrams"),
+        ]
         #expect(SkillLibrary.rank(all, for: "帮我优化一下简历").first?.name == "resume-optimizer")
         #expect(SkillLibrary.rank(all, for: "审查这份采购合同").first?.name == "合同审查-国企")
         #expect(SkillLibrary.rank(all, for: "review this contract").first?.name == "contract-review")
@@ -251,7 +265,7 @@ struct SkillTests {
             "repo-main/skills/resume/references/tips.md": Data("tips".utf8),
             "repo-main/skills/resume/examples/SKILL.md": Data("nested".utf8),
             "repo-main/skills/legal/SKILL.md": Data("# 法务\n审合同".utf8),
-            "repo-main/.github/workflows/ci.yml": Data("x".utf8)
+            "repo-main/.github/workflows/ci.yml": Data("x".utf8),
         ]
         let dest = TestTemp.dir("skills")
         let src = SkillInstaller.Source(owner: "o", repo: "repo", ref: "main", path: "")
@@ -274,20 +288,21 @@ struct SkillTests {
 struct AIOutputTests {
     @Test("Markdown 转 HTML：标题、列表、表格、强调")
     func markdown() {
-        let html = MarkdownHTML.render("""
-        # 审阅意见
-        **甲方**：某公司 <x>
+        let html = MarkdownHTML.render(
+            """
+            # 审阅意见
+            **甲方**：某公司 <x>
 
-        - 第一条
-        - 第二条
+            - 第一条
+            - 第二条
 
-        1. 甲
-        2. 乙
+            1. 甲
+            2. 乙
 
-        | 条款 | 风险 |
-        | --- | --- |
-        | 第 5 条 | *高* |
-        """)
+            | 条款 | 风险 |
+            | --- | --- |
+            | 第 5 条 | *高* |
+            """)
         #expect(html.contains("<h1>审阅意见</h1>"))
         #expect(html.contains("<strong>甲方</strong>：某公司 &lt;x&gt;"))
         #expect(html.contains("<ul><li>第一条</li><li>第二条</li></ul>"))
@@ -298,7 +313,11 @@ struct AIOutputTests {
     @Test("行内格式：加粗、斜体、代码、链接，未闭合的星号原样保留")
     func inlineRuns() {
         let r = MarkdownParser.runs("**甲方**付款 *30* 天，见 `第5条` 与 [附件](https://x.cn)，2*3")
-        #expect(r.first == { var x = MarkdownRun("甲方"); x.bold = true; return x }())
+        #expect(
+            r.first
+                == {
+                    var x = MarkdownRun("甲方"); x.bold = true; return x
+                }())
         #expect(r.contains { $0.italic && $0.text == "30" })
         #expect(r.contains { $0.code && $0.text == "第5条" })
         #expect(r.contains { $0.link == "https://x.cn" && $0.text == "附件" })
@@ -308,20 +327,21 @@ struct AIOutputTests {
     @Test("Word：原生表格、标题样式、编号列表，XML 合法")
     func docx() throws {
         let url = TestTemp.dir("docx").appendingPathComponent("意见书.docx")
-        try DocxWriter.write(markdown: """
-        # 审阅意见书
-        **立场**：甲方 & 合作方 <内部>
+        try DocxWriter.write(
+            markdown: """
+                # 审阅意见书
+                **立场**：甲方 & 合作方 <内部>
 
-        ## 主要风险
-        | 序号 | 条款 | 建议 |
-        | --- | --- | --- |
-        | 1 | 第二条 | 改为分期<br>先付 20% |
+                ## 主要风险
+                | 序号 | 条款 | 建议 |
+                | --- | --- | --- |
+                | 1 | 第二条 | 改为分期<br>先付 20% |
 
-        1. 第一项
-        2. 第二项
+                1. 第一项
+                2. 第二项
 
-        - 要点
-        """, title: "意见书", to: url)
+                - 要点
+                """, title: "意见书", to: url)
         let parts = try ArchiveReader.extractAll(url: url) { _ in true }
         for (name, data) in parts where name.hasSuffix(".xml") || name.hasSuffix(".rels") {
             #expect(XMLParser(data: data).parse(), "\(name) 不是合法 XML")
@@ -340,17 +360,21 @@ struct AIOutputTests {
     @Test("图片文字按行还原：同一行按左右排序，列之间是制表符")
     func ocrRows() {
         func p(_ t: String, _ x: Double, _ y: Double, _ w: Double = 0.1) -> OCRLayout.Piece { .init(text: t, box: CGRect(x: x, y: y, width: w, height: 0.03)) }
-        let text = OCRLayout.rows([p("4549.38", 0.6, 0.801), p("门店001", 0.05, 0.8), p("上海", 0.3, 0.799),
-                                   p("门店", 0.05, 0.9), p("城市", 0.3, 0.9), p("营业额", 0.6, 0.9)])
+        let text = OCRLayout.rows([
+            p("4549.38", 0.6, 0.801), p("门店001", 0.05, 0.8), p("上海", 0.3, 0.799),
+            p("门店", 0.05, 0.9), p("城市", 0.3, 0.9), p("营业额", 0.6, 0.9),
+        ])
         #expect(text == "门店\t城市\t营业额\n门店001\t上海\t4549.38")
     }
 
     @Test("分组汇总：按门店合计、总计行、降序")
     func groupBy() {
-        var s = Sheet(name: "s", rows: [
-            [.text("门店"), .text("金额")],
-            [.text("A"), .number(10)], [.text("B"), .number(30)], [.text("A"), .number(5)], [.text("C"), .text("n/a")]
-        ])
+        var s = Sheet(
+            name: "s",
+            rows: [
+                [.text("门店"), .text("金额")],
+                [.text("A"), .number(10)], [.text("B"), .number(30)], [.text("A"), .number(5)], [.text("C"), .text("n/a")],
+            ])
         s.columnCount = 2
         let t = SheetSummary.groupBy(s, rows: Array(1..<5), header: 0, groupColumns: [0], valueColumns: [1], aggregate: .sum)
         #expect(t[0] == [.text("门店"), .text("金额（合计）")])

@@ -41,8 +41,9 @@ extension ChartPainter {
                 if l.percent { parts.append(format(v / total, "0%")) }
                 let mid = (angle + sweep / 2) * .pi / 180
                 let rr = hole > 0 ? (radius + hole) / 2 : radius * 0.68
-                label(parts.joined(separator: " "), at: CGPoint(x: c.x + CGFloat(cos(mid)) * rr, y: c.y + CGFloat(sin(mid)) * rr), anchor: (0.5, 0.5),
-                      font: font(of: l), color: l.color.map(ns) ?? .white)
+                label(
+                    parts.joined(separator: " "), at: CGPoint(x: c.x + CGFloat(cos(mid)) * rr, y: c.y + CGFloat(sin(mid)) * rr), anchor: (0.5, 0.5),
+                    font: font(of: l), color: l.color.map(ns) ?? .white)
             }
             angle += sweep
         }
@@ -75,7 +76,9 @@ extension ChartPainter {
             let spoke = NSBezierPath(); spoke.move(to: c); spoke.line(to: point(i, sc.max)); spoke.lineWidth = 1; spoke.stroke()
             let q = point(i, sc.max)
             let dx = q.x - c.x, dy = q.y - c.y
-            label(p.categories[i], at: CGPoint(x: q.x + dx * 0.08, y: q.y + dy * 0.08), anchor: (dx < -1 ? 1 : (dx > 1 ? 0 : 0.5), dy < -1 ? 1 : (dy > 1 ? 0 : 0.5)))
+            label(
+                p.categories[i], at: CGPoint(x: q.x + dx * 0.08, y: q.y + dy * 0.08),
+                anchor: (dx < -1 ? 1 : (dx > 1 ? 0 : 0.5), dy < -1 ? 1 : (dy > 1 ? 0 : 0.5)))
         }
         for s in p.series {
             let path = NSBezierPath()

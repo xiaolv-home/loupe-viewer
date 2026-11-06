@@ -6,13 +6,13 @@ public enum ExtensionTable {
 
     public static let rawImage: Set<String> = [
         "cr2", "cr3", "crw", "nef", "nrw", "arw", "srf", "sr2", "dng", "raf", "orf", "rw2", "pef",
-        "srw", "x3f", "3fr", "erf", "kdc", "mrw", "mos", "iiq", "rwl", "dcr", "fff", "mef", "raw"
+        "srw", "x3f", "3fr", "erf", "kdc", "mrw", "mos", "iiq", "rwl", "dcr", "fff", "mef", "raw",
     ]
 
     public static let image: Set<String> = Set([
         "jpg", "jpeg", "jpe", "jfif", "png", "apng", "gif", "webp", "heic", "heif", "hif", "avif", "tif",
         "tiff", "bmp", "dib", "ico", "icns", "cur", "psd", "tga", "exr", "hdr", "jp2", "j2k", "jpf",
-        "jpx", "dds", "pbm", "pgm", "ppm", "pnm", "jxl", "astc", "ktx", "sgi"
+        "jpx", "dds", "pbm", "pgm", "ppm", "pnm", "jxl", "astc", "ktx", "sgi",
     ]).union(rawImage)
 
     public static let svg: Set<String> = ["svg", "svgz"]
@@ -20,20 +20,20 @@ public enum ExtensionTable {
     public static let video: Set<String> = [
         "mp4", "m4v", "mov", "qt", "mkv", "webm", "avi", "wmv", "flv", "f4v", "rmvb", "rm", "ts",
         "mts", "m2ts", "m2t", "mpg", "mpeg", "m2v", "vob", "3gp", "3g2", "ogv", "asf", "divx", "mxf",
-        "y4m", "dv"
+        "y4m", "dv",
     ]
 
     public static let audio: Set<String> = [
         "mp3", "m4a", "m4b", "m4r", "aac", "adts", "flac", "wav", "wave", "aif", "aiff", "aifc", "caf",
         "ogg", "oga", "opus", "wma", "ape", "alac", "amr", "ac3", "eac3", "dts", "mka", "wv", "mp2",
-        "mid", "midi", "au", "snd", "tta", "spx"
+        "mid", "midi", "au", "snd", "tta", "spx",
     ]
 
     /// Containers/codecs AVFoundation cannot play; these go to mpv first.
     public static let mpvPreferred: Set<String> = [
         "mkv", "webm", "avi", "wmv", "flv", "f4v", "rmvb", "rm", "ts", "mts", "m2ts", "m2t", "vob",
         "ogv", "asf", "divx", "mxf", "y4m", "ogg", "oga", "opus", "wma", "ape", "mka", "wv", "dts",
-        "tta", "spx", "mpg", "mpeg", "m2v"
+        "tta", "spx", "mpg", "mpeg", "m2v",
     ]
 
     public static let markdown: Set<String> = ["md", "markdown", "mdown", "mkd", "mkdn", "mdwn", "mdx"]
@@ -47,21 +47,21 @@ public enum ExtensionTable {
     public static let archive: Set<String> = [
         "zip", "7z", "rar", "tar", "gz", "tgz", "bz2", "tbz", "tbz2", "xz", "txz", "lz4", "zst",
         "tzst", "lzma", "tlz", "z", "cpio", "iso", "xar", "jar", "war", "ear", "apk", "ipa", "cab",
-        "lha", "lzh", "deb", "rpm", "cbz", "cbr", "cb7", "xip", "aar", "whl", "nupkg", "vsix", "crx"
+        "lha", "lzh", "deb", "rpm", "cbz", "cbr", "cb7", "xip", "aar", "whl", "nupkg", "vsix", "crx",
     ]
 
     public static let iwork: [String: IWorkKind] = ["pages": .pages, "key": .keynote, "numbers": .numbers]
 
     public static let office: Set<String> = [
         "doc", "docx", "docm", "dot", "dotx", "dotm", "xls", "xlsx", "xlsm", "xlsb", "xlt", "xltx",
-        "ppt", "pptx", "pptm", "pps", "ppsx", "pot", "potx", "rtf", "rtfd", "odt", "ods", "odp", "wps", "et", "dps"
+        "ppt", "pptx", "pptm", "pps", "ppsx", "pot", "potx", "rtf", "rtfd", "odt", "ods", "odp", "wps", "et", "dps",
     ]
 
     /// Anything else Quick Look is known to render well.
     public static let quicklook: Set<String> = [
         "usdz", "usd", "usda", "usdc", "reality", "scn", "dae", "abc", "obj", "stl", "ply",
         "epub", "vcf", "ics", "eml", "emlx", "webarchive", "pkpass", "key-tef", "numbers-tef",
-        "pages-tef", "sketch", "afphoto", "afdesign", "pxm", "graffle", "xd"
+        "pages-tef", "sketch", "afphoto", "afdesign", "pxm", "graffle", "xd",
     ]
 
     /// Extension → highlighter language id.
@@ -92,7 +92,12 @@ public enum ExtensionTable {
         add("yaml", ["yml", "yaml"])
         add("toml", ["toml"])
         add("ini", ["ini", "cfg", "conf", "properties", "env", "editorconfig", "gitconfig", "desktop", "service", "reg", "inf", "npmrc"])
-        add("xml", ["xml", "xsd", "xsl", "xslt", "storyboard", "xib", "csproj", "vcxproj", "fsproj", "plist_xml", "rss", "atom", "opml", "gpx", "kml", "xliff", "xlf", "resx", "pom", "nuspec", "wsdl", "dtd", "xaml"])
+        add(
+            "xml",
+            [
+                "xml", "xsd", "xsl", "xslt", "storyboard", "xib", "csproj", "vcxproj", "fsproj", "plist_xml", "rss", "atom", "opml", "gpx", "kml", "xliff",
+                "xlf", "resx", "pom", "nuspec", "wsdl", "dtd", "xaml",
+            ])
         add("html", ["vue", "svelte", "erb", "ejs", "hbs", "jinja", "j2", "twig", "astro"])
         add("css", ["css", "scss", "sass", "less", "styl"])
         add("makefile", ["mk", "mak", "make"])
@@ -115,7 +120,13 @@ public enum ExtensionTable {
         add("objc", [])
         add("asm", ["s", "asm"])
         add("cmake", ["cmake"])
-        add("plain", ["txt", "text", "nfo", "me", "1st", "readme", "srt", "vtt", "ass", "ssa", "sub", "lrc", "cue", "m3u", "m3u8", "pls", "strings", "po", "rst", "adoc", "asciidoc", "org", "textile", "license", "authors", "changelog", "todo", "gitignore", "gitattributes", "dockerignore", "npmignore", "pem", "crt", "pub", "asc", "sig", "manifest", "list", "sum", "mod", "nix", "spec", "in", "am", "ac", "pbxproj", "xcconfig", "modulemap", "def"])
+        add(
+            "plain",
+            [
+                "txt", "text", "nfo", "me", "1st", "readme", "srt", "vtt", "ass", "ssa", "sub", "lrc", "cue", "m3u", "m3u8", "pls", "strings", "po", "rst",
+                "adoc", "asciidoc", "org", "textile", "license", "authors", "changelog", "todo", "gitignore", "gitattributes", "dockerignore", "npmignore",
+                "pem", "crt", "pub", "asc", "sig", "manifest", "list", "sum", "mod", "nix", "spec", "in", "am", "ac", "pbxproj", "xcconfig", "modulemap", "def",
+            ])
         return m
     }()
 
@@ -130,7 +141,7 @@ public enum ExtensionTable {
         ".editorconfig": "ini", ".env": "ini", "license": "plain", "readme": "plain",
         "authors": "plain", "changelog": "plain", "copying": "plain", "notice": "plain",
         "procfile": "plain", "caddyfile": "plain", ".vimrc": "vim", "go.mod": "plain", "go.sum": "plain",
-        "cargo.lock": "toml", "pipfile": "toml", "hosts": "plain", "crontab": "shell"
+        "cargo.lock": "toml", "pipfile": "toml", "hosts": "plain", "crontab": "shell",
     ]
 
     public static func languageDisplayName(_ lang: String) -> String {

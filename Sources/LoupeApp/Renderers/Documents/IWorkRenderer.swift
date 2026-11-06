@@ -48,11 +48,13 @@ final class IWorkRenderer: Renderer {
             pad.addSubview(iv)
             NSLayoutConstraint.activate([
                 iv.leadingAnchor.constraint(equalTo: pad.leadingAnchor, constant: 24), iv.trailingAnchor.constraint(equalTo: pad.trailingAnchor, constant: -24),
-                iv.topAnchor.constraint(equalTo: pad.topAnchor, constant: 24), iv.bottomAnchor.constraint(equalTo: pad.bottomAnchor, constant: -24)
+                iv.topAnchor.constraint(equalTo: pad.topAnchor, constant: 24), iv.bottomAnchor.constraint(equalTo: pad.bottomAnchor, constant: -24),
             ])
             swap.show(pad)
-            host.showNotice(installed ? "只显示了文稿内嵌的预览图。在设置中开启「iWork 完整预览」可查看全部页面。"
-                                      : "只显示了文稿内嵌的预览图。安装 \(kind.appName) 后可完整预览全部页面。", style: .info, action: nil)
+            host.showNotice(
+                installed
+                    ? "只显示了文稿内嵌的预览图。在设置中开启「iWork 完整预览」可查看全部页面。"
+                    : "只显示了文稿内嵌的预览图。安装 \(kind.appName) 后可完整预览全部页面。", style: .info, action: nil)
         } else {
             let q = QuickLookRenderer()
             ql = q
@@ -75,8 +77,9 @@ final class IWorkRenderer: Renderer {
             } catch is CancellationError {
             } catch ExportError.notAuthorized {
                 self?.stage = "Quick Look"
-                self?.host?.showNotice("需要允许 Loupe 控制 \(kind.appName) 才能显示完整内容（系统设置 › 隐私与安全性 › 自动化）。",
-                                       style: .warning, action: NoticeAction(title: "打开设置") { DocumentExporter.openAutomationSettings() })
+                self?.host?.showNotice(
+                    "需要允许 Loupe 控制 \(kind.appName) 才能显示完整内容（系统设置 › 隐私与安全性 › 自动化）。",
+                    style: .warning, action: NoticeAction(title: "打开设置") { DocumentExporter.openAutomationSettings() })
                 self?.host?.rendererDidUpdate()
             } catch {
                 self?.stage = "Quick Look"
@@ -110,9 +113,15 @@ final class IWorkRenderer: Renderer {
     var controlsPlacement: ControlsPlacement { pdf == nil ? .none : .floating }
     var statusText: String { pdf.map { $0.statusText + " · " + stage } ?? stage }
     var infoSections: [InfoSection] {
-        var s = [InfoSection("iWork", [InfoItem("应用", kind.appName),
-                                       InfoItem("本机已安装", DocumentExporter.appURL(kind) != nil ? "是" : "否"),
-                                       InfoItem("显示方式", stage)])]
+        var s = [
+            InfoSection(
+                "iWork",
+                [
+                    InfoItem("应用", kind.appName),
+                    InfoItem("本机已安装", DocumentExporter.appURL(kind) != nil ? "是" : "否"),
+                    InfoItem("显示方式", stage),
+                ])
+        ]
         s += pdf?.infoSections ?? []
         return s
     }

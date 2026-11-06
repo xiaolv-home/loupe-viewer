@@ -16,13 +16,14 @@ final class SwapView: NSView {
         addSubview(v)
         NSLayoutConstraint.activate([
             v.leadingAnchor.constraint(equalTo: leadingAnchor), v.trailingAnchor.constraint(equalTo: trailingAnchor),
-            v.topAnchor.constraint(equalTo: topAnchor), v.bottomAnchor.constraint(equalTo: bottomAnchor)
+            v.topAnchor.constraint(equalTo: topAnchor), v.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
         guard let old else { return }
-        NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = 0.25
-            v.animator().alphaValue = 1
-            old.animator().alphaValue = 0
-        }, completionHandler: { old.removeFromSuperview() })
+        NSAnimationContext.runAnimationGroup(
+            { ctx in
+                ctx.duration = 0.25
+                v.animator().alphaValue = 1
+                old.animator().alphaValue = 0
+            }, completionHandler: { old.removeFromSuperview() })
     }
 }

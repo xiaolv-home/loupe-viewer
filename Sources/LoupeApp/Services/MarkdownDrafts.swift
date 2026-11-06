@@ -5,7 +5,9 @@ import Foundation
 @MainActor
 enum MarkdownDrafts {
     static var root: URL {
-        let base = AppEnvironment.isScripted ? FileManager.default.temporaryDirectory.appendingPathComponent("loupe-harness-drafts")
+        let base =
+            AppEnvironment.isScripted
+            ? FileManager.default.temporaryDirectory.appendingPathComponent("loupe-harness-drafts")
             : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!.appendingPathComponent("Loupe/Drafts")
         return base.standardizedFileURL
     }

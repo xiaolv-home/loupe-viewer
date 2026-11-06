@@ -74,7 +74,7 @@ final class HexRenderer: NSObject, Renderer, NSTableViewDataSource, NSTableViewD
             scroll.topAnchor.constraint(equalTo: header.bottomAnchor),
             scroll.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            scroll.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
         return container
     }
@@ -89,8 +89,14 @@ final class HexRenderer: NSObject, Renderer, NSTableViewDataSource, NSTableViewD
     var statusText: String { "\(Fmt.number((data.count + 15) / 16)) 行 · 十六进制" }
     var infoSections: [InfoSection] {
         let magic = data.prefix(16).map { String(format: "%02X", $0) }.joined(separator: " ")
-        return [InfoSection("内容", [InfoItem("文件头", magic.isEmpty ? "（空）" : magic),
-                                    InfoItem("字节数", Fmt.exactBytes(Int64(data.count)))])]
+        return [
+            InfoSection(
+                "内容",
+                [
+                    InfoItem("文件头", magic.isEmpty ? "（空）" : magic),
+                    InfoItem("字节数", Fmt.exactBytes(Int64(data.count))),
+                ])
+        ]
     }
     var initialFirstResponder: NSView? { table }
     func supports(_ command: ViewerCommand) -> Bool { command == .copy }
@@ -99,13 +105,15 @@ final class HexRenderer: NSObject, Renderer, NSTableViewDataSource, NSTableViewD
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let id = tableColumn?.identifier ?? NSUserInterfaceItemIdentifier("hex")
-        let cell = (tableView.makeView(withIdentifier: id, owner: nil) as? NSTextField) ?? {
-            let t = NSTextField(labelWithString: "")
-            t.identifier = id
-            t.font = font
-            t.lineBreakMode = .byClipping
-            return t
-        }()
+        let cell =
+            (tableView.makeView(withIdentifier: id, owner: nil) as? NSTextField)
+            ?? {
+                let t = NSTextField(labelWithString: "")
+                t.identifier = id
+                t.font = font
+                t.lineBreakMode = .byClipping
+                return t
+            }()
         let r = HexDump.row(data, offset: row * 16)
         switch id.rawValue {
         case "off": cell.stringValue = r.offset; cell.textColor = Theme.gutterText

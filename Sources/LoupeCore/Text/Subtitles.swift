@@ -35,8 +35,8 @@ public enum SubtitleParser {
             guard let ti = lines.firstIndex(where: { $0.contains("-->") }) else { continue }
             let parts = lines[ti].components(separatedBy: "-->")
             guard parts.count == 2,
-                  let s = parseTime(parts[0].trimmingCharacters(in: .whitespaces)),
-                  let e = parseTime(parts[1].trimmingCharacters(in: .whitespaces).components(separatedBy: " ").first ?? "")
+                let s = parseTime(parts[0].trimmingCharacters(in: .whitespaces)),
+                let e = parseTime(parts[1].trimmingCharacters(in: .whitespaces).components(separatedBy: " ").first ?? "")
             else { continue }
             let body = lines[(ti + 1)...].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
             guard !body.isEmpty else { continue }
@@ -63,9 +63,10 @@ public enum SubtitleParser {
             let fields = body.split(separator: ",", maxSplits: max(format.count - 1, 0), omittingEmptySubsequences: false)
                 .map { $0.trimmingCharacters(in: .whitespaces) }
             guard fields.count == format.count,
-                  let si = format.firstIndex(of: "start"), let ei = format.firstIndex(of: "end"),
-                  let xi = format.firstIndex(of: "text"),
-                  let s = parseTime(fields[si]), let e = parseTime(fields[ei]) else { continue }
+                let si = format.firstIndex(of: "start"), let ei = format.firstIndex(of: "end"),
+                let xi = format.firstIndex(of: "text"),
+                let s = parseTime(fields[si]), let e = parseTime(fields[ei])
+            else { continue }
             var t = fields[xi]
             t = t.replacingOccurrences(of: "\\N", with: "\n").replacingOccurrences(of: "\\n", with: "\n").replacingOccurrences(of: "\\h", with: " ")
             t = t.replacingOccurrences(of: "\\{[^}]*\\}", with: "", options: .regularExpression)

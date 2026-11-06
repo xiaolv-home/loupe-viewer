@@ -6,10 +6,12 @@ import LoupeCore
 /// results as new files. The original file is never changed.
 extension SpreadsheetRenderer: AIDocumentTools {
     var aiSuggestions: [String]? {
-        ["先看懂这张表：有哪些列、多少行、有没有空值和异常值",
-         "按第一个分类列分组汇总金额，存成新的 Excel，并告诉我排名前 5",
-         "找出明显异常的数字（比如负数、远超平均的值），选中给我看",
-         "根据这张表写一份分析报告（Word），要有关键数字和结论"]
+        [
+            "先看懂这张表：有哪些列、多少行、有没有空值和异常值",
+            "按第一个分类列分组汇总金额，存成新的 Excel，并告诉我排名前 5",
+            "找出明显异常的数字（比如负数、远超平均的值），选中给我看",
+            "根据这张表写一份分析报告（Word），要有关键数字和结论",
+        ]
     }
 
     var aiContext: String {
@@ -35,14 +37,20 @@ extension SpreadsheetRenderer: AIDocumentTools {
         let sheetArg = Schema.string("工作表名称（不填则为当前工作表）")
         let col = Schema.string("列：列字母（如 B）或表头里的列名（如 销售额）")
         return [
-            AIToolSpec("sheet_overview", "查看当前表格的结构：各工作表大小、表头各列名称与类型、前几行样例、当前选区。处理表格前先调用。",
-                       Schema.object(["sheet": sheetArg])),
-            AIToolSpec("read_cells", "读取一个区域的单元格值（制表符分隔，带行号）。区域如 A1:F50、B:D、2:20。一次最多 300 行。",
-                       Schema.object(["range": Schema.string("区域"), "sheet": sheetArg], required: ["range"])),
-            AIToolSpec("calculate", "用 Loupe 的公式引擎精确计算一个 Excel 公式并返回结果，如 SUM(C:C)、AVERAGEIFS(D:D,B:B,\"上海\")、VLOOKUP(\"S01\",A:C,3,0)、COUNTIF。可跨文件引用：[其他文件.xlsx]工作表!A:C（同一文件夹内的文件）。任何数字结论都应该用它算，不要心算。",
-                       Schema.object(["formula": Schema.string("公式，可带或不带 ="), "sheet": sheetArg], required: ["formula"])),
-            AIToolSpec("summarize", "分组汇总（数据透视）：按一列或多列分组，对数值列求合计/行数/平均/最大/最小/不同值个数，结果按第一项降序，带总计行。可只统计满足条件的行，可直接存成新的 Excel 文件。",
-                       Schema.object([
+            AIToolSpec(
+                "sheet_overview", "查看当前表格的结构：各工作表大小、表头各列名称与类型、前几行样例、当前选区。处理表格前先调用。",
+                Schema.object(["sheet": sheetArg])),
+            AIToolSpec(
+                "read_cells", "读取一个区域的单元格值（制表符分隔，带行号）。区域如 A1:F50、B:D、2:20。一次最多 300 行。",
+                Schema.object(["range": Schema.string("区域"), "sheet": sheetArg], required: ["range"])),
+            AIToolSpec(
+                "calculate",
+                "用 Loupe 的公式引擎精确计算一个 Excel 公式并返回结果，如 SUM(C:C)、AVERAGEIFS(D:D,B:B,\"上海\")、VLOOKUP(\"S01\",A:C,3,0)、COUNTIF。可跨文件引用：[其他文件.xlsx]工作表!A:C（同一文件夹内的文件）。任何数字结论都应该用它算，不要心算。",
+                Schema.object(["formula": Schema.string("公式，可带或不带 ="), "sheet": sheetArg], required: ["formula"])),
+            AIToolSpec(
+                "summarize", "分组汇总（数据透视）：按一列或多列分组，对数值列求合计/行数/平均/最大/最小/不同值个数，结果按第一项降序，带总计行。可只统计满足条件的行，可直接存成新的 Excel 文件。",
+                Schema.object(
+                    [
                         "group_by": Schema.array("分组列（列字母或列名）", items: col),
                         "values": Schema.array("要统计的列；aggregate=count 时可省略", items: col),
                         "aggregate": Schema.string("统计方式", enum: SheetSummary.Aggregate.allCases.map(\.rawValue)),
@@ -50,18 +58,27 @@ extension SpreadsheetRenderer: AIDocumentTools {
                         "where_op": Schema.string("（可选）条件", enum: ["equals", "contains", "greater", "less", "not_blank"]),
                         "where_value": Schema.string("（可选）条件值"),
                         "save_as": Schema.string("（可选）把结果另存为的文件路径，.xlsx 或 .csv；相对路径以当前文件所在文件夹为准"),
-                        "sheet": sheetArg
-                       ], required: ["group_by", "aggregate"])),
-            AIToolSpec("add_column", "在表格最右边加一列计算结果（只在屏幕上，不改原文件，可再用 export_view 存成新文件）。公式按第一行数据来写，相对引用会逐行下移，例如数据从第 2 行开始时写 =C2*D2 或 =VLOOKUP(A2,[门店表.xlsx]门店!A:C,2,0)。",
-                       Schema.object(["name": Schema.string("新列的标题"), "formula": Schema.string("按第一行数据写的公式")], required: ["name", "formula"])),
-            AIToolSpec("filter_view", "筛选屏幕上的表格，让用户直接看到结果（不改文件）。op=clear 清除所有筛选。",
-                       Schema.object(["column": col, "op": Schema.string("条件", enum: ["equals", "contains", "not_contains", "greater", "less", "between", "blank", "not_blank", "clear"]),
-                                      "value": Schema.string("条件值；between 写成 \"10,20\""), "sort": Schema.string("（可选）筛完后按这列排序", enum: ["asc", "desc"])],
-                                     required: ["op"])),
-            AIToolSpec("select_cells", "在表格里选中并滚动到一个区域，给用户指出位置（如找到的异常值）。",
-                       Schema.object(["range": Schema.string("区域，如 B12 或 A5:F5")], required: ["range"])),
-            AIToolSpec("export_view", "把当前屏幕上的视图（已应用的筛选、排序和计算列）另存为新的 .xlsx 或 .csv 文件。",
-                       Schema.object(["path": Schema.string("文件路径；相对路径以当前文件所在文件夹为准")], required: ["path"]))
+                        "sheet": sheetArg,
+                    ], required: ["group_by", "aggregate"])),
+            AIToolSpec(
+                "add_column",
+                "在表格最右边加一列计算结果（只在屏幕上，不改原文件，可再用 export_view 存成新文件）。公式按第一行数据来写，相对引用会逐行下移，例如数据从第 2 行开始时写 =C2*D2 或 =VLOOKUP(A2,[门店表.xlsx]门店!A:C,2,0)。",
+                Schema.object(["name": Schema.string("新列的标题"), "formula": Schema.string("按第一行数据写的公式")], required: ["name", "formula"])),
+            AIToolSpec(
+                "filter_view", "筛选屏幕上的表格，让用户直接看到结果（不改文件）。op=clear 清除所有筛选。",
+                Schema.object(
+                    [
+                        "column": col,
+                        "op": Schema.string("条件", enum: ["equals", "contains", "not_contains", "greater", "less", "between", "blank", "not_blank", "clear"]),
+                        "value": Schema.string("条件值；between 写成 \"10,20\""), "sort": Schema.string("（可选）筛完后按这列排序", enum: ["asc", "desc"]),
+                    ],
+                    required: ["op"])),
+            AIToolSpec(
+                "select_cells", "在表格里选中并滚动到一个区域，给用户指出位置（如找到的异常值）。",
+                Schema.object(["range": Schema.string("区域，如 B12 或 A5:F5")], required: ["range"])),
+            AIToolSpec(
+                "export_view", "把当前屏幕上的视图（已应用的筛选、排序和计算列）另存为新的 .xlsx 或 .csv 文件。",
+                Schema.object(["path": Schema.string("文件路径；相对路径以当前文件所在文件夹为准")], required: ["path"])),
         ]
     }
 
@@ -95,9 +112,11 @@ extension SpreadsheetRenderer: AIDocumentTools {
 
     private func overview() -> AIToolOutput {
         var out: [String] = []
-        out.append("文件「\(file?.name ?? "")」共 \(workbook.sheets.count) 张工作表：" + workbook.sheets.enumerated().map { i, s in
-            "\(s.name)（\(Fmt.number(s.rows.count)) 行 × \(s.columnCount) 列\(s.isHidden ? "，原文件中隐藏" : "")）" + (i == sheetIndex ? "←当前" : "")
-        }.joined(separator: "；"))
+        out.append(
+            "文件「\(file?.name ?? "")」共 \(workbook.sheets.count) 张工作表："
+                + workbook.sheets.enumerated().map { i, s in
+                    "\(s.name)（\(Fmt.number(s.rows.count)) 行 × \(s.columnCount) 列\(s.isHidden ? "，原文件中隐藏" : "")）" + (i == sheetIndex ? "←当前" : "")
+                }.joined(separator: "；"))
         let s = sheet
         let first = query.firstDataRow
         if let h = query.headerRowIndex {
@@ -110,7 +129,14 @@ extension SpreadsheetRenderer: AIDocumentTools {
             let title = query.headerRowIndex.map { s.cell($0, c).display } ?? ""
             let vals = probe.map { s.cell($0, c) }.filter { !$0.isEmpty }
             let numbers = vals.filter { $0.strictNumber != nil }.count
-            let kind = vals.isEmpty ? "空" : numbers * 10 >= vals.count * 8 ? "数字" : vals.contains { if case .date = $0 { return true }; return false } ? "日期" : "文字"
+            let kind =
+                vals.isEmpty
+                ? "空"
+                : numbers * 10 >= vals.count * 8
+                    ? "数字"
+                    : vals.contains {
+                        if case .date = $0 { return true }; return false
+                    } ? "日期" : "文字"
             let sample = vals.prefix(3).map { String($0.display.prefix(20)) }.joined(separator: " / ")
             out.append("  \(Sheet.columnName(c)) \(title.isEmpty ? "（无标题）" : "「\(title)」") \(kind)  例：\(sample)")
         }
@@ -149,10 +175,12 @@ extension SpreadsheetRenderer: AIDocumentTools {
         let cols = Array(sp.cols.prefix(40))
         var lines = ["行\t" + cols.map { Sheet.columnName($0) }.joined(separator: "\t")]
         for r in rows {
-            lines.append("\(r + 1)\t" + cols.map { c in
-                let v = workbook.formatted(sheetIndex, r, c).text
-                return (v.isEmpty ? s.cell(r, c).display : v).replacingOccurrences(of: "\t", with: " ").replacingOccurrences(of: "\n", with: " ")
-            }.joined(separator: "\t"))
+            lines.append(
+                "\(r + 1)\t"
+                    + cols.map { c in
+                        let v = workbook.formatted(sheetIndex, r, c).text
+                        return (v.isEmpty ? s.cell(r, c).display : v).replacingOccurrences(of: "\t", with: " ").replacingOccurrences(of: "\n", with: " ")
+                    }.joined(separator: "\t"))
         }
         if sp.rows.count > rows.count { lines.append("…（区域共 \(sp.rows.count) 行，只读了前 300 行；需要后面的请再读下一段）") }
         if sp.cols.count > cols.count { lines.append("…（区域共 \(sp.cols.count) 列，只读了前 40 列）") }
@@ -192,7 +220,10 @@ extension SpreadsheetRenderer: AIDocumentTools {
     }
 
     private func columnError(_ t: String?) -> AIToolOutput {
-        let names = query.headerRowIndex.map { h in (0..<min(sheet.columnCount, 40)).map { "\(Sheet.columnName($0))=\(sheet.cell(h, $0).display)" }.joined(separator: "，") } ?? ""
+        let names =
+            query.headerRowIndex.map { h in
+                (0..<min(sheet.columnCount, 40)).map { "\(Sheet.columnName($0))=\(sheet.cell(h, $0).display)" }.joined(separator: "，")
+            } ?? ""
         return .error("找不到列「\(t ?? "")」。" + (names.isEmpty ? "" : "现有列：\(names)"))
     }
 
@@ -218,7 +249,9 @@ extension SpreadsheetRenderer: AIDocumentTools {
         for g in groupNames { guard let c = aiColumn(g) else { return columnError(g) }; groups.append(c) }
         var values: [Int] = []
         for v in args["values"]?.stringList ?? [] { guard let c = aiColumn(v) else { return columnError(v) }; values.append(c) }
-        guard let agg = SheetSummary.Aggregate(rawValue: args["aggregate"]?.string ?? "sum") else { return .error("aggregate 只能是 sum/count/average/max/min/distinct") }
+        guard let agg = SheetSummary.Aggregate(rawValue: args["aggregate"]?.string ?? "sum") else {
+            return .error("aggregate 只能是 sum/count/average/max/min/distinct")
+        }
         if values.isEmpty && agg != .count { return .error("要统计哪一列？请给出 values") }
         let s = sheet
         var rows = Array(query.firstDataRow..<s.rows.count)
@@ -250,8 +283,9 @@ extension SpreadsheetRenderer: AIDocumentTools {
         case .failure(let e): return .error("公式有误：\(e.message)")
         case .success(let r):
             let sample = r.sample.map(\.display).joined(separator: " / ")
-            return AIToolOutput("已在 \(Sheet.columnName(r.column)) 列加入「\(name)」，共 \(r.rows) 行" + (r.errors > 0 ? "，其中 \(r.errors) 行出错" : "") + "。前几行：\(sample)。（只在屏幕上，原文件未改）",
-                                isError: r.errors == r.rows && r.rows > 0)
+            return AIToolOutput(
+                "已在 \(Sheet.columnName(r.column)) 列加入「\(name)」，共 \(r.rows) 行" + (r.errors > 0 ? "，其中 \(r.errors) 行出错" : "") + "。前几行：\(sample)。（只在屏幕上，原文件未改）",
+                isError: r.errors == r.rows && r.rows > 0)
         }
     }
 

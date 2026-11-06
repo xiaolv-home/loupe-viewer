@@ -14,8 +14,10 @@ struct CropMarks: Shape {
 
     func path(in r: CGRect) -> Path {
         var p = Path()
-        for (x, y, dx, dy) in [(r.minX, r.minY, -1.0, -1.0), (r.maxX, r.minY, 1.0, -1.0),
-                               (r.minX, r.maxY, -1.0, 1.0), (r.maxX, r.maxY, 1.0, 1.0)] {
+        for (x, y, dx, dy) in [
+            (r.minX, r.minY, -1.0, -1.0), (r.maxX, r.minY, 1.0, -1.0),
+            (r.minX, r.maxY, -1.0, 1.0), (r.maxX, r.maxY, 1.0, 1.0),
+        ] {
             p.move(to: CGPoint(x: x + dx * gap, y: y)); p.addLine(to: CGPoint(x: x + dx * (gap + length), y: y))
             p.move(to: CGPoint(x: x, y: y + dy * gap)); p.addLine(to: CGPoint(x: x, y: y + dy * (gap + length)))
         }
@@ -99,8 +101,10 @@ struct LensButton: View {
                 .font(.system(size: 12.5, weight: .medium))
                 .frame(width: 28, height: 24)
                 .foregroundStyle(active ? Theme.ember : (hover ? Color.primary : Color.primary.opacity(0.72)))
-                .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(active ? Theme.emberSoft : (hover ? Color.primary.opacity(0.08) : .clear)))
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(active ? Theme.emberSoft : (hover ? Color.primary.opacity(0.08) : .clear))
+                )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -119,13 +123,17 @@ struct LensSegment: View {
     var body: some View {
         HStack(spacing: 2) {
             ForEach(options.indices, id: \.self) { i in
-                Button { selection = i } label: {
+                Button {
+                    selection = i
+                } label: {
                     Text(options[i])
                         .font(.system(size: 11, weight: selection == i ? .semibold : .regular))
                         .padding(.horizontal, 9).frame(height: 22)
                         .foregroundStyle(selection == i ? Theme.ember : Color.primary.opacity(0.7))
-                        .background(RoundedRectangle(cornerRadius: 5.5, style: .continuous)
-                            .fill(selection == i ? Theme.emberSoft : .clear))
+                        .background(
+                            RoundedRectangle(cornerRadius: 5.5, style: .continuous)
+                                .fill(selection == i ? Theme.emberSoft : .clear)
+                        )
                         .contentShape(Rectangle())
                 }.buttonStyle(.plain)
             }

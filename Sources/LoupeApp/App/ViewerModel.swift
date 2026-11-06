@@ -178,8 +178,7 @@ final class ViewerModel: ObservableObject, RenderHost, Identifiable {
             requestFallback(from: r, reason: "界面异常：\(reason ?? "未知")")
             return
         }
-        if let fr = r.initialFirstResponder { window?.makeFirstResponder(fr) }
-        else { window?.makeFirstResponder(view) }
+        if let fr = r.initialFirstResponder { window?.makeFirstResponder(fr) } else { window?.makeFirstResponder(view) }
         rendererDidUpdate()
         // Showing a file another way is routine and says so in 简介; a banner only when what is
         // on screen is raw content of a damaged file, so the gibberish has an explanation.
@@ -241,8 +240,7 @@ final class ViewerModel: ObservableObject, RenderHost, Identifiable {
     // MARK: RenderHost
 
     func reportProgress(_ fraction: Double?, label: String?) {
-        if let label { loading = LoadingState(label: label, fraction: fraction) }
-        else { loading = nil }
+        if let label { loading = LoadingState(label: label, fraction: fraction) } else { loading = nil }
     }
 
     func requestFallback(from r: Renderer, reason: String) {
@@ -286,8 +284,11 @@ final class ViewerModel: ObservableObject, RenderHost, Identifiable {
 
     nonisolated static func listSiblings(in dir: URL, showHidden: Bool) -> [URL] {
         let keys: [URLResourceKey] = [.isDirectoryKey, .isPackageKey, .isHiddenKey]
-        guard let items = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: keys,
-                                                                        options: showHidden ? [] : [.skipsHiddenFiles]) else { return [] }
+        guard
+            let items = try? FileManager.default.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: keys,
+                options: showHidden ? [] : [.skipsHiddenFiles])
+        else { return [] }
         return items.filter { u in
             let rv = try? u.resourceValues(forKeys: Set(keys))
             if rv?.isDirectory == true { return rv?.isPackage == true }
@@ -324,4 +325,3 @@ func debugLog(_ s: @autoclosure () -> String) {
         FileHandle.standardError.write(Data(("[loupe] " + s() + "\n").utf8))
     }
 }
-

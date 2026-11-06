@@ -59,7 +59,7 @@ final class WebFindBar: NSView, NSSearchFieldDelegate {
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: leadingAnchor), stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.centerYAnchor.constraint(equalTo: centerYAnchor), field.widthAnchor.constraint(greaterThanOrEqualToConstant: 220),
-            replaceField.widthAnchor.constraint(equalTo: field.widthAnchor)
+            replaceField.widthAnchor.constraint(equalTo: field.widthAnchor),
         ])
         wantsLayer = true
         updateColors()
@@ -120,9 +120,9 @@ final class WebFindBar: NSView, NSSearchFieldDelegate {
     }
 
     #if DEBUG
-    func debugSet(find: String, replace: String) {
-        field.stringValue = find
-        replaceField.stringValue = replace
-    }
+        func debugSet(find: String, replace: String) {
+            field.stringValue = find
+            replaceField.stringValue = replace
+        }
     #endif
 }

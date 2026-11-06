@@ -62,34 +62,34 @@ enum DocumentExporter {
         default: exportLine = "export theDoc to (POSIX file \(q(out))) as PDF"
         }
         return """
-        with timeout of 50 seconds
-            tell application id "\(kind.bundleID)"
-                -- The app was launched with this document; wait for it rather than opening it a
-                -- second time (a concurrent second open can wedge the app).
-                set theDoc to missing value
-                repeat 80 times
+            with timeout of 50 seconds
+                tell application id "\(kind.bundleID)"
+                    -- The app was launched with this document; wait for it rather than opening it a
+                    -- second time (a concurrent second open can wedge the app).
+                    set theDoc to missing value
+                    repeat 80 times
+                        try
+                            repeat with d in documents
+                                try
+                                    if POSIX path of ((file of d) as alias) is \(q(src)) then set theDoc to contents of d
+                                end try
+                            end repeat
+                        end try
+                        if theDoc is not missing value then exit repeat
+                        delay 0.25
+                    end repeat
+                    if theDoc is missing value then set theDoc to open (POSIX file \(q(src)) as alias)
                     try
-                        repeat with d in documents
-                            try
-                                if POSIX path of ((file of d) as alias) is \(q(src)) then set theDoc to contents of d
-                            end try
-                        end repeat
+                        \(exportLine)
+                    on error errMsg number errNum
+                        close theDoc saving no
+                        error errMsg number errNum
                     end try
-                    if theDoc is not missing value then exit repeat
-                    delay 0.25
-                end repeat
-                if theDoc is missing value then set theDoc to open (POSIX file \(q(src)) as alias)
-                try
-                    \(exportLine)
-                on error errMsg number errNum
                     close theDoc saving no
-                    error errMsg number errNum
-                end try
-                close theDoc saving no
-                \(quitAfter ? "quit saving no" : "")
-            end tell
-        end timeout
-        """
+                    \(quitAfter ? "quit saving no" : "")
+                end tell
+            end timeout
+            """
     }
 
     /// Exports `url` to PDF (or xlsx, via Numbers) with the given iWork app. Runs osascript off the main thread.
