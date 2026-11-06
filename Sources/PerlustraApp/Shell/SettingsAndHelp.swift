@@ -62,10 +62,6 @@ struct SettingsView: View {
                     Text("原样（系统预览，只看不算）").tag(true)
                 }
                 Toggle("允许编辑表格（改单元格、插删行列、保存）", isOn: $settings.spreadsheetEditing)
-                Picker("Markdown 打开时", selection: $settings.markdownOpensForWriting) {
-                    Text("写作（像 Typora 一样边写边排版）").tag(true)
-                    Text("阅读（排版好的页面）").tag(false)
-                }
                 Toggle("Markdown 改动后自动保存", isOn: $settings.markdownAutosave)
                 Toggle("本地网页运行脚本（离线阅读器、导出的报表等；始终断网，只能读本网页所在文件夹）", isOn: $settings.webPagesRunScripts)
             }
@@ -138,7 +134,7 @@ struct ShortcutsView: View {
                 ("⌘N", "新建 Markdown 文档"), ("⌘1–⌘6  ⌘0", "标题 / 正文"), ("⌘B  ⌘I  ⌘U", "加粗 / 斜体 / 下划线"),
                 ("⌥⌘N", "从模版新建"),
                 ("⌘K  ⌃`", "链接 / 行内代码"), ("⌥⌘C  ⌥⌘B", "代码块 / 公式块"), ("⌥⌘O  ⌥⌘U", "有序 / 无序列表"),
-                ("⌥⌘T  ⌥⌘Q", "表格 / 引用"), ("⌘/", "写作 ⇄ 源码"), ("⌃⌘1", "大纲"),
+                ("⌥⌘T  ⌥⌘Q", "表格 / 引用"), ("⌘/", "文档 ⇄ 源码"), ("⌃⌘1", "大纲"),
             ]),
         Group(
             title: "Markdown 写作（续）",

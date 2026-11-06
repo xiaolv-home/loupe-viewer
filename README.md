@@ -28,7 +28,7 @@
 | 视频 | mp4、mov、m4v（H.264/HEVC/ProRes/HDR） | AVFoundation | 原画质、逐帧、倍速、截图、画中画、全屏、外挂字幕 srt/ass/vtt、内嵌字幕 |
 | 视频 | mkv、webm、avi、wmv、flv、rmvb、ts、mpg、ogv… | libmpv（内嵌 OpenGL，VideoToolbox 硬解） | 自动检测 Homebrew 的 mpv；嵌入失败时改用 mpv 独立窗口；未安装时给出安装提示 |
 | 音频 | mp3、m4a、aac、flac、wav、aiff、caf → AVFoundation；opus、ogg、wma、ape、wv… → mpv | | 封面、标题、艺术家信息 |
-| Markdown | md、markdown… | WebKit：阅读用 markdown-it，写作用 Vditor（全部本地） | 三种方式：**写作**（像 Typora 一样边写边排版，Markdown 符号只在光标处出现，默认）、**阅读**（排版好的页面）、**源码**（⌘/ 与写作互切）；表格、任务列表、脚注、KaTeX 公式、Mermaid 图表、代码高亮；Typora 快捷键（见下）；⌘S 按原编码与换行保存，只写回改过的行，没改的地方保留原写法；跟随深浅色；HTML 经过净化，远程图片拦截，本地图片只限于该文件所在文件夹 |
+| Markdown | md、markdown… | WebKit：Vditor，超长文档用 markdown-it（全部本地） | 打开就是能直接改的文档（像 Typora 一样边写边排版，内容居中，Markdown 符号只在光标处出现），⌘/ 切到**源码**；800 KB 以上的文档只显示排版页，在源码里修改；表格、任务列表、脚注、KaTeX 公式、Mermaid 图表、代码高亮；Typora 快捷键（见下）；⌘S 按原编码与换行保存，只写回改过的行，没改的地方保留原写法；跟随深浅色；HTML 经过净化，远程图片拦截，本地图片只限于该文件所在文件夹 |
 | 文本 / 代码 | txt、log 以及 40 多种语言（swift、py、js/ts、go、rs、c/cpp、java、kt、sql、sh、yaml、toml、ini、xml、css、diff、Dockerfile、Makefile…） | TextKit | 行号、语法高亮、查找、自动换行；自动识别 UTF-8/UTF-16/UTF-32/GBK/GB18030/Big5/Shift_JIS/EUC-KR，可手动切换编码；超过 16 MB 进入虚拟化大文件模式（内存映射、按需解码、后台全文搜索），超过 2 MB 关闭高亮（可设置） |
 | 数据 | json、geojson | 自研保序解析器 | 可折叠树视图（保持键顺序、拷贝值 / 路径）、源码；单行压缩 JSON 自动格式化 |
 | 数据 | jsonl、ndjson | TextKit | 按行当文本高亮，不是可折叠树 |
@@ -84,7 +84,7 @@
 ## 写 Markdown（像 Typora）
 
 - **⌘N 新建**：新文档先是草稿，边写边自动保存，不会丢；第一次 ⌘S 时再选存到哪里（草稿在 `~/Library/Application Support/Perlustra/Drafts`）。
-- **写作模式**：边写边排版，大纲栏 ⌃⌘1，⌘/ 切到源码。设置里可以改成打开 Markdown 时默认进「阅读」。
+- **文档和源码**：边写边排版，大纲栏 ⌃⌘1，⌘/ 切到源码。
 - **快捷键与 Typora 一致**（「格式」菜单里都有）：⌘1–⌘6 标题、⌘0 正文、⌘B/⌘I/⌘U 加粗/斜体/下划线、⌘K 链接、⌃\` 行内代码、⌥⌘C 代码块、⌥⌘B 公式块、⌥⌘Q 引用、⌥⌘O/⌥⌘U/⌥⌘X 有序/无序/任务列表、⌥⌘T 表格、⌘[ ⌘] 缩进。
 - **图片**：粘贴截图或拖入图片，自动存到文档旁边的 `assets/`，以相对路径插入（和 Typora 默认一样）。
 - **保存只动改过的地方**：编辑器显示时会把 Markdown 规整一遍（表格补空格等），但保存时只把你改过的行写回去，其余保持原样；只打开再保存，文件不变。

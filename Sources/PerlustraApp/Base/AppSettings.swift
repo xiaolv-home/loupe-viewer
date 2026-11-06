@@ -50,7 +50,6 @@ final class AppSettings: ObservableObject {
     /// their folder, with every network request blocked.
     @Published var webPagesRunScripts: Bool { didSet { d.set(webPagesRunScripts, forKey: "webPagesRunScripts") } }
     /// Markdown opens in the Typora-style writer (otherwise as a typeset page to read).
-    @Published var markdownOpensForWriting: Bool { didSet { d.set(markdownOpensForWriting, forKey: "markdownOpensForWriting") } }
     @Published var appearance: AppAppearance {
         didSet {
             if !AppEnvironment.isScripted { d.set(appearance.rawValue, forKey: "appearance") }
@@ -69,7 +68,6 @@ final class AppSettings: ObservableObject {
             "singleWindow": true, "showSidebar": false, "iworkExport": true, "mpvPath": "",
             "preferMPV": false, "wrapText": true, "imageStartsActualSize": false,
             "highlightLimitMB": 2.0, "showHiddenSiblings": false, "spreadsheetOpensOriginal": false, "spreadsheetEditing": false, "webPagesRunScripts": true,
-            "markdownOpensForWriting": true,
             "markdownAutosave": false, "writerFocus": false, "writerTypewriter": false,
         ])
         singleWindow = d.bool(forKey: "singleWindow")
@@ -84,7 +82,6 @@ final class AppSettings: ObservableObject {
         spreadsheetOpensOriginal = d.bool(forKey: "spreadsheetOpensOriginal")
         spreadsheetEditing = d.bool(forKey: "spreadsheetEditing")
         webPagesRunScripts = d.bool(forKey: "webPagesRunScripts")
-        markdownOpensForWriting = d.bool(forKey: "markdownOpensForWriting")
         appearance = AppAppearance(rawValue: d.string(forKey: "appearance") ?? "") ?? .system
         markdownAutosave = d.bool(forKey: "markdownAutosave")
         writerFocus = d.bool(forKey: "writerFocus")

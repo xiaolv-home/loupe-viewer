@@ -3,15 +3,20 @@ import SwiftUI
 import UniformTypeIdentifiers
 import PerlustraCore
 
-/// Markdown in three ways: 阅读 (typeset page), 写作 (Typora-style instant rendering) and 源码
-/// (plain Markdown). The text moves with you between them; edits are saved with ⌘S in the
-/// file's own encoding, and new documents are drafts that save themselves until they get a place.
+/// Markdown as one document you read and edit in place, as in Typora, plus its plain source. The
+/// text moves with you between the two; edits are saved with ⌘S in the file's own encoding, and new
+/// documents are drafts that save themselves until they get a place.
+///
+/// The editor slows down on very long documents, so those show as a typeset page instead and are
+/// edited in the source view.
 @MainActor
 final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandling {
     static let engineName = "WebKit"
     static func canHandle(_ file: FileContext) -> Bool { file.size < 32 * 1024 * 1024 }
 
     static let readMode = 0, writeMode = 1
+    /// Longer than this, in bytes of Markdown, opens as a typeset page rather than in the editor.
+    static let longestForEditor = 800_000
     override var sourceMode: Int { 2 }
 
     private(set) var writer: MarkdownWriter?
@@ -34,6 +39,8 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
 
     required override init() { super.init() }
 
+    /// The view that shows the document, as opposed to its source.
+    private(set) var documentMode = MarkdownRenderer.writeMode
     private lazy var isDraftFile = url.map(MarkdownDrafts.contains) ?? false
     var isDraft: Bool { isDraftFile }
     var documentURL: URL? { url }
@@ -51,7 +58,8 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
         editableSource = true
         navigator.host = host
         buildShell(nil)
-        if isDraft || AppSettings.shared.markdownOpensForWriting {
+        documentMode = file.size > Self.longestForEditor ? Self.readMode : Self.writeMode
+        if documentMode == Self.writeMode {
             try await openWriter()
             mode = Self.writeMode
             applyMode()
@@ -110,18 +118,18 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
     func toggleWriterMode(_ name: String) {
         let s = AppSettings.shared
         if name == "focus" { s.writerFocus.toggle() } else { s.writerTypewriter.toggle() }
-        if mode != Self.writeMode { mode = Self.writeMode }
+        if documentMode == Self.writeMode, mode != Self.writeMode { mode = Self.writeMode }
         applyWriterModes()
     }
 
     override var findDriver: WebFindDriver? { mode == Self.writeMode ? writer : nil }
 
-    /// ⌥⌘F. Reading pages can't be changed, so this goes to the writer first.
+    /// ⌥⌘F. A typeset page can't be changed, so this goes to the source first.
     func showReplace() {
         guard mode == Self.readMode else { showFind(replace: true); return }
-        mode = Self.writeMode
+        mode = sourceMode
         Task {
-            while writer == nil || mode != Self.writeMode { try? await Task.sleep(nanoseconds: 50_000_000) }
+            while code == nil || mode != sourceMode { try? await Task.sleep(nanoseconds: 50_000_000) }
             try? await Task.sleep(nanoseconds: 100_000_000)
             showFind(replace: true)
         }
@@ -161,8 +169,8 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
         if m == sourceMode, let c = code { sourceText = c.textView.string }
     }
 
-    /// ⌘/ (Typora): writing ⇄ source.
-    func toggleWriteSource() { mode = mode == Self.writeMode ? sourceMode : Self.writeMode }
+    /// ⌘/ (Typora): document ⇄ source.
+    func toggleWriteSource() { mode = mode == sourceMode ? documentMode : sourceMode }
 
     func toggleOutline() {
         outline.toggle()
@@ -171,6 +179,10 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
 
     /// A Typora menu command (heading, list, table…) applied in the writer.
     func format(_ command: String) {
+        guard documentMode == Self.writeMode else {
+            host?.showNotice("这份文档太长，请在源码里修改。", style: .info, action: nil)
+            return
+        }
         if mode != Self.writeMode { mode = Self.writeMode }
         writer?.command(command)
     }
@@ -401,8 +413,7 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
                 "Markdown",
                 [
                     InfoItem("编码", format.encoding.name + (format.lineEnding == "\r\n" ? " · CRLF" : format.lineEnding == "\r" ? " · CR" : " · LF")),
-                    InfoItem("写作", "Vditor 即时渲染（本地）；粘贴的图片存到 assets/"),
-                    InfoItem("阅读", "markdown-it · KaTeX · Mermaid（本地）"),
+                    InfoItem("显示", documentMode == Self.writeMode ? "Vditor 即时渲染（本地）；粘贴的图片存到 assets/" : "文档较长，只显示排版页，可在源码里修改（本地）"),
                     InfoItem("安全", "已净化 HTML，远程资源已阻止，本地文件限于所在文件夹"),
                 ])
         ]
@@ -420,7 +431,7 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
         switch c {
         case .save: saveChanges { _ in }
         case .saveAs: saveAs()
-        case .toggleSource: mode = mode == Self.readMode ? Self.writeMode : (mode == Self.writeMode ? sourceMode : Self.readMode)
+        case .toggleSource: toggleWriteSource()
         default: webPerform(c)
         }
     }
@@ -428,9 +439,14 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
 
 struct MarkdownControls: View {
     @ObservedObject var r: MarkdownRenderer
+
+    private var showsSource: Binding<Int> {
+        Binding(get: { r.mode == r.sourceMode ? 1 : 0 }, set: { r.mode = $0 == 1 ? r.sourceMode : r.documentMode })
+    }
+
     var body: some View {
         HStack(spacing: 4) {
-            LensSegment(options: ["阅读", "写作", "源码"], selection: $r.mode)
+            LensSegment(options: ["文档", "源码"], selection: showsSource)
             if r.mode == MarkdownRenderer.writeMode {
                 LensButton(symbol: "list.bullet.indent", help: "大纲（⌃⌘1）", active: r.outline) { r.toggleOutline() }
             }

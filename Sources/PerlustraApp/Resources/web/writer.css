@@ -75,12 +75,12 @@ html, body { margin: 0; height: 100%; background: var(--paper); }
 .vditor-toolbar { display: none !important; }
 .vditor-content { background: var(--paper); }
 
-/* The writing column starts at the left edge, with room for the heading marks, and stops growing
-   at a readable width. The scrolling area is the whole width, so the wheel works over the margin. */
+/* A centred column of readable width, as in Typora. The scrolling area is the whole width, so the
+   wheel works over the margins. */
 .vditor-ir, .vditor-sv { background: var(--paper) !important; }
 .vditor-ir pre.vditor-reset, .vditor-sv.vditor-reset {
   max-width: none; margin: 0; box-sizing: border-box;
-  padding: 32px max(44px, calc(100% - 44px - 860px)) 40vh 44px !important;
+  padding: 48px max(44px, calc((100% - 860px) / 2)) 40vh !important;
   background: var(--paper) !important; color: var(--ink) !important;
   font: 17px/1.78 var(--serif) !important; caret-color: var(--ember);
 }
@@ -109,6 +109,11 @@ html, body { margin: 0; height: 100%; background: var(--paper); }
 .vditor-reset table thead tr { background: var(--tint) !important; }
 .vditor-reset img { max-width: 100%; }
 .vditor-reset ::selection { background: rgba(217, 72, 28, .18); }
+
+/* No heading labels in the margin; a heading shows its # marks when the caret is on it. */
+.vditor-ir pre.vditor-reset > h1::before, .vditor-ir pre.vditor-reset > h2::before, .vditor-ir pre.vditor-reset > h3::before,
+.vditor-ir pre.vditor-reset > h4::before, .vditor-ir pre.vditor-reset > h5::before, .vditor-ir pre.vditor-reset > h6::before {
+  content: none !important; }
 
 /* Markdown marks appear only around the caret; keep them quiet. */
 .vditor-ir__marker, .vditor-ir__marker--heading, .vditor-ir__marker--bi, .vditor-ir__marker--link,

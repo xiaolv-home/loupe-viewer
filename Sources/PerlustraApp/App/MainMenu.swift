@@ -119,7 +119,7 @@ enum MainMenu {
         format(fmt, "下移段落", "moveDown", String(UnicodeScalar(NSDownArrowFunctionKey)!), [.command, .control])
         fmt.addItem(.separator())
         format(fmt, "大纲", "outline", "1", [.command, .control])
-        format(fmt, "写作 / 源码（⌘/）", "source")
+        format(fmt, "文档 / 源码（⌘/）", "source")
         format(fmt, "专注模式", "focus", String(UnicodeScalar(NSF8FunctionKey)!), [])
         format(fmt, "打字机模式", "typewriter", String(UnicodeScalar(NSF9FunctionKey)!), [])
 
