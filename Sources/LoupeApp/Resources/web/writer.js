@@ -86,6 +86,7 @@
         applyTheme();
         caretToStart();
         refreshMarks();
+        watchCode();
         post({ type: "ready", mode });
       }
     });
@@ -299,6 +300,130 @@
   }, true);
   document.addEventListener("input", centreCaret, true);
 
+  // MARK: Code blocks: coloured while typing
+
+  // highlight.js's token names, grouped into the colours the theme has.
+  const CODE_GROUPS = {
+    keyword: "keyword", "selector-tag": "keyword", tag: "keyword", name: "keyword", section: "keyword", operator: "keyword",
+    string: "string", regexp: "string", addition: "string", "attr-value": "string",
+    number: "number", literal: "number", symbol: "number", variable: "number",
+    comment: "comment", quote: "comment",
+    title: "title", "selector-id": "title", "selector-class": "title",
+    type: "type", built_in: "type",
+    meta: "meta", attr: "meta", attribute: "meta", property: "meta", deletion: "meta"
+  };
+  // What a block with no language is tried as. A short list guesses better than all of them.
+  const AUTO_LANGUAGES = ["sql", "python", "bash", "shell", "json", "javascript", "typescript", "java", "go", "rust", "cpp", "c", "yaml", "xml", "css", "ini", "diff"];
+  const tokenCache = new Map();
+
+  function tokensOf(text, language) {
+    const key = language + "\0" + text;
+    if (tokenCache.has(key)) return tokenCache.get(key);
+    let html = null;
+    try {
+      if (language && hljs.getLanguage(language)) {
+        html = hljs.highlight(text, { language, ignoreIllegals: true }).value;
+      } else if (!language && text.length < 20000) {
+        const guess = hljs.highlightAuto(text, AUTO_LANGUAGES.filter((l) => hljs.getLanguage(l)));
+        if (guess.relevance >= 3) html = guess.value;
+      }
+    } catch (error) { html = null; }
+    const tokens = [];
+    if (html) {
+      const holder = document.createElement("template");
+      holder.innerHTML = html;
+      let at = 0;
+      const walker = document.createTreeWalker(holder.content, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        let group = null;
+        for (let el = node.parentElement; el && !group; el = el.parentElement) {
+          const name = Array.from(el.classList).find((c) => c.startsWith("hljs-"));
+          group = name ? CODE_GROUPS[name.slice(5)] : null;
+        }
+        if (group) tokens.push({ start: at, end: at + node.data.length, group });
+        at += node.data.length;
+      }
+    }
+    if (tokenCache.size > 400) tokenCache.clear();
+    tokenCache.set(key, tokens);
+    return tokens;
+  }
+
+  /// Colours by ranges over the text rather than spans in it, so typing is never disturbed and
+  /// nothing can end up in the file.
+  function refreshCode() {
+    const root = area();
+    if (!highlights || !root || !window.hljs) return;
+    const groups = {};
+    for (const code of root.querySelectorAll('[data-type="code-block"] > pre.vditor-ir__marker--pre > code')) {
+      const language = (/language-([\w+#-]+)/.exec(code.className) || [])[1] || "";
+      if (language === "mermaid") continue;
+      const nodes = [];
+      const walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      const text = nodes.map((n) => n.data).join("");
+      let index = 0, passed = 0;
+      for (const token of tokensOf(text, language.toLowerCase())) {
+        while (index < nodes.length && passed + nodes[index].data.length <= token.start) { passed += nodes[index].data.length; index += 1; }
+        if (index >= nodes.length) break;
+        let endIndex = index, endPassed = passed;
+        while (endIndex < nodes.length - 1 && endPassed + nodes[endIndex].data.length < token.end) { endPassed += nodes[endIndex].data.length; endIndex += 1; }
+        const r = document.createRange();
+        r.setStart(nodes[index], token.start - passed);
+        r.setEnd(nodes[endIndex], Math.min(token.end - endPassed, nodes[endIndex].data.length));
+        (groups[token.group] = groups[token.group] || []).push(r);
+      }
+    }
+    for (const group of new Set(Object.values(CODE_GROUPS))) {
+      highlights.set("loupe-code-" + group, new Highlight(...(groups[group] || [])));
+    }
+  }
+
+  let codeTimer = null;
+  const codeObserver = new MutationObserver(() => {
+    clearTimeout(codeTimer);
+    codeTimer = setTimeout(refreshCode, 40);
+  });
+  function watchCode() {
+    codeObserver.disconnect();
+    if (area()) codeObserver.observe(area(), { childList: true, subtree: true, characterData: true });
+    refreshCode();
+  }
+
+  /// Enter in a code block keeps the line's indent, and goes one further after an opening mark.
+  /// The editor still makes the new line itself, which is what keeps its own bookkeeping right.
+  function indentAfterEnter() {
+    const el = caretElement();
+    const code = el && el.closest("pre.vditor-ir__marker--pre > code");
+    if (!code || !code.closest('[data-type="code-block"]')) return;
+    const before = window.getSelection().getRangeAt(0).cloneRange();
+    before.setStart(code, 0);
+    const text = before.toString();
+    const line = text.slice(text.lastIndexOf("\n") + 1);
+    const indent = /^[ \t]*/.exec(line)[0] + (/[:{([]\s*$/.test(line) ? "    " : "");
+    if (indent) setTimeout(() => { document.execCommand("insertText", false, indent); scheduleChange(); });
+  }
+
+  /// ⌘↩ in a code block: a new paragraph below it, since the block's last line has nowhere else to go.
+  function leaveCodeBlock() {
+    const el = caretElement();
+    const block = el && el.closest('[data-type="code-block"]');
+    if (!block) return false;
+    const p = document.createElement("p");
+    p.setAttribute("data-block", "0");
+    p.appendChild(document.createTextNode("\n"));
+    block.after(p);
+    const r = document.createRange();
+    r.setStart(p.firstChild, 0);
+    r.collapse(true);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+    vd().undo.addToUndoStack(vd());
+    return true;
+  }
+
   // MARK: Find and replace
 
   const search = { query: "", ranges: [], index: -1 };
@@ -331,7 +456,9 @@
     if (!highlights) return;
     const current = search.ranges[search.index];
     highlights.set("loupe-find", new Highlight(...search.ranges.filter((r) => r !== current)));
-    highlights.set("loupe-find-current", current ? new Highlight(current) : new Highlight());
+    const currentMark = current ? new Highlight(current) : new Highlight();
+    currentMark.priority = 2;
+    highlights.set("loupe-find-current", currentMark);
   }
 
   function showCurrentMatch(select) {
@@ -435,7 +562,7 @@
       if (code === "KeyL") return run("selectLine");
       if (code === "KeyD") return run("selectWord");
       if (code === "Backslash") return run("clearFormat");
-      if (code === "Enter" && addTableRow()) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      if (code === "Enter" && (addTableRow() || leaveCodeBlock())) { e.preventDefault(); e.stopImmediatePropagation(); return; }
       if (code === "BracketRight") return run("indent");
       if (code === "BracketLeft") return run("outdent");
       if (code === "Slash") { e.preventDefault(); e.stopImmediatePropagation(); post({ type: "toggleSource" }); return; }
@@ -448,6 +575,7 @@
       post({ type: "toggleMode", name: code === "F8" ? "focus" : "typewriter" });
       return;
     }
+    if (code === "Enter" && !cmd && !ctrl && !alt && !shift && !e.isComposing) indentAfterEnter();
     // Typing a mark over selected text puts it around the text (Typora's auto-pairing).
     const pair = PAIRS[e.key];
     if (pair && !cmd && !ctrl && !alt && !e.isComposing && wrapsSelection()) {
@@ -495,7 +623,8 @@
     const button = e.target.closest(".vditor-copy span");
     if (!button) return;
     e.stopPropagation();
-    const code = button.closest("pre").querySelector("code");
+    const pre = button.closest("pre"), node = pre.closest(".vditor-ir__node");
+    const code = (node && node.querySelector("pre.vditor-ir__marker--pre > code")) || pre.querySelector("code");
     post({ type: "copy", text: code.textContent.replace(/\u00a0/g, " ").replace(/\n$/, "") });
     button.setAttribute("aria-label", "已复制");
   }, true);

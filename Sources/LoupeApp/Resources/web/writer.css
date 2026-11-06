@@ -20,6 +20,15 @@
   --heading-2: var(--ink);
   --heading-3: var(--ink);
   --link: var(--ember);
+  --code-bg: #F4F3EF;
+  --code-ink: #1E1D1B;
+  --code-keyword: #C2410C;
+  --code-string: #15803D;
+  --code-number: #B45309;
+  --code-comment: #8C8A85;
+  --code-title: #1D4ED8;
+  --code-type: #0F766E;
+  --code-meta: #7C3AED;
   --find: rgba(255, 196, 0, .4);
   --find-current: rgba(255, 140, 0, .75);
   --serif: ui-serif, "New York", "Songti SC", "STSong", Georgia, serif;
@@ -41,6 +50,15 @@
     --heading-2: #FF9A6B;
     --heading-3: #FFC46B;
     --link: #6CB8FF;
+    --code-bg: #17171B;
+    --code-ink: #E8E4DC;
+    --code-keyword: #FF8F66;
+    --code-string: #A6E37A;
+    --code-number: #FFC46B;
+    --code-comment: #7F7F88;
+    --code-title: #6CB8FF;
+    --code-type: #7DD3C0;
+    --code-meta: #C9B8FF;
     --find: rgba(255, 196, 107, .32);
     --find-current: rgba(255, 150, 60, .8);
   }
@@ -55,12 +73,12 @@ html, body { margin: 0; height: 100%; background: var(--paper); }
 .vditor-toolbar { display: none !important; }
 .vditor-content { background: var(--paper); }
 
-/* The writing column: 648px of text, but the scrolling area is the whole width, so the wheel
-   works over the margins and the scroller sits at the window's edge. */
+/* The writing column starts at the left edge, with room for the heading marks, and stops growing
+   at a readable width. The scrolling area is the whole width, so the wheel works over the margin. */
 .vditor-ir, .vditor-sv { background: var(--paper) !important; }
 .vditor-ir pre.vditor-reset, .vditor-sv.vditor-reset {
   max-width: none; margin: 0; box-sizing: border-box;
-  padding: 56px max(56px, calc((100% - 648px) / 2)) 40vh !important;
+  padding: 32px max(44px, calc(100% - 44px - 860px)) 40vh 44px !important;
   background: var(--paper) !important; color: var(--ink) !important;
   font: 17px/1.78 var(--serif) !important; caret-color: var(--ember);
 }
@@ -80,7 +98,7 @@ html, body { margin: 0; height: 100%; background: var(--paper); }
 .vditor-reset h1, .vditor-reset h2, .vditor-reset h3 { font-family: var(--serif-bold); }
 .vditor .vditor-reset blockquote:not(.callout)::before { width: 2px !important; border-radius: 0 !important; left: 0 !important;
   background-color: var(--ember) !important; }
-.vditor-reset code:not(.hljs):not(.highlight-chroma) { font-family: var(--mono); font-size: .86em; background: var(--tint) !important; padding: .1em .35em; border-radius: 3px; }
+.vditor-reset :not(pre) > code { font-family: var(--mono); font-size: .86em; background: var(--tint) !important; padding: .1em .35em; border-radius: 3px; }
 .vditor-reset pre > code { font: 13px/1.6 var(--mono) !important; }
 .vditor-reset hr { border: 0; border-top: .5px solid var(--rule); height: 0; }
 .vditor-reset table { font: 14px/1.5 var(--sans); }
@@ -110,6 +128,37 @@ html, body { margin: 0; height: 100%; background: var(--paper); }
 ::highlight(loupe-find-current) { background-color: var(--find-current); }
 ::highlight(loupe-underline) { text-decoration: underline; text-decoration-color: currentColor; }
 
+/* Code blocks: one box, the same whether the caret is in it or not. You type in the source itself
+   and it is coloured as you go (writer.js); the rendered copy only lends its copy button. Diagrams
+   keep their preview. */
+.vditor-ir__node[data-type="code-block"]:not(:has(.language-mermaid)) { position: relative; margin: 1em 0; }
+.vditor-ir__node[data-type="code-block"]:not(:has(.language-mermaid))::before,
+.vditor-ir__node[data-type="code-block"]:not(:has(.language-mermaid))::after { content: none !important; display: none !important; }
+.vditor-ir__node[data-type="code-block"]:not(:has(.language-mermaid)) > pre.vditor-ir__marker--pre {
+  display: block !important; width: auto !important; height: auto !important; overflow: visible !important;
+  margin: 0 !important; padding: 0 !important; transition: none; }
+.vditor-ir__node[data-type="code-block"]:not(:has(.language-mermaid)) > pre.vditor-ir__marker--pre > code {
+  display: block; box-sizing: border-box; padding: 14px 16px !important; border-radius: 6px; overflow-x: auto;
+  white-space: pre; tab-size: 4; background: var(--code-bg) !important; color: var(--code-ink) !important; }
+.vditor-ir__node[data-type="code-block"]:not(:has(.language-mermaid)) > .vditor-ir__preview {
+  position: absolute; top: 0; right: 0; width: 0; min-height: 0; margin: 0; padding: 0; overflow: visible; background: none; }
+.vditor-ir__node[data-type="code-block"]:not(:has(.language-mermaid)) > .vditor-ir__preview > code { display: none !important; }
+.vditor-reset .vditor-ir__node[data-type="code-block"]:hover div.vditor-copy { display: block; }
+/* The language, in the corner: click it to change it. */
+.vditor-ir__node[data-type="code-block"]:not(:has(.language-mermaid)) > .vditor-ir__marker--info {
+  position: absolute !important; top: 6px; right: 40px; width: auto !important; height: auto !important; min-width: 3em;
+  display: inline-block !important; overflow: visible !important; padding: 1px 6px !important; text-align: right; border-radius: 3px;
+  font: 11px/1.5 var(--mono); color: var(--ink-3) !important; transition: none; }
+.vditor-ir__node--expand[data-type="code-block"] > .vditor-ir__marker--info { background: var(--tint); color: var(--ink-2) !important; }
+
+::highlight(loupe-code-keyword) { color: var(--code-keyword); }
+::highlight(loupe-code-string) { color: var(--code-string); }
+::highlight(loupe-code-number) { color: var(--code-number); }
+::highlight(loupe-code-comment) { color: var(--code-comment); }
+::highlight(loupe-code-title) { color: var(--code-title); }
+::highlight(loupe-code-type) { color: var(--code-type); }
+::highlight(loupe-code-meta) { color: var(--code-meta); }
+
 /* Outline: where the caret's section is. */
 .vditor-outline li > span.loupe-outline-current { color: var(--ember) !important; font-weight: 600; }
 
@@ -121,24 +170,11 @@ html, body { margin: 0; height: 100%; background: var(--paper); }
   .vditor-reset em, .vditor-reset i { color: #CFC2FF; }
   .vditor-reset s, .vditor-reset del { color: var(--ink-3); }
   .vditor-reset mark { background: rgba(255, 196, 107, .24) !important; color: #FFDFA3 !important; border-radius: 2px; padding: 0 .12em; }
-  .vditor-reset code:not(.hljs):not(.highlight-chroma) { color: #7EE7B8; background: rgba(126, 231, 184, .11) !important; }
+  .vditor-reset :not(pre) > code { color: #7EE7B8; background: rgba(126, 231, 184, .11) !important; }
   .vditor-reset blockquote { color: var(--ink-2) !important; }
   .vditor-reset ul > li::marker, .vditor-reset ol > li::marker { color: var(--ember); }
   .vditor-reset ::selection { background: rgba(108, 184, 255, .32); }
   .vditor-reset hr { border-top-color: rgba(255, 255, 255, .26); background: transparent !important; }
-
-  /* Code blocks stand off the paper. */
-  .vditor-reset pre > code, .vditor-reset .vditor-ir__preview code, .vditor-ir__preview pre { background: #17171B !important; }
-  .vditor-reset pre > code { color: #E8E4DC; border-radius: 6px; }
-  .vditor-reset .hljs { background: #17171B !important; color: #E8E4DC; }
-  .vditor-reset .hljs-keyword, .vditor-reset .hljs-selector-tag, .vditor-reset .hljs-tag, .vditor-reset .hljs-name, .vditor-reset .hljs-section { color: #FF8F66 !important; }
-  .vditor-reset .hljs-string, .vditor-reset .hljs-attr-value, .vditor-reset .hljs-regexp, .vditor-reset .hljs-addition { color: #A6E37A !important; }
-  .vditor-reset .hljs-number, .vditor-reset .hljs-literal, .vditor-reset .hljs-symbol, .vditor-reset .hljs-variable { color: #FFC46B !important; }
-  .vditor-reset .hljs-comment, .vditor-reset .hljs-quote { color: #77777F !important; font-style: italic; }
-  .vditor-reset .hljs-title, .vditor-reset .hljs-function .hljs-title { color: #6CB8FF !important; }
-  .vditor-reset .hljs-type, .vditor-reset .hljs-class .hljs-title, .vditor-reset .hljs-built_in { color: #7DD3C0 !important; }
-  .vditor-reset .hljs-meta, .vditor-reset .hljs-attr, .vditor-reset .hljs-attribute { color: #C9B8FF !important; }
-  .vditor-reset .hljs-deletion { color: #FF8F8F !important; }
 
   /* Tables: a header band and visible rules. */
   .vditor-reset table thead tr { background: #1C1C21 !important; }
