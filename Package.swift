@@ -24,7 +24,8 @@ let package = Package(
             linkerSettings: [
                 .linkedFramework("AppKit"), .linkedFramework("Quartz"), .linkedFramework("PDFKit"),
                 .linkedFramework("AVKit"), .linkedFramework("AVFoundation"), .linkedFramework("WebKit"),
-                .linkedFramework("CoreText"), .linkedFramework("OpenGL"), .linkedFramework("Vision"),
+                .linkedFramework("CoreText"), .linkedFramework("OpenGL"), .linkedFramework("Metal"), .linkedFramework("MetalKit"),
+                .linkedFramework("QuickLookThumbnailing"), .linkedFramework("Vision"),
             ]
         ),
         .executableTarget(

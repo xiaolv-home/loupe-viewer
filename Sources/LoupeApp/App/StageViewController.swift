@@ -352,7 +352,7 @@ final class StageViewController: NSViewController {
 
     func showEmpty() {
         clear()
-        let host = NSHostingView(rootView: EmptyStateView(model: model))
+        let host = NSHostingView(rootView: HomeView(model: model))
         host.sizingOptions = []
         emptyHost = host
         pin(host, in: content)

@@ -69,6 +69,8 @@ Markdown、HTML 走 WKWebView。所有资源经 `loupe://` 协议提供（`loupe
 
 ## 主题
 
+首页的雕版线在 `Shell/Home/`：着色器运行时编译（命令行工具没有 Metal 编译器），放大镜里是同一组曲线。不跑循环，只有东西在动时才有显示链接，所以被窗口挡住时不出帧，自动化要看效果用 `--cmd homepng:路径`。自动化运行读不到真实的最近打开，只读环境变量 `LOUPE_RECENTS`。
+
 颜色都在 `DesignSystem/Theme.swift`，用动态色，浅色和黑色各一套。给图层设颜色时不能直接取 `Theme.x.cgColor`：它按当前外观解析，系统是浅色、应用选了黑色时会取到浅色。要用 `NSView.resolved(_:)`，或者在 `updateLayer()` 里取，或者用 `SurfaceView`。架构检查会拦这种写法。
 
 ## 调试代码
