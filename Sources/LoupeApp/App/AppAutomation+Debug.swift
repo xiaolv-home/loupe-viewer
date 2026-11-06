@@ -152,6 +152,25 @@ import LoupeCore
                     AppDelegate.shared?.newMarkdownDocument(nil)
                     await sleep(3)
                     printTabs(wc)
+                case let c where c.hasPrefix("fsrename:"):
+                    let p = c.dropFirst("fsrename:".count).split(separator: "|").map(String.init)
+                    wc.performRename(URL(fileURLWithPath: p[0]), to: p[1])
+                    await sleep(1)
+                    printTabs(wc)
+                case let c where c.hasPrefix("fstrash:"):
+                    wc.performTrash(URL(fileURLWithPath: String(c.dropFirst("fstrash:".count))))
+                    await sleep(1)
+                    print("NOTICE \(wc.model.notice?.text ?? "-") action=\(wc.model.notice?.action?.title ?? "-")")
+                    printTabs(wc)
+                case "fsundo":
+                    wc.model.notice?.action?.handler()
+                    await sleep(1)
+                    printTabs(wc)
+                case let c where c.hasPrefix("fsdup:"):
+                    wc.duplicateFromSidebar(URL(fileURLWithPath: String(c.dropFirst("fsdup:".count))))
+                case "fslist":
+                    await sleep(0.5)
+                    print("LIST \(wc.browser.dir?.lastPathComponent ?? "-") \(wc.browser.items.map(\.name))")
                 case "aipanel": wc.setAIPanel(open: true); await sleep(0.6)
                 case "skills":
                     for sk in AISkills.shared.all { print("SKILL \(sk.builtIn ? "built-in" : "installed") \(sk.name) — \(sk.description.prefix(60))") }

@@ -38,6 +38,7 @@ final class FolderBrowser: ObservableObject {
 
     func reload() {
         guard let d = dir else { return }
+        watch(d)
         let showHidden = AppSettings.shared.showHiddenSiblings
         // Listed off the main thread: macOS can hold a listing of 文稿 / 桌面 / 下载 until you
         // answer its permission prompt, and the window must not freeze meanwhile. The old list
@@ -50,6 +51,43 @@ final class FolderBrowser: ObservableObject {
             self.items = list
             self.canCreateFiles = writable
         }
+    }
+
+    // MARK: Keeping up with the disk
+
+    private var watcher: DispatchSourceFileSystemObject?
+    private var watched: URL?
+    private var pendingReload: DispatchWorkItem?
+
+    deinit { watcher?.cancel() }
+
+    /// Files added, removed or renamed in this folder, by anything, show up by themselves. Opened
+    /// off the main thread for the same reason the listing is.
+    private func watch(_ d: URL) {
+        guard watched != d else { return }
+        watched = d
+        watcher?.cancel()
+        watcher = nil
+        Task { [weak self] in
+            let descriptor = await Task.detached(priority: .utility) { open(d.path, O_EVTONLY) }.value
+            guard descriptor >= 0 else { return }
+            guard let self, self.watched == d else {
+                close(descriptor)
+                return
+            }
+            let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: [.write, .delete, .rename], queue: .main)
+            source.setEventHandler { [weak self] in MainActor.assumeIsolated { self?.scheduleReload() } }
+            source.setCancelHandler { close(descriptor) }
+            source.resume()
+            self.watcher = source
+        }
+    }
+
+    private func scheduleReload() {
+        pendingReload?.cancel()
+        let work = DispatchWorkItem { [weak self] in MainActor.assumeIsolated { self?.reload() } }
+        pendingReload = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: work)
     }
 
     var parent: URL? {
@@ -79,6 +117,14 @@ final class FolderBrowser: ObservableObject {
             n += 1
         }
         try Data().write(to: url, options: .withoutOverwriting)
+        reload()
+        return url
+    }
+
+    /// Makes a folder here ("名字", or "名字 2" when taken).
+    func createFolder(named raw: String) throws -> URL {
+        guard let d = dir else { throw CocoaError(.fileNoSuchFile) }
+        let url = try FileOperations.createFolder(named: raw, in: d)
         reload()
         return url
     }
@@ -126,5 +172,65 @@ final class FolderBrowser: ObservableObject {
             if a.isFolder != b.isFolder { return a.isFolder }
             return a.name.localizedStandardCompare(b.name) == .orderedAscending
         }
+    }
+}
+
+/// What the sidebar does to files. Nothing is ever deleted outright: removing goes to the Trash.
+enum FileOperations {
+    struct Failure: LocalizedError {
+        let errorDescription: String?
+        init(_ message: String) { errorDescription = message }
+    }
+
+    /// A name a file can have, or why it can't.
+    static func validName(_ raw: String) throws -> String {
+        let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if name.isEmpty { throw Failure("名字不能为空") }
+        if name == "." || name == ".." || name.contains("/") || name.contains(":") { throw Failure("名字里不能有 / 或 :") }
+        return name
+    }
+
+    static func rename(_ url: URL, to raw: String) throws -> URL {
+        let name = try validName(raw)
+        if name == url.lastPathComponent { return url }
+        let target = url.deletingLastPathComponent().appendingPathComponent(name)
+        // Changing only the case of a name finds the file itself on a case-insensitive disk.
+        let sameFile = name.lowercased() == url.lastPathComponent.lowercased()
+        if !sameFile && FileManager.default.fileExists(atPath: target.path) { throw Failure("这里已经有叫「\(name)」的了") }
+        try FileManager.default.moveItem(at: url, to: target)
+        return target
+    }
+
+    static func createFolder(named raw: String, in folder: URL) throws -> URL {
+        let name = try validName(raw)
+        let url = freeURL(in: folder, stem: name, ext: "", separator: " ")
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
+        return url
+    }
+
+    /// "报表.xlsx" → "报表 副本.xlsx", then "报表 副本 2.xlsx".
+    static func duplicate(_ url: URL) throws -> URL {
+        let copy = freeURL(
+            in: url.deletingLastPathComponent(), stem: url.deletingPathExtension().lastPathComponent + " 副本", ext: url.pathExtension, separator: " ")
+        try FileManager.default.copyItem(at: url, to: copy)
+        return copy
+    }
+
+    /// Returns where the item went, so it can be put back.
+    static func moveToTrash(_ url: URL) throws -> URL {
+        var result: NSURL?
+        try FileManager.default.trashItem(at: url, resultingItemURL: &result)
+        guard let result = result as URL? else { throw Failure("没能移到废纸篓") }
+        return result
+    }
+
+    private static func freeURL(in folder: URL, stem: String, ext: String, separator: String) -> URL {
+        func url(_ name: String) -> URL { folder.appendingPathComponent(ext.isEmpty ? name : name + "." + ext) }
+        var candidate = url(stem), n = 2
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            candidate = url("\(stem)\(separator)\(n)")
+            n += 1
+        }
+        return candidate
     }
 }

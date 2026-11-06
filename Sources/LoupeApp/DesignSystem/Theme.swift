@@ -25,6 +25,11 @@ enum Theme {
     static let stage = NSColor.dynamic(light: 0xE6E3DD, dark: 0x19191C)
     static let stageDot = NSColor.dynamic(light: 0x000000, dark: 0xFFFFFF, alpha: 0.06)
     static let surface = NSColor.dynamic(light: 0xFCFBF8, dark: 0x111113)
+    /// The sidebar: on black it is solid, because the system's translucent material would let the
+    /// desktop's colour through. In light mode that material stays.
+    static let sidebarFill = NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(hex: 0x111113) : .clear
+    }
     static let surfaceRaised = NSColor.dynamic(light: 0xFFFFFF, dark: 0x222226)
     /// The paper a document is printed on.
     static let sheet = NSColor.dynamic(light: 0xFCFBF8, dark: 0x050506)

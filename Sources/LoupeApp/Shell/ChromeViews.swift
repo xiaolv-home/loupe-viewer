@@ -34,50 +34,9 @@ private struct SidebarContent: View {
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.small)
                 .padding(.horizontal, 10).padding(.bottom, 6)
-            List(selection: $selection) {
-                ForEach(filtered) { item in
-                    SidebarRow(item: item)
-                        .tag(item.url)
-                        .contextMenu {
-                            if item.isFolder {
-                                Button("打开文件夹") { browser.show(item.url) }
-                            } else {
-                                Button("在新标签页中打开") { model.openInNewTab(item.url) }
-                                Button("在当前标签页中打开") { model.open(item.url) }
-                            }
-                            Button("在 Finder 中显示") { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }
-                        }
-                }
-            }
-            .listStyle(.sidebar)
-            // Every click on a row opens it, anywhere in its highlight and whether or not it is
-            // already selected. The list's own selection change cannot tell a click from the
-            // arrow keys, misses clicks on the selected row and can arrive after the click.
-            .background(
-                ListRowClicks { row in
-                    guard filtered.indices.contains(row) else { return }
-                    let u = filtered[row].url
-                    select(u)
-                    activate(u)
-                }
-            )
-            .onKeyPress(.return) {
-                if let u = selection { activate(u) }; return .handled
-            }
-            .onKeyPress(.rightArrow) {
-                guard let u = selection, isFolder(u) else { return .ignored }
-                activate(u)
-                return .handled
-            }
-            .onKeyPress(.leftArrow) {
-                goUp(); return .handled
-            }
-            .overlay {
-                if browser.items.isEmpty {
-                    Text("这个文件夹是空的").font(.system(size: 12)).foregroundStyle(.secondary)
-                }
-            }
+            keyedList
         }
+        .background(Color(nsColor: Theme.sidebarFill).ignoresSafeArea())
         .onAppear { select(model.file?.url) }
         .onChange(of: model.file?.url) { _, u in select(u) }
         .onChange(of: browser.dir) { _, d in
@@ -92,6 +51,88 @@ private struct SidebarContent: View {
             if let c = cameFrom, items.contains(where: { $0.url == c }) { select(c) } else { select(model.file?.url) }
             cameFrom = nil
         }
+    }
+
+    private var fileList: some View {
+        List(selection: $selection) {
+            ForEach(filtered) { item in
+                SidebarRow(item: item).tag(item.url)
+            }
+        }
+        // Row or empty space: the menu is built for whatever was right-clicked.
+        .contextMenu(forSelectionType: URL.self) { urls in contextMenu(for: urls) }
+        .scrollContentBackground(.hidden)
+        .listStyle(.sidebar)
+        // Every click on a row opens it, anywhere in its highlight and whether or not it is
+        // already selected. The list's own selection change cannot tell a click from the
+        // arrow keys, misses clicks on the selected row and can arrive after the click.
+        .background(
+            ListRowClicks { row in
+                guard filtered.indices.contains(row) else { return }
+                let u = filtered[row].url
+                select(u)
+                activate(u)
+            }
+        )
+    }
+
+    private var keyedList: some View {
+        fileList
+            .onKeyPress(.return) {
+                if let u = selection { activate(u) }; return .handled
+            }
+            .onKeyPress(.rightArrow) {
+                guard let u = selection, isFolder(u) else { return .ignored }
+                activate(u)
+                return .handled
+            }
+            .onKeyPress(.leftArrow) {
+                goUp(); return .handled
+            }
+            // ⌘⌫, as in Finder.
+            .onKeyPress(keys: [.delete], phases: .down) { press in
+                guard press.modifiers.contains(.command), let u = selection else { return .ignored }
+                model.windowController?.trashFromSidebar(u, isFolder: isFolder(u))
+                return .handled
+            }
+            .overlay {
+                if browser.items.isEmpty {
+                    Text("这个文件夹是空的").font(.system(size: 12)).foregroundStyle(.secondary).allowsHitTesting(false)
+                }
+            }
+    }
+
+    @ViewBuilder private func contextMenu(for urls: Set<URL>) -> some View {
+        if let url = urls.first, let item = browser.items.first(where: { $0.url == url }) {
+            itemMenu(item)
+            Divider()
+        }
+        folderMenu
+    }
+
+    @ViewBuilder private func itemMenu(_ item: FolderBrowser.Item) -> some View {
+        if item.isFolder {
+            Button("打开文件夹") { browser.show(item.url) }
+        } else {
+            Button("在新标签页中打开") { model.openInNewTab(item.url) }
+            Button("在当前标签页中打开") { model.open(item.url) }
+        }
+        Button("在 Finder 中显示") { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }
+        Button("拷贝路径") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(item.url.path, forType: .string)
+        }
+        Divider()
+        Button("重命名…") { model.windowController?.renameFromSidebar(item.url) }
+        Button("创建副本") { model.windowController?.duplicateFromSidebar(item.url) }
+        Button("移到废纸篓（⌘⌫）", role: .destructive) { model.windowController?.trashFromSidebar(item.url, isFolder: item.isFolder) }
+    }
+
+    @ViewBuilder private var folderMenu: some View {
+        Button("新建 Markdown…") { naming = true }.disabled(!browser.canCreateFiles)
+        Button("新建文件夹…") { model.windowController?.newFolderFromSidebar() }.disabled(!browser.canCreateFiles)
+        Divider()
+        Button("刷新") { browser.reload() }
     }
 
     private var header: some View {
@@ -131,6 +172,14 @@ private struct SidebarContent: View {
             .help(browser.dir?.path.replacingOccurrences(of: NSHomeDirectory(), with: "~") ?? "")
             Spacer(minLength: 2)
             Text("\(browser.items.count)").font(Theme.mono(10)).foregroundStyle(.secondary)
+            Button {
+                browser.reload()
+            } label: {
+                Image(systemName: "arrow.clockwise").font(.system(size: 11, weight: .semibold)).frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("刷新（文件夹有变化时也会自动刷新）")
             Button {
                 naming = true
             } label: {
