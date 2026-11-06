@@ -35,7 +35,7 @@ scripts/perf.sh                    # 优化版里常用操作的主线程卡顿�
 ## 规范
 
 - **分层**：看 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。违反分层规则或文件超过 600 行，架构检查会失败。
-- **测试**：纯逻辑放 `LoupeCore`，测试写在 `LoupeCoreTests`；渲染器选择、协议行为这类写在 `LoupeAppTests`。用 Swift Testing，因为 XCTest 只随完整 Xcode 提供。
+- **测试**：纯逻辑放 `PerlustraCore`，测试写在 `PerlustraCoreTests`；渲染器选择、协议行为这类写在 `PerlustraAppTests`。用 Swift Testing，因为 XCTest 只随完整 Xcode 提供。
 - **流畅**：不在视图的 `body` 或 `draw` 里碰磁盘、算整篇文档；铺满窗口的效果用图层，不用 `draw(_:)`。
 - **注释**：写为什么，不写做了什么。
 - **界面文字**：说人话，不出现引擎名（PDFKit、Hex）。
@@ -48,7 +48,7 @@ scripts/perf.sh                    # 优化版里常用操作的主线程卡顿�
 
 ## 发布
 
-1. 改 `Sources/LoupeApp/Info.plist` 的版本号。
+1. 改 `Sources/PerlustraApp/Info.plist` 的版本号。
 2. 把 `CHANGELOG.md` 的「未发布」挪到新版本下，并写 `docs/releases/v<版本>.md`。
 3. 打标签 `v<版本>` 并推送，CI 会建 Release（标签和版本号不一致会失败）。
 

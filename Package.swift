@@ -2,24 +2,24 @@
 import PackageDescription
 
 let package = Package(
-    name: "Loupe",
+    name: "Perlustra",
     defaultLocalization: "zh-Hans",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "Loupe", targets: ["Loupe"])
+        .executable(name: "Perlustra", targets: ["Perlustra"])
     ],
     targets: [
         .systemLibrary(name: "CArchive", path: "Sources/CArchive"),
-        .target(name: "LoupeObjC", path: "Sources/LoupeObjC"),
+        .target(name: "PerlustraObjC", path: "Sources/PerlustraObjC"),
         .target(
-            name: "LoupeCore",
+            name: "PerlustraCore",
             dependencies: ["CArchive"],
-            path: "Sources/LoupeCore"
+            path: "Sources/PerlustraCore"
         ),
         .target(
-            name: "LoupeApp",
-            dependencies: ["LoupeCore", "LoupeObjC"],
-            path: "Sources/LoupeApp",
+            name: "PerlustraApp",
+            dependencies: ["PerlustraCore", "PerlustraObjC"],
+            path: "Sources/PerlustraApp",
             exclude: ["Resources", "Info.plist"],
             linkerSettings: [
                 .linkedFramework("AppKit"), .linkedFramework("Quartz"), .linkedFramework("PDFKit"),
@@ -29,19 +29,19 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "Loupe",
-            dependencies: ["LoupeApp"],
-            path: "Sources/Loupe"
+            name: "Perlustra",
+            dependencies: ["PerlustraApp"],
+            path: "Sources/Perlustra"
         ),
         .testTarget(
-            name: "LoupeAppTests",
-            dependencies: ["LoupeApp", "LoupeCore"],
-            path: "Tests/LoupeAppTests"
+            name: "PerlustraAppTests",
+            dependencies: ["PerlustraApp", "PerlustraCore"],
+            path: "Tests/PerlustraAppTests"
         ),
         .testTarget(
-            name: "LoupeCoreTests",
-            dependencies: ["LoupeCore"],
-            path: "Tests/LoupeCoreTests"
+            name: "PerlustraCoreTests",
+            dependencies: ["PerlustraCore"],
+            path: "Tests/PerlustraCoreTests"
         ),
     ]
 )

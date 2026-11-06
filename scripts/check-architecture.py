@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent
 MAX_FILE_LINES = 600
 
-# Folder → folders it may use. LoupeCore's Spreadsheet, Formula, Drawing and Chart are one engine:
+# Folder → folders it may use. PerlustraCore's Spreadsheet, Formula, Drawing and Chart are one engine:
 # a sheet holds formulas and drawings, and those read cells back.
 ENGINE = {"Spreadsheet", "Formula", "Drawing", "Chart"}
 CORE_LAYERS = {
@@ -55,7 +55,7 @@ def strip(source: str) -> str:
 
 def layer_of(relative: Path, target: str) -> str:
     parts = relative.parts
-    if target == "LoupeApp" and parts[0] == "AI":
+    if target == "PerlustraApp" and parts[0] == "AI":
         if len(parts) > 2 and parts[1] in ("Tools", "UI"):
             return f"AI/{parts[1]}"
         return "AI/Core"
@@ -95,7 +95,7 @@ def check_layers(target: str, rules: dict[str, set[str]], problems: list[str]) -
 
 
 def check_renderer_names(problems: list[str]) -> None:
-    folder = ROOT / "Sources/LoupeApp"
+    folder = ROOT / "Sources/PerlustraApp"
     concrete = set()
     for path in (folder / "Renderers").rglob("*.swift"):
         concrete |= {n for n in DECLARATION.findall(path.read_text(encoding="utf-8")) if n.endswith("Renderer") and n != "Renderer"}
@@ -109,16 +109,16 @@ def check_renderer_names(problems: list[str]) -> None:
 
 
 def check_core_is_headless(problems: list[str]) -> None:
-    for path in sorted((ROOT / "Sources/LoupeCore").rglob("*.swift")):
+    for path in sorted((ROOT / "Sources/PerlustraCore").rglob("*.swift")):
         match = UI_FRAMEWORKS.search(path.read_text(encoding="utf-8"))
         if match:
-            problems.append(f"{path.relative_to(ROOT)}：LoupeCore 不能依赖界面框架（{match.group(1)}）")
+            problems.append(f"{path.relative_to(ROOT)}：PerlustraCore 不能依赖界面框架（{match.group(1)}）")
 
 
 def check_theme_colours(problems: list[str]) -> None:
     """A theme colour's cgColor resolves against the current appearance, not the view's, so a layer
     set up that way can stay light in the black theme. Use NSView.resolved(_:) or SurfaceView."""
-    for path in sorted((ROOT / "Sources/LoupeApp").rglob("*.swift")):
+    for path in sorted((ROOT / "Sources/PerlustraApp").rglob("*.swift")):
         code = strip(path.read_text(encoding="utf-8"))
         for number, line in enumerate(code.split("\n"), 1):
             if re.search(r"\bTheme\.\w+\.cgColor\b", line):
@@ -134,8 +134,8 @@ def check_file_sizes(problems: list[str]) -> None:
 
 def main() -> int:
     problems: list[str] = []
-    check_layers("LoupeCore", CORE_LAYERS, problems)
-    check_layers("LoupeApp", APP_LAYERS, problems)
+    check_layers("PerlustraCore", CORE_LAYERS, problems)
+    check_layers("PerlustraApp", APP_LAYERS, problems)
     check_renderer_names(problems)
     check_core_is_headless(problems)
     check_theme_colours(problems)

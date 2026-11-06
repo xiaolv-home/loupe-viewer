@@ -17,7 +17,7 @@ from pathlib import Path
 from PIL import Image, ImageChops
 
 ROOT = Path(__file__).resolve().parent.parent
-BINARY = ROOT / "build/app.noindex/Loupe.app/Contents/MacOS/Loupe"
+BINARY = ROOT / "build/app.noindex/Perlustra.app/Contents/MacOS/Perlustra"
 BASELINE = ROOT / "build/visual-baseline"
 FIXTURES = [
     "code/hello.py", "docs/README.md", "docs/page.html", "docs/outline.pdf", "data/config.json",

@@ -44,12 +44,12 @@ jobs:
         run: |
           set -euo pipefail
           scripts/make-dmg.sh
-          dmg=$(ls build/Loupe-*.dmg)
+          dmg=$(ls build/Perlustra-*.dmg)
           mnt=$(hdiutil attach -nobrowse -readonly "$dmg" | tail -1 | cut -f3)
           # 整包签名不完整时，别的 Mac 下载后会提示「已损坏」，而且没有「仍要打开」
-          codesign --verify --deep --strict "$mnt/Loupe.app"
-          codesign -dvv "$mnt/Loupe.app" 2>&1 | grep -q "Sealed Resources version=2"
-          lipo -archs "$mnt/Loupe.app/Contents/MacOS/Loupe" | grep -q "x86_64 arm64\|arm64 x86_64"
+          codesign --verify --deep --strict "$mnt/Perlustra.app"
+          codesign -dvv "$mnt/Perlustra.app" 2>&1 | grep -q "Sealed Resources version=2"
+          lipo -archs "$mnt/Perlustra.app/Contents/MacOS/Perlustra" | grep -q "x86_64 arm64\|arm64 x86_64"
           hdiutil detach -quiet "$mnt"
           echo "DMG 体积：$(du -h "$dmg" | cut -f1)"
 
@@ -59,7 +59,7 @@ jobs:
       - name: Intel 切片探测
         run: |
           set -euo pipefail
-          bin="build/app.noindex/Loupe.app/Contents/MacOS/Loupe"
+          bin="build/app.noindex/Perlustra.app/Contents/MacOS/Perlustra"
           if ! arch -x86_64 /usr/bin/true; then
             echo "::warning::此 runner 不能运行 x86_64（没有 Rosetta），跳过 Intel 切片探测"
             exit 0
@@ -74,13 +74,13 @@ jobs:
       - name: 标签与版本号一致
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          ver=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Sources/LoupeApp/Info.plist)
+          ver=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Sources/PerlustraApp/Info.plist)
           [ "v$ver" = "$GITHUB_REF_NAME" ] || { echo "::error::Info.plist 是 $ver，标签是 $GITHUB_REF_NAME"; exit 1; }
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Loupe-dmg
-          path: build/Loupe-*.dmg
+          name: Perlustra-dmg
+          path: build/Perlustra-*.dmg
           if-no-files-found: error
 
   release:
@@ -94,7 +94,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: Loupe-dmg
+          name: Perlustra-dmg
           path: out
 
       # 说明 = docs/releases/<标签>.md（这一版改了什么）+ DMG 体积 + 固定的安装提示。
@@ -103,7 +103,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          dmg=$(ls out/Loupe-*.dmg)
+          dmg=$(ls out/Perlustra-*.dmg)
           size=$(du -h "$dmg" | cut -f1)
           ( cd out && shasum -a 256 ./* > SHA256SUMS.txt && cat SHA256SUMS.txt )
           notes="docs/releases/${GITHUB_REF_NAME}.md"
@@ -115,11 +115,11 @@ jobs:
             cat <<'NOTE'
           Universal（Apple Silicon + Intel），macOS 14 起。校验和见 SHA256SUMS.txt。
 
-          **未经 Apple 公证**：首次打开走「系统设置 › 隐私与安全性 › 仍要打开」，或在「应用程序」里右键 Loupe → 打开。
+          **未经 Apple 公证**：首次打开走「系统设置 › 隐私与安全性 › 仍要打开」，或在「应用程序」里右键 Perlustra → 打开。
           NOTE
           } > release-notes.md
           gh release create "$GITHUB_REF_NAME" out/* \
             --repo "$GITHUB_REPOSITORY" \
-            --title "Loupe ${GITHUB_REF_NAME#v}" \
+            --title "Perlustra ${GITHUB_REF_NAME#v}" \
             --latest \
             --notes-file release-notes.md

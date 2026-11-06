@@ -1,18 +1,16 @@
-# Loupe · 览
+# Perlustra · 览
 
 轻量、离线、原生的 macOS 万能文件查看器。一个窗口，看清每一种文件。
 
 - **原生**：Swift + SwiftUI/AppKit，Universal（Apple Silicon + Intel），macOS 14 起。
-- **轻量**：1.0.0 在 Apple Silicon 上测得安装包约 8 MB、启动到出窗口约 0.4–0.5 秒。之后每个带版本标签的发布说明会写上该次 DMG 的体积。启动时间要在本机直接运行二进制并设置 `LOUPE_TIMING=1` 再测（`open -a` 传不进这个环境变量）。
+- **轻量**：1.0.0 在 Apple Silicon 上测得安装包约 8 MB、启动到出窗口约 0.4–0.5 秒。之后每个带版本标签的发布说明会写上该次 DMG 的体积。启动时间要在本机直接运行二进制并设置 `PERLUSTRA_TIMING=1` 再测（`open -a` 传不进这个环境变量）。
 - **稳定**：每种格式都有一条渲染器降级链：专用渲染器 → 系统快速查看 → 文本 → 十六进制，打不开就降级，不会白屏或崩溃。
-- **离线优先、以看为主**：看文件不联网。Office 宏不执行。PDF 的外部链接不会自动打开，要点「在浏览器中打开」。Word / PowerPoint 交给系统快速查看，里面的超链接由系统处理，Loupe 没有再拦一层。应用没有启用 App Sandbox，网页和 AI 的限制是程序自己做的检查。本地网页的脚本只在受限环境里运行（见「本地网页」）。只有你主动用 AI 或安装技能时才会访问对应的服务。表格和 Markdown 可以按需打开编辑。
+- **离线优先、以看为主**：看文件不联网。Office 宏不执行。PDF 的外部链接不会自动打开，要点「在浏览器中打开」。Word / PowerPoint 交给系统快速查看，里面的超链接由系统处理，Perlustra 没有再拦一层。应用没有启用 App Sandbox，网页和 AI 的限制是程序自己做的检查。本地网页的脚本只在受限环境里运行（见「本地网页」）。只有你主动用 AI 或安装技能时才会访问对应的服务。表格和 Markdown 可以按需打开编辑。
 - **独特的视觉**：「校样」设计语言。文档像一张带裁切标记的校样纸放在打样台上；代码用墨色加余烬橙的双色套印高亮；底部是印刷品出血区那样的版口信息条和色标条。
-
-> Loupe · 览 是独立项目，与 GNOME 桌面的同名看图工具 Loupe 无关。
 
 ## 下载安装
 
-**[下载最新版本](https://github.com/xiaolv-home/loupe-viewer/releases/latest)**：下载 `Loupe-版本号.dmg`，打开后把 **Loupe** 拖进「应用程序」。需要 macOS 14 或更新版本，Apple Silicon 和 Intel 通用。首次打开的放行方法见下文「首次打开」。每个版本的 SHA-256 校验文件也在发布页里。
+**[下载最新版本](https://github.com/xiaolv-home/perlustra/releases/latest)**：下载 `Perlustra-版本号.dmg`，打开后把 **Perlustra** 拖进「应用程序」。需要 macOS 14 或更新版本，Apple Silicon 和 Intel 通用。首次打开的放行方法见下文「首次打开」。每个版本的 SHA-256 校验文件也在发布页里。
 
 > [!NOTE]
 > 当前在 Apple Silicon Mac 上日常使用；Intel 版本由同一份源码构建，没有在 Intel 机器上长期使用过。
@@ -23,7 +21,7 @@
 |---|---|---|---|
 | PDF | pdf、ai | PDFKit | 缩略图 / 目录侧栏、页码跳转、缩放、文本选择、全文搜索高亮、全屏放映、加密 PDF 解锁；外部链接拦截 |
 | iWork | pages、key、numbers（含旧版文件包） | Quick Look → Pages/Keynote/Numbers 导出 PDF | 先用快速查看秒开；本机装有 iWork 时在后台静默导出完整 PDF（缓存，文件修改后失效）；未安装时显示内嵌预览图并提示 |
-| 表格 | xlsx/xlsm、ods、csv/tsv；xls、Numbers（经 Numbers 转换） | Loupe 自有表格 | 保留原格式显示（含一格之内分段的字色、加粗、字号）；表上的图表（柱/条/折线/面积/饼/环形/散点/雷达/气泡、组合图与副坐标轴，没存缓存值的也从单元格现取数）、图片、形状和文本框、整页图表都画出来；筛选、查找、排序、隐藏行列、框选求和/平均/计数、约 90 个函数（含 VLOOKUP/XLOOKUP/SUMIFS）、计算列；可编辑单元格并保存（xlsx 局部写回、CSV 保持原编码）、另存为、导出 |
+| 表格 | xlsx/xlsm、ods、csv/tsv；xls、Numbers（经 Numbers 转换） | Perlustra 自有表格 | 保留原格式显示（含一格之内分段的字色、加粗、字号）；表上的图表（柱/条/折线/面积/饼/环形/散点/雷达/气泡、组合图与副坐标轴，没存缓存值的也从单元格现取数）、图片、形状和文本框、整页图表都画出来；筛选、查找、排序、隐藏行列、框选求和/平均/计数、约 90 个函数（含 VLOOKUP/XLOOKUP/SUMIFS）、计算列；可编辑单元格并保存（xlsx 局部写回、CSV 保持原编码）、另存为、导出 |
 | Office | docx/doc、pptx/ppt、rtf/rtfd、odt/odp、wps | Quick Look | 演示文稿可「全屏放映」：借助 Keynote 转换，←/→ 翻页、Esc 退出；没有 Keynote 时改用快速查看全屏。不执行宏。快速查看里的超链接由系统打开，不像 PDF 那样先拦下来 |
 | 图片 | jpg、png、gif（动图）、webp、heic/heif、avif、tiff（多页）、bmp、ico/icns、psd、exr、hdr、jp2、jxl、相机 RAW（cr2/cr3/nef/arw/dng/raf/orf/rw2…） | ImageIO + IOSurface | 1:1 原始像素 / 适应窗口、指针为中心缩放、拖动平移、旋转、像素化显示；保留色彩配置（Display P3 等）；HDR 以 EDR 显示；EXIF 信息；超过 16384 像素自动缩减显示 |
 | 矢量图 | svg、svgz | WebKit（禁用脚本） | 可切换源码 |
@@ -85,7 +83,7 @@
 
 ## 写 Markdown（像 Typora）
 
-- **⌘N 新建**：新文档先是草稿，边写边自动保存，不会丢；第一次 ⌘S 时再选存到哪里（草稿在 `~/Library/Application Support/Loupe/Drafts`）。
+- **⌘N 新建**：新文档先是草稿，边写边自动保存，不会丢；第一次 ⌘S 时再选存到哪里（草稿在 `~/Library/Application Support/Perlustra/Drafts`）。
 - **写作模式**：边写边排版，大纲栏 ⌃⌘1，⌘/ 切到源码。设置里可以改成打开 Markdown 时默认进「阅读」。
 - **快捷键与 Typora 一致**（「格式」菜单里都有）：⌘1–⌘6 标题、⌘0 正文、⌘B/⌘I/⌘U 加粗/斜体/下划线、⌘K 链接、⌃\` 行内代码、⌥⌘C 代码块、⌥⌘B 公式块、⌥⌘Q 引用、⌥⌘O/⌥⌘U/⌥⌘X 有序/无序/任务列表、⌥⌘T 表格、⌘[ ⌘] 缩进。
 - **图片**：粘贴截图或拖入图片，自动存到文档旁边的 `assets/`，以相对路径插入（和 Typora 默认一样）。
@@ -96,28 +94,28 @@
 
 窗口右侧的 AI 面板会对当前标签页的文件**真正动手**，不只是总结：
 
-- **两种模式**：「本地」只连接 localhost 或 127.0.0.1（文件不出本机）；局域网或其他地址请改用「云端 API」里的自定义服务。「云端」支持 DeepSeek、通义千问、Kimi、智谱、豆包、硅基流动、Claude、OpenAI、OpenRouter 和任意 OpenAI 兼容接口。内置服务的接口地址是固定的，只有「自定义」和豆包可以改地址。API Key 只存在本机一个仅你的账户可读的文件里（~/Library/Application Support/Loupe/ai-keys.json），不用钥匙串、不会弹密码框。
+- **两种模式**：「本地」只连接 localhost 或 127.0.0.1（文件不出本机）；局域网或其他地址请改用「云端 API」里的自定义服务。「云端」支持 DeepSeek、通义千问、Kimi、智谱、豆包、硅基流动、Claude、OpenAI、OpenRouter 和任意 OpenAI 兼容接口。内置服务的接口地址是固定的，只有「自定义」和豆包可以改地址。API Key 只存在本机一个仅你的账户可读的文件里（~/Library/Application Support/Perlustra/ai-keys.json），不用钥匙串、不会弹密码框。
 - **能做的事**：
   - 读任何文件：文本按原编码读，PDF 按页读，也能读 Word、PPT、Excel；图片会做文字识别（OCR）。
-  - 用 Loupe 的公式引擎精确计算，也可以跨文件 VLOOKUP。
+  - 用 Perlustra 的公式引擎精确计算，也可以跨文件 VLOOKUP。
   - 分组汇总、筛选屏幕上的表格、加计算列。
   - 直接在编辑器里改 Markdown，⌘Z 可撤销。
   - 生成文件：Word（原生表格、标题样式、编号列表）、PDF、HTML，以及 Excel（公式先算好结果再写入）和 CSV。
   - 在文件夹或资料库里搜索文字。
   - 运行终端命令（需要在设置里打开，每条都要你点「允许」）。
 - **看图**：能看图的模型（本地 Qwen3.5/3.6 这类 VLM、Claude、GPT、通义 VL 等）可以直接看图片或 PDF 的某一页（`view_image`）。也可以点回形针附图，或直接粘贴截图。不能看图的模型会自动改为发送识别出的文字。
-- **历史对话**：每次对话自动保存在本机（`~/Library/Application Support/Loupe/Conversations`），面板顶部的时钟按钮可以搜索、打开后接着聊、删除。
+- **历史对话**：每次对话自动保存在本机（`~/Library/Application Support/Perlustra/Conversations`），面板顶部的时钟按钮可以搜索、打开后接着聊、删除。
 - **安全**：原文件不会被改，生成的文件放在原文件旁边，覆盖已有文件要你确认。AI 只能写入个人文件夹（不含隐藏目录和 ~/Library）。不读取隐藏目录（包括嵌套的 `.env`、`.ssh`）和 `~/Library`（已安装的技能目录除外），也不读 `/etc`、`/System`。符号链接按它指向的真实路径判断。
 - **使用云端模型时**，你发给 AI 的内容（包括它读取的文件内容和图片）会发送到你选择的服务商，按该服务商的条款处理。处理敏感文件请用「本地」模式。
 - **AI 的输出只供参考**：包括「合同审阅」「简历诊断」等技能在内，结果不构成法律、财务、人事或其他专业意见，重要决定请自行核对或咨询专业人士。
 - **技能**：用的是和 Claude、Codex 相同的 SKILL.md 格式。
-  - 自带 6 个按 Loupe 工具定制的技能：表格分析、表格核对对账、数据分析报告、合同审阅、简历诊断与重写、会议纪要。
-  - 「技能市场」里有 22 个挑过的 GitHub 技能仓库，覆盖法务、求职、公文、财务会计、论文、咨询与营销、图表和 Office 处理，一键安装。也可以粘贴任意 GitHub 链接安装。这些技能属于各自的作者，按各自的许可证提供，Loupe 不随安装包分发、也不审核它们的内容。
+  - 自带 6 个按 Perlustra 工具定制的技能：表格分析、表格核对对账、数据分析报告、合同审阅、简历诊断与重写、会议纪要。
+  - 「技能市场」里有 22 个挑过的 GitHub 技能仓库，覆盖法务、求职、公文、财务会计、论文、咨询与营销、图表和 Office 处理，一键安装。也可以粘贴任意 GitHub 链接安装。这些技能属于各自的作者，按各自的许可证提供，Perlustra 不随安装包分发、也不审核它们的内容。
   - 技能装得多时，每次请求只附上相关的几个，其余的 AI 用 `find_skills` 按需搜索。
 
 ## 使用
 
-- **打开文件**：拖到窗口或 Dock 图标、⌘O、Finder「打开方式」、命令行 `open -a Loupe 文件`。可在 Finder「显示简介」里设为默认打开程序。
+- **打开文件**：拖到窗口或 Dock 图标、⌘O、Finder「打开方式」、命令行 `open -a Perlustra 文件`。可在 Finder「显示简介」里设为默认打开程序。
 - **同目录浏览**：← / → 切换同文件夹的上一个、下一个文件，⌃⌘S 打开文件夹侧栏。
 - **信息面板**：⌘I，显示大小、时间、尺寸、时长、编码、色彩空间、EXIF 等。
 - **工具栏**：在 Finder 中显示、用默认应用打开、分享、拷贝路径。
@@ -128,19 +126,19 @@
 
 | 依赖 | 作用 | 安装 |
 |---|---|---|
-| mpv | 播放 MKV / AVI / WMV / FLV / RMVB / WebM / Opus 等 AVFoundation 不支持的格式 | `brew install mpv`。Loupe 会自动在 `/opt/homebrew/lib` 和 `/usr/local/lib` 里查找 libmpv，也可以在设置中手动指定路径 |
+| mpv | 播放 MKV / AVI / WMV / FLV / RMVB / WebM / Opus 等 AVFoundation 不支持的格式 | `brew install mpv`。Perlustra 会自动在 `/opt/homebrew/lib` 和 `/usr/local/lib` 里查找 libmpv，也可以在设置中手动指定路径 |
 | Pages / Keynote / Numbers | iWork 文稿的完整多页预览；PPT 全屏放映 | App Store 免费下载。第一次使用时 macOS 会弹出「自动化」权限请求，选择允许即可 |
 
 ## 首次打开（绕过 Gatekeeper）
 
-Loupe 使用 ad-hoc 签名，没有经过 Apple 公证，所以第一次打开时 macOS 会拦截。任选一种方式放行：
+Perlustra 使用 ad-hoc 签名，没有经过 Apple 公证，所以第一次打开时 macOS 会拦截。任选一种方式放行：
 
-1. 在「应用程序」里**右键点 Loupe → 打开**，在弹窗中再点「打开」。
+1. 在「应用程序」里**右键点 Perlustra → 打开**，在弹窗中再点「打开」。
 2. 或者在「系统设置 › 隐私与安全性」底部点「仍要打开」。
 3. 或者在终端执行：
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/Loupe.app
+xattr -dr com.apple.quarantine /Applications/Perlustra.app
 ```
 
 ## 隐私与安全
@@ -148,8 +146,8 @@ xattr -dr com.apple.quarantine /Applications/Loupe.app
 - **不收集任何数据**：没有统计、遥测、崩溃上报，也不检查更新。
 - **没有 App Sandbox**：下载的应用是 ad-hoc 签名，没有沙盒，也没有公证。网页文件夹限制和 AI 读写限制都是程序内部的检查，不是系统沙盒。
 - **什么时候联网**：只有三种情况——用 AI 对话时访问你配置的模型服务（「本地」模式只连 localhost 或 127.0.0.1）；在技能市场安装技能时从 GitHub 下载；查找本地模型时访问本机端口。看文件本身不联网，网页、Markdown、SVG 里的远程资源都会被拦住。Markdown 和本地网页能读的本地文件只限于该文件所在文件夹。
-- **AI 密钥**：保存在 `~/Library/Application Support/Loupe/ai-keys.json`，文件权限 600（只有你的账户能读写），不放进钥匙串（本地签名的应用每次更新都会被钥匙串当成新应用、反复要密码）。同一台 Mac 上以你的账户运行的其他程序也能读到这个文件，请据此判断。
-- **AI 运行命令**：默认关闭；打开后每一条命令都要你点「允许」才会执行。如果这次对话里载入过技能，运行命令前会再确认一次（技能内容未经 Loupe 审核，命令以你的账户权限执行）。
+- **AI 密钥**：保存在 `~/Library/Application Support/Perlustra/ai-keys.json`，文件权限 600（只有你的账户能读写），不放进钥匙串（本地签名的应用每次更新都会被钥匙串当成新应用、反复要密码）。同一台 Mac 上以你的账户运行的其他程序也能读到这个文件，请据此判断。
+- **AI 运行命令**：默认关闭；打开后每一条命令都要你点「允许」才会执行。如果这次对话里载入过技能，运行命令前会再确认一次（技能内容未经 Perlustra 审核，命令以你的账户权限执行）。
 - **安全问题**请通过 GitHub Issues 联系，涉及漏洞细节时请先不要公开写出复现方法。
 
 ## 构建
@@ -157,13 +155,13 @@ xattr -dr com.apple.quarantine /Applications/Loupe.app
 只需要 Command Line Tools，不需要完整 Xcode：
 
 ```bash
-git clone https://github.com/xiaolv-home/loupe-viewer.git
-cd loupe-viewer
-scripts/build-app.sh release     # Universal、优化、ad-hoc 签名 → build/app.noindex/Loupe.app（.noindex：不让开发版出现在启动台/App 列表里）
+git clone https://github.com/xiaolv-home/perlustra.git
+cd perlustra
+scripts/build-app.sh release     # Universal、优化、ad-hoc 签名 → build/app.noindex/Perlustra.app（.noindex：不让开发版出现在启动台/App 列表里）
 ```
 
 ```bash
-scripts/make-dmg.sh              # → build/Loupe-1.0.0.dmg
+scripts/make-dmg.sh              # → build/Perlustra-1.0.0.dmg
 ```
 
 开发时用 `scripts/build-app.sh debug`，只编译本机架构，速度更快。
@@ -191,25 +189,25 @@ python3 scripts/verify-renderers.py    # 端到端：用真实应用逐个打开
 提交前跑 `scripts/check.sh`，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 调试参数（除 `--probe` 和 `--purge-recents` 外只在 debug 版可用）：
-- `Loupe --probe 文件…`：输出每个文件实际使用的渲染引擎。
+- `Perlustra --probe 文件…`：输出每个文件实际使用的渲染引擎。
 - `--snapshot 目录 文件…`：对窗口截图；锁屏时自动改为离屏渲染。
 - `--stress 目录 --rounds N`：循环打开文件夹内所有文件并报告内存。
 - `--cmd "sheet:col:3"` 等：脚本化操作表格，并打印状态栏结果。
 - 以上调试参数运行时不写入「最近打开」、侧栏位置和窗口布局，不会影响日常使用。
 - `--cmd "ai:要求"`：把要求发给 AI，结束后打印它做的每一步；`aiskill:技能名` 指定技能，`aiendpoint:协议|地址|模型|key` 换成模拟服务器，`installskill:GitHub链接` 测试安装（装到临时目录），`aiattach:图片` 附图，`aihistory` / `aiopen:序号` / `aidelete:序号` / `ainew` 测历史对话（存到临时目录）。
-- `Loupe --purge-recents 目录`：从「最近打开」里删掉某个目录下的所有记录。
+- `Perlustra --purge-recents 目录`：从「最近打开」里删掉某个目录下的所有记录。
 
 > 测试使用 Swift Testing 而不是 XCTest，因为 XCTest 只随完整 Xcode 提供；装有 Xcode 时 `scripts/test.sh` 会自动直接调用 `swift test`。
 
 ## 结构
 
 ```
-Sources/Loupe/          入口
-Sources/LoupeApp/       应用：窗口与外壳、渲染器、AI 面板、设计系统
-Sources/LoupeCore/      纯逻辑（可单测，不依赖界面）：格式识别、表格、公式、图表、AI 协议
-Sources/LoupeObjC/      ObjC 异常兜底（AppKit/PDFKit 抛出的异常不会拖垮主线程）
+Sources/Perlustra/          入口
+Sources/PerlustraApp/       应用：窗口与外壳、渲染器、AI 面板、设计系统
+Sources/PerlustraCore/      纯逻辑（可单测，不依赖界面）：格式识别、表格、公式、图表、AI 协议
+Sources/PerlustraObjC/      ObjC 异常兜底（AppKit/PDFKit 抛出的异常不会拖垮主线程）
 Sources/CArchive/       系统 libarchive 的最小头文件声明
-Tests/                  LoupeCoreTests、LoupeAppTests
+Tests/                  PerlustraCoreTests、PerlustraAppTests
 fixtures/               样例文件     scripts/   构建、打包、样例生成、检查
 ```
 
@@ -217,4 +215,4 @@ fixtures/               样例文件     scripts/   构建、打包、样例生�
 
 ## 许可证
 
-[MIT](LICENSE)。第三方库与素材的声明见 [NOTICE](NOTICE)，各库的许可证原文在 `Sources/LoupeApp/Resources/web/vendor/licenses/`。
+[MIT](LICENSE)。第三方库与素材的声明见 [NOTICE](NOTICE)，各库的许可证原文在 `Sources/PerlustraApp/Resources/web/vendor/licenses/`。

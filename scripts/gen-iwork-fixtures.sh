@@ -13,7 +13,7 @@ set offDir to "$OFF"
 if not (do shell script "test -e " & quoted form of (outDir & "/sample.pages") & " && echo y || echo n") is "y" then
 tell application id "com.apple.Pages"
     set d to make new document
-    set body text of d to "Loupe iWork 测试文稿" & return & return
+    set body text of d to "Perlustra iWork 测试文稿" & return & return
     repeat with i from 1 to 6
         set body text of d to (body text of d) & "第 " & i & " 章" & return & "这是第 " & i & " 章的正文。床前明月光，疑是地上霜。举头望明月，低头思故乡。" & return & return
         tell d to set body text to (body text) & (character id 12)
@@ -34,7 +34,7 @@ tell application id "com.apple.Keynote"
         set t to first slide
         tell t
             try
-                set object text of default title item to "Loupe 演示"
+                set object text of default title item to "Perlustra 演示"
                 set object text of default body item to "第一页"
             end try
         end tell

@@ -3,4 +3,4 @@
 set -e
 cd "$(dirname "$0")/.."
 OUT="$1"; shift
-./build/app.noindex/Loupe.app/Contents/MacOS/Loupe --snapshot "$OUT" --size 1100x720 "$@" 2>&1 | grep -v "^snapshot" || true
+./build/app.noindex/Perlustra.app/Contents/MacOS/Perlustra --snapshot "$OUT" --size 1100x720 "$@" 2>&1 | grep -v "^snapshot" || true

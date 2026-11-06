@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""End-to-end renderer check: opens every fixture in the real app (Loupe --probe) and
-asserts which engine rendered it. Usage: scripts/verify-renderers.py [path/to/Loupe.app]"""
+"""End-to-end renderer check: opens every fixture in the real app (Perlustra --probe) and
+asserts which engine rendered it. Usage: scripts/verify-renderers.py [path/to/Perlustra.app]"""
 import json, subprocess, sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
-app = Path(sys.argv[1]) if len(sys.argv) > 1 else root / "build/app.noindex/Loupe.app"
-binary = app / "Contents/MacOS/Loupe"
+app = Path(sys.argv[1]) if len(sys.argv) > 1 else root / "build/app.noindex/Perlustra.app"
+binary = app / "Contents/MacOS/Perlustra"
 
 # file (relative to fixtures/) → expected engine; "none" means the failure page is shown.
 EXPECT = {

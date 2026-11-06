@@ -1,10 +1,10 @@
-Loupe · 览
-Copyright (c) 2026 Loupe contributors
+Perlustra · 览
+Copyright (c) 2026 Perlustra contributors
 
 This product is licensed under the MIT License (see LICENSE).
 
-Loupe is an independent project. It is not affiliated with the GNOME image viewer
-of the same name, nor with Apple, Microsoft or any other vendor named below.
+Perlustra is an independent project. It is not affiliated with Apple, Microsoft or any
+other vendor named below.
 
 
 == Icons and artwork ==
@@ -16,9 +16,9 @@ by the MIT license above.
 
 == Bundled third-party software ==
 
-Sources/LoupeApp/Resources/web/vendor holds these libraries, used to render Markdown,
+Sources/PerlustraApp/Resources/web/vendor holds these libraries, used to render Markdown,
 code and diagrams inside the app. Each one's license text is in
-Sources/LoupeApp/Resources/web/vendor/licenses.
+Sources/PerlustraApp/Resources/web/vendor/licenses.
 
   highlight.js 11.11.1            BSD-3-Clause      (c) 2006 Ivan Sagalaev
   markdown-it 14.1.0              MIT               (c) 2014 Vitaly Puzrin, Alex Kocharin
@@ -29,7 +29,7 @@ Sources/LoupeApp/Resources/web/vendor/licenses.
                                                     permissively licensed dependencies (d3, dagre…)
   DOMPurify 3.2.6                 Apache-2.0 or MPL-2.0 (c) Dr.-Ing. Mario Heiderich, Cure53
 
-Sources/LoupeApp/Resources/web/vditor holds the Markdown writer (a subset of its dist folder:
+Sources/PerlustraApp/Resources/web/vditor holds the Markdown writer (a subset of its dist folder:
 the editor, its Lute Markdown engine, Chinese strings, icons, content themes, extra
 highlight.js languages and styles, and KaTeX's mhchem). KaTeX, Mermaid and highlight.js
 requests are served from the copies listed above.
@@ -42,9 +42,9 @@ The app links only to system frameworks and to libarchive as shipped with macOS
 
 == Optional runtime ==
 
-For video formats AVFoundation cannot play, Loupe looks for a libmpv the user has
+For video formats AVFoundation cannot play, Perlustra looks for a libmpv the user has
 installed separately (for example with Homebrew). libmpv is not included in or
-distributed with Loupe; it is loaded at run time from the user's own installation
+distributed with Perlustra; it is loaded at run time from the user's own installation
 and remains under its own license (GPL-2.0+ / LGPL-2.1+, depending on how it was built).
 
 
@@ -62,4 +62,4 @@ locally from the user's own system.
 
 Microsoft Office, Word, Excel, PowerPoint, Apple, macOS, iWork, Pages, Numbers,
 Keynote, Quick Look and other product names are trademarks of their respective
-owners. They appear only to describe which file formats Loupe can open.
+owners. They appear only to describe which file formats Perlustra can open.

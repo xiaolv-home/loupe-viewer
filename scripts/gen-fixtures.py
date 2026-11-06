@@ -43,7 +43,7 @@ code = {
     "query.sql": "-- 查询门店\nSELECT id, name, COUNT(*) AS cnt\nFROM stores s\nLEFT JOIN orders o ON o.store_id = s.id\nWHERE s.state = 1\nGROUP BY id, name\nORDER BY cnt DESC LIMIT 10;\n",
     "deploy.sh": '#!/bin/bash\nset -euo pipefail\n# 部署脚本\nfor f in "$@"; do\n  echo "处理 ${f}"\ndone\n',
     "config.yaml": "# 配置\nserver:\n  host: 0.0.0.0\n  port: 8080\n  debug: true\nnames:\n  - 张三\n  - 李四\n",
-    "settings.toml": '[package]\nname = "loupe"\nversion = "1.0.0"\n\n[deps]\nserde = { version = "1", features = ["derive"] }\n',
+    "settings.toml": '[package]\nname = "perlustra"\nversion = "1.0.0"\n\n[deps]\nserde = { version = "1", features = ["derive"] }\n',
     "app.ini": "; INI 文件\n[database]\nhost = localhost\nport = 5432\n",
     "page.xml": '<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <!-- 注释 -->\n  <item id="1">中文</item>\n</root>\n',
     "style.css": "/* 样式 */\n.card { color: #ff6a3d; padding: 12px; }\n@media (prefers-color-scheme: dark) { body { background: #111; } }\n",
@@ -55,7 +55,7 @@ code = {
 }
 for name, body in code.items():
     p("code", name).write_text(body, encoding="utf-8")
-shutil.copy(Path(__file__).resolve().parent.parent / "Sources/LoupeApp/Renderers/Text/TextRenderer.swift", p("code", "TextRenderer.swift"))
+shutil.copy(Path(__file__).resolve().parent.parent / "Sources/PerlustraApp/Renderers/Text/TextRenderer.swift", p("code", "TextRenderer.swift"))
 
 # Large file (> 50 MB) to exercise the virtualised line view.
 big = p("text", "large-60mb.log")
@@ -67,7 +67,7 @@ if not big.exists() or big.stat().st_size < 50_000_000:
             f.write(f"{line:08d} 2026-10-22T08:00:00Z INFO 服务正常运行 payload={'x' * (line % 80)}\n")
 
 # ---------------------------------------------------------------- markdown / html
-p("docs", "README.md").write_text(r"""# Loupe 示例文档
+p("docs", "README.md").write_text(r"""# Perlustra 示例文档
 
 这是一段 **Markdown**，包含 *斜体*、`行内代码` 与 [链接](https://example.com)。
 
@@ -152,12 +152,12 @@ if not big_csv.exists():
         for i in range(200_000):
             f.write(f"{i},项目{i},{random.random():.6f},2026-10-22T00:00:{i % 60:02d}\n")
 
-doc = {"name": "Loupe", "version": "1.0", "features": ["pdf", "image", "video"], "nested": {"a": 1, "b": [1, 2, {"c": None}], "中文键": "值"}, "enabled": True, "ratio": 0.75}
+doc = {"name": "Perlustra", "version": "1.0", "features": ["pdf", "image", "video"], "nested": {"a": 1, "b": [1, 2, {"c": None}], "中文键": "值"}, "enabled": True, "ratio": 0.75}
 p("data", "config.json").write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
 p("data", "minified.json").write_text(json.dumps({"items": [{"id": i, "tags": ["a", "b"], "score": i * 1.5} for i in range(60)]}, separators=(",", ":")), encoding="utf-8")
 p("data", "events.jsonl").write_text("\n".join(json.dumps({"event": e, "n": i}) for i, e in enumerate(["open", "close", "save"])), encoding="utf-8")
 p("data", "broken.json").write_text('{"a": 1, "b": [1, 2,', encoding="utf-8")
-plist_obj = {"CFBundleName": "Loupe", "Version": 3, "Enabled": True, "Items": ["一", "二"], "Data": b"\x00\x01\x02", "Nested": {"Key": "Value"}}
+plist_obj = {"CFBundleName": "Perlustra", "Version": 3, "Enabled": True, "Items": ["一", "二"], "Data": b"\x00\x01\x02", "Nested": {"Key": "Value"}}
 p("data", "binary.plist").write_bytes(plistlib.dumps(plist_obj, fmt=plistlib.FMT_BINARY))
 p("data", "xml.plist").write_bytes(plistlib.dumps(plist_obj, fmt=plistlib.FMT_XML))
 
@@ -178,7 +178,7 @@ d.rectangle([100, 100, 500, 400], outline=(255, 255, 255), width=6)
 g.save(p("images", "photo.jpg"), quality=92, exif=Image.Exif())
 # JPEG with camera EXIF
 exif = Image.Exif()
-exif[0x010F] = "Leica"; exif[0x0110] = "Q3"; exif[0x0131] = "Loupe fixture"
+exif[0x010F] = "Leica"; exif[0x0110] = "Q3"; exif[0x0131] = "Perlustra fixture"
 ifd = exif.get_ifd(0x8769)
 ifd[0x829A] = (1, 250); ifd[0x829D] = (17, 10); ifd[0x8827] = 400; ifd[0x920A] = (28, 1); ifd[0x9003] = "2026:10:22 09:30:00"
 g.resize((1200, 800)).save(p("images", "exif-camera.jpg"), quality=90, exif=exif)
@@ -238,10 +238,10 @@ def make_pdf(path, pages):
     out += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode()
     for o in offsets:
         out += f"{o:010d} 00000 n \n".encode()
-    out += f"trailer\n<< /Size {len(objs) + 1} /Root {catalog} 0 R /Info << /Title (Loupe Sample) /Author (Loupe) >> >>\nstartxref\n{xref}\n%%EOF\n".encode()
+    out += f"trailer\n<< /Size {len(objs) + 1} /Root {catalog} 0 R /Info << /Title (Perlustra Sample) /Author (Perlustra) >> >>\nstartxref\n{xref}\n%%EOF\n".encode()
     path.write_bytes(out)
 
-make_pdf(p("docs", "outline.pdf"), [f"The quick brown fox jumps over the lazy dog. Page {i + 1} keyword loupe." for i in range(12)])
+make_pdf(p("docs", "outline.pdf"), [f"The quick brown fox jumps over the lazy dog. Page {i + 1} keyword perlustra." for i in range(12)])
 p("docs", "external-link.html")  # placeholder path ensures folder exists
 
 # Office via textutil (rtf/doc/docx from HTML)
@@ -290,7 +290,7 @@ ff("-f", "lavfi", "-i", "testsrc2=size=1280x720:rate=30", "-f", "lavfi", "-i", "
 ff("-f", "lavfi", "-i", "testsrc2=size=640x360:rate=25", "-f", "lavfi", "-i", "sine=frequency=550", "-t", "5", "-c:v", "libvpx-vp9", "-b:v", "500k", "-c:a", "libopus", out=("media", "vp9-opus.webm"))
 ff("-f", "lavfi", "-i", "testsrc2=size=640x360:rate=25", "-f", "lavfi", "-i", "sine=frequency=660", "-t", "4", "-c:v", "mpeg4", "-c:a", "mp3", out=("media", "mpeg4.avi"))
 ff("-f", "lavfi", "-i", "testsrc2=size=640x360:rate=25", "-t", "4", "-c:v", "flv1", out=("media", "sample.flv"))
-ff("-f", "lavfi", "-i", "sine=frequency=440:duration=5", "-c:a", "libmp3lame", "-metadata", "title=测试音频", "-metadata", "artist=Loupe", out=("media", "tone.mp3"))
+ff("-f", "lavfi", "-i", "sine=frequency=440:duration=5", "-c:a", "libmp3lame", "-metadata", "title=测试音频", "-metadata", "artist=Perlustra", out=("media", "tone.mp3"))
 ff("-f", "lavfi", "-i", "sine=frequency=523:duration=5", "-c:a", "flac", out=("media", "tone.flac"))
 ff("-f", "lavfi", "-i", "sine=frequency=659:duration=3", out=("media", "tone.wav"))
 ff("-f", "lavfi", "-i", "sine=frequency=784:duration=3", "-c:a", "libopus", out=("media", "tone.opus"))

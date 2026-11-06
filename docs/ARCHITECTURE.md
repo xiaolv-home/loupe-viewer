@@ -1,18 +1,18 @@
 # 架构
 
-Loupe 是一个不联网优先的 macOS 文件查看器：打开一个文件，挑一个合适的渲染器显示它。这份文档讲代码怎么分层、为什么这样分。分层规则由 `scripts/check-architecture.py` 执行，CI 里违反就失败，所以这里写的都是真实状态。
+Perlustra 是一个不联网优先的 macOS 文件查看器：打开一个文件，挑一个合适的渲染器显示它。这份文档讲代码怎么分层、为什么这样分。分层规则由 `scripts/check-architecture.py` 执行，CI 里违反就失败，所以这里写的都是真实状态。
 
 ## 三个目标
 
 ```
-Sources/Loupe        入口，只有一行：LoupeApplication.run()
-Sources/LoupeApp     应用：窗口、渲染器、AI 面板（依赖 AppKit / SwiftUI / WebKit）
-Sources/LoupeCore    纯逻辑：格式识别、表格、公式、AI 协议（不依赖任何界面框架）
+Sources/Perlustra        入口，只有一行：PerlustraApplication.run()
+Sources/PerlustraApp     应用：窗口、渲染器、AI 面板（依赖 AppKit / SwiftUI / WebKit）
+Sources/PerlustraCore    纯逻辑：格式识别、表格、公式、AI 协议（不依赖任何界面框架）
 ```
 
-把应用放进库而不是可执行目标，是为了让 `Tests/LoupeAppTests` 能 `@testable import`。
+把应用放进库而不是可执行目标，是为了让 `Tests/PerlustraAppTests` 能 `@testable import`。
 
-## LoupeApp 的分层
+## PerlustraApp 的分层
 
 依赖只能朝下，不能反过来：
 
@@ -41,7 +41,7 @@ Base            设置、日志
 
 `AI/UI` 还会读 `TabList` 来知道当前标签页，所以它算外壳的一部分，不算 AI 内核。
 
-## LoupeCore 的分层
+## PerlustraCore 的分层
 
 ```
 AI                               模型接口、工具循环、技能
@@ -65,11 +65,15 @@ Support, Security                零散工具、路径边界（不依赖任何�
 
 ## 网页内容
 
-Markdown、HTML 走 WKWebView。所有资源经 `loupe://` 协议提供（`loupe://app/` 是应用自带的，`loupe://file/` 是用户文件），外网请求一律被内容规则拦截。写作模式基于 Vditor，`writer.js` 不往编辑器 DOM 里加东西，专注模式、查找高亮和下划线都用样式规则或 CSS Highlight API，否则可能被写进文件。
+Markdown、HTML 走 WKWebView。所有资源经 `perlustra://` 协议提供（`perlustra://app/` 是应用自带的，`perlustra://file/` 是用户文件），外网请求一律被内容规则拦截。写作模式基于 Vditor，`writer.js` 不往编辑器 DOM 里加东西，专注模式、查找高亮和下划线都用样式规则或 CSS Highlight API，否则可能被写进文件。
+
+## 改名
+
+应用原名 Loupe。Bundle ID 有意保留 `app.loupe.viewer`：系统按它记录最近文档、默认打开方式和文件访问授权，这些都带不到新 ID 上。其余旧名字的数据由 `Services/LegacyData.swift` 在首次启动时迁移。
 
 ## 主题
 
-首页的雕版线在 `Shell/Home/`：着色器运行时编译（命令行工具没有 Metal 编译器），放大镜里是同一组曲线。不跑循环，只有东西在动时才有显示链接，所以被窗口挡住时不出帧，自动化要看效果用 `--cmd homepng:路径`。自动化运行读不到真实的最近打开，只读环境变量 `LOUPE_RECENTS`。
+首页的雕版线在 `Shell/Home/`：着色器运行时编译（命令行工具没有 Metal 编译器），放大镜里是同一组曲线。不跑循环，只有东西在动时才有显示链接，所以被窗口挡住时不出帧，自动化要看效果用 `--cmd homepng:路径`。自动化运行读不到真实的最近打开，只读环境变量 `PERLUSTRA_RECENTS`。
 
 颜色都在 `DesignSystem/Theme.swift`，用动态色，浅色和黑色各一套。给图层设颜色时不能直接取 `Theme.x.cgColor`：它按当前外观解析，系统是浅色、应用选了黑色时会取到浅色。要用 `NSView.resolved(_:)`，或者在 `updateLayer()` 里取，或者用 `SurfaceView`。架构检查会拦这种写法。
 

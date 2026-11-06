@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Generates fixtures/office/charts.xlsx: every kind of object Loupe draws over a sheet.
+"""Generates fixtures/office/charts.xlsx: every kind of object Perlustra draws over a sheet.
 
 openpyxl writes charts with cell references only (no cached values) — the case that left
-sheets blank — so these also check that Loupe reads the numbers from the cells itself.
+sheets blank — so these also check that Perlustra reads the numbers from the cells itself.
 Run: python3 scripts/gen-chart-fixtures.py"""
 from pathlib import Path
 

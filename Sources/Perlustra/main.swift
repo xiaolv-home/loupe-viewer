@@ -1,0 +1,3 @@
+import PerlustraApp
+
+PerlustraApplication.run()
