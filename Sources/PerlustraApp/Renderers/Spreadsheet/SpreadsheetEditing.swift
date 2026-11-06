@@ -97,10 +97,8 @@ extension SpreadsheetRenderer {
         guard !changes.isEmpty else { return }
         let rowsBefore = sheet.rows.count, colsBefore = sheet.columnCount
         let undo = doc.apply(changes)
-        if let um = grid.window?.undoManager {
-            um.registerUndo(withTarget: self) { r in r.apply(undo, name: name) }
-            um.setActionName(name)
-        }
+        history.registerUndo(withTarget: self) { r in r.apply(undo, name: name) }
+        history.setActionName(name)
         markDirty()
         // New rows/columns, or wrapped text that may change its row's height, need a new layout.
         if sheet.rows.count != rowsBefore || sheet.columnCount != colsBefore
@@ -124,7 +122,7 @@ extension SpreadsheetRenderer {
 
     func markSaved() {
         doc.markSaved()
-        grid.window?.undoManager?.removeAllActions(withTarget: self)
+        history.removeAllActions()
         markDirty()
     }
 

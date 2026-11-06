@@ -12,6 +12,30 @@ extension NSToolbarItem.Identifier {
 }
 
 @MainActor
+/// Gives each tab that keeps a history ⌘Z to itself; the rest share the window's. AppKit consults
+/// neither the delegate's `windowWillReturnUndoManager` nor an overridden `undoManager` for its own
+/// undo action, so the window answers the menu's actions itself.
+final class ViewerWindow: NSWindow {
+    var ownUndoManager: () -> UndoManager? = { nil }
+    override var undoManager: UndoManager? { ownUndoManager() ?? super.undoManager }
+
+    @objc func undo(_ sender: Any?) { undoManager?.undo() }
+    @objc func redo(_ sender: Any?) { undoManager?.redo() }
+
+    override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        switch item.action {
+        case #selector(undo(_:)): return validate(item, title: "撤销", name: undoManager?.undoActionName, enabled: undoManager?.canUndo)
+        case #selector(redo(_:)): return validate(item, title: "重做", name: undoManager?.redoActionName, enabled: undoManager?.canRedo)
+        default: return super.validateUserInterfaceItem(item)
+        }
+    }
+
+    private func validate(_ item: NSValidatedUserInterfaceItem, title: String, name: String?, enabled: Bool?) -> Bool {
+        (item as? NSMenuItem)?.title = enabled == true && name?.isEmpty == false ? "\(title) \(name ?? "")" : title
+        return enabled == true
+    }
+}
+
 final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSToolbarDelegate, NSSharingServicePickerToolbarItemDelegate {
     /// The open documents (tabs); `model` is the one showing.
     let tabs: TabList
@@ -34,7 +58,7 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
     var onClose: ((ViewerWindowController) -> Void)?
 
     init(autosave: Bool) {
-        let window = NSWindow(
+        let window = ViewerWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1080, height: 720),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered, defer: false)
@@ -98,6 +122,7 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
         toolbar.allowsUserCustomization = false
         window.toolbar = toolbar
         window.delegate = self
+        window.ownUndoManager = { [weak self] in self?.model.renderer?.documentUndoManager }
 
         if autosave && !AppEnvironment.isScripted {
             windowFrameAutosaveName = "PerlustraMainWindow"

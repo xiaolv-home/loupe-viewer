@@ -257,7 +257,7 @@ struct ColumnPanel: View {
     @State private var checked = Set<String>()
 
     var title: String {
-        let h = r.headerRow ? r.sheet.cell(0, column).display : ""
+        let h = r.query.headerRowIndex.map { r.sheet.cell($0, column).display } ?? ""
         return "列 \(Sheet.columnName(column))" + (h.isEmpty ? "" : " · \(h)")
     }
 

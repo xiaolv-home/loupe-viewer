@@ -36,6 +36,9 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
     var externalCache: [String: Workbook] = [:]
     @Published var searchInfo = ""
     @Published var headerRow = true
+    /// One history per table, so ⌘Z never reaches into another tab sharing the window.
+    let history = UndoManager()
+    var documentUndoManager: UndoManager? { history }
 
     /// The workbook and its unsaved changes; the grid only shows and edits it.
     var doc = SpreadsheetDocument(workbook: Workbook(sheets: [], source: ""))
@@ -158,12 +161,7 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
         doc = SpreadsheetDocument(workbook: wb)
         queries = wb.sheets.map { s in
             var q = SheetQuery()
-            // A frozen pane's last row is the header (rows above it, like a title, stay pinned).
-            if s.frozenRows >= 1 && s.frozenRows <= 12 && s.frozenRows < s.rows.count {
-                q.headerRowIndex = s.frozenRows - 1
-            } else {
-                q.headerRowIndex = Self.looksLikeHeader(s) ? 0 : nil
-            }
+            q.headerRowIndex = SheetQuery.guessedHeaderRow(in: s)
             q.hiddenRows = s.hiddenRows
             q.hiddenColumns = s.hiddenColumns
             return q
@@ -197,24 +195,6 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
             self.workbookTask = nil
             self.host?.rendererDidUpdate()
         }
-    }
-
-    /// A first row of all-text cells above a row containing numbers reads as a header.
-    static func looksLikeHeader(_ s: Sheet) -> Bool {
-        guard s.rows.count > 1 else { return false }
-        let first = s.rows[0]
-        guard !first.isEmpty,
-            first.allSatisfy({
-                if case .text = $0 { return true }; return $0.isEmpty
-            })
-        else { return false }
-        let probe = s.rows.dropFirst().prefix(20)
-        return probe.contains { row in
-            row.contains {
-                if case .number = $0 { return true }; if case .date = $0 { return true }; return false
-            }
-        }
-            || Set(first.map(\.display)).count == first.count
     }
 
     private func buildView() {
@@ -342,57 +322,6 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
         grid.scrollOrigin(to: .zero)
     }
 
-    func setHeaderRow(_ on: Bool) {
-        var q = query
-        q.headerRowIndex = on ? (sheet.frozenRows >= 1 && sheet.frozenRows <= 12 ? sheet.frozenRows - 1 : 0) : nil
-        query = q
-        reloadSheet(resetSelection: true)
-    }
-
-    func sort(column c: Int, ascending: Bool?) {
-        var q = query
-        if let ascending { q.sortColumn = c; q.ascending = ascending } else { q.sortColumn = nil }
-        query = q
-        reloadSheet()
-    }
-
-    func setFilter(_ rule: FilterRule?, column c: Int) {
-        var q = query
-        q.filters[c] = rule
-        query = q
-        reloadSheet(resetSelection: true)
-    }
-
-    func clearFilters() {
-        var q = query
-        q.filters = [:]
-        q.sortColumn = nil
-        query = q
-        reloadSheet(resetSelection: true)
-    }
-
-    func hideSelectedRows() {
-        var q = query
-        for rect in rects { for r in rect.r0...rect.r1 where r < visible.count { q.hiddenRows.insert(visible[r]) } }
-        query = q
-        reloadSheet(resetSelection: true)
-    }
-
-    func hideColumns(_ cols: [Int]) {
-        var q = query
-        q.hiddenColumns.formUnion(cols)
-        query = q
-        reloadSheet()
-    }
-
-    func unhideAll() {
-        var q = query
-        q.hiddenRows = []
-        q.hiddenColumns = []
-        query = q
-        reloadSheet()
-    }
-
     var hiddenCount: (rows: Int, cols: Int) { (query.hiddenRows.count, query.hiddenColumns.count) }
     var isFiltered: Bool { !query.filters.isEmpty || query.sortColumn != nil }
 
@@ -415,7 +344,7 @@ final class SpreadsheetRenderer: NSObject, Renderer, ObservableObject, GridViewO
 
     func cleanup() {
         workbookTask?.cancel()
-        grid.window?.undoManager?.removeAllActions(withTarget: self)
+        history.removeAllActions()
         editor?.removeFromSuperview()
         editor = nil
         host?.window?.isDocumentEdited = false

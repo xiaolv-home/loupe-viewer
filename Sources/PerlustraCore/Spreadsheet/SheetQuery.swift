@@ -43,7 +43,7 @@ public enum FilterRule: Sendable, Equatable {
 }
 
 /// View state over a sheet: which rows show, in what order. The sheet itself is never modified.
-public struct SheetQuery: Sendable {
+public struct SheetQuery: Sendable, Equatable {
     /// Row used for column captions (nil = none). Rows above it are pinned at the top,
     /// shown as-is and never filtered or sorted (e.g. a report title above a frozen header).
     public var headerRowIndex: Int? = 0
@@ -60,6 +60,44 @@ public struct SheetQuery: Sendable {
     public init() {}
 
     public var firstDataRow: Int { headerRowIndex.map { $0 + 1 } ?? 0 }
+
+    /// Sorting and filtering start at this row; it and the rows below move, the rows above stay put,
+    /// with the one just above serving as the column captions.
+    public mutating func startData(at row: Int) { headerRowIndex = row > 0 ? row - 1 : nil }
+
+    /// Which row holds the column captions. A frozen pane's last row usually does, and a title or
+    /// blank line above the captions is passed over, so that the captions are not sorted as data.
+    public static func guessedHeaderRow(in s: Sheet) -> Int? {
+        let frozen = s.frozenRows >= 1 && s.frozenRows <= 12 && s.frozenRows < s.rows.count ? s.frozenRows - 1 : nil
+        let start = frozen ?? 0
+        var row = start
+        while row < min(s.rows.count - 1, start + 6), isTitleLine(s, row) { row += 1 }
+        if row != start, s.rows[row].filter({ !$0.isEmpty }).count >= 2, looksLikeCaptions(s, row) { return row }
+        if let frozen { return frozen }
+        return looksLikeCaptions(s, 0) ? 0 : nil
+    }
+
+    /// A line with at most one cell filled in, in a table with more columns than that.
+    private static func isTitleLine(_ s: Sheet, _ row: Int) -> Bool {
+        s.columnCount >= 3 && s.rows.indices.contains(row) && s.rows[row].filter { !$0.isEmpty }.count <= 1
+    }
+
+    /// All text, above rows holding numbers or dates, or else all different.
+    private static func looksLikeCaptions(_ s: Sheet, _ row: Int) -> Bool {
+        guard s.rows.count > row + 1 else { return false }
+        let line = s.rows[row]
+        guard !line.isEmpty,
+            line.allSatisfy({
+                if case .text = $0 { return true }; return $0.isEmpty
+            })
+        else { return false }
+        let below = s.rows.dropFirst(row + 1).prefix(20)
+        return below.contains { cells in
+            cells.contains {
+                if case .number = $0 { return true }; if case .date = $0 { return true }; return false
+            }
+        } || Set(line.map(\.display)).count == line.count
+    }
     /// Rows that stay at the top, untouched by filters and sorting: the header row and anything above it.
     public var pinnedRows: [Int] { headerRowIndex.map { Array(0...$0) } ?? [] }
     public var isFiltered: Bool { !filters.isEmpty || !hiddenRows.isEmpty }

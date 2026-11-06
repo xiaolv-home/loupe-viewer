@@ -14,9 +14,8 @@ extension SpreadsheetRenderer {
     func snapshot() -> Snapshot { Snapshot(doc: doc, queries: queries, sheetIndex: sheetIndex) }
 
     func registerUndo(restoring s: Snapshot, name: String) {
-        guard let um = grid.window?.undoManager else { return }
-        um.registerUndo(withTarget: self) { r in r.restore(s, name: name) }
-        um.setActionName(name)
+        history.registerUndo(withTarget: self) { r in r.restore(s, name: name) }
+        history.setActionName(name)
     }
 
     /// Puts a snapshot back and registers the opposite step (undo ⇄ redo).

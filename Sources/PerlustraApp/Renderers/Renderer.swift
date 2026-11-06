@@ -132,6 +132,8 @@ struct NoticeAction {
 /// then `cleanup()` releases players, web views and caches before being dropped.
 @MainActor
 protocol Renderer: AnyObject {
+    /// The history ⌘Z works through while this document shows, if it keeps one of its own.
+    var documentUndoManager: UndoManager? { get }
     /// Short engine name shown in the status strip ("PDFKit", "ImageIO" …).
     static var engineName: String { get }
     static func canHandle(_ file: FileContext) -> Bool
@@ -200,6 +202,7 @@ extension Renderer {
     var wantsSpaceKey: Bool { false }
     var initialFirstResponder: NSView? { nil }
     var engineName: String { Self.engineName }
+    var documentUndoManager: UndoManager? { nil }
     var hasUnsavedChanges: Bool { false }
     func saveChanges(completion: @escaping (Bool) -> Void) { completion(true) }
     func willBeReplaced() {}

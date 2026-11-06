@@ -295,3 +295,83 @@ struct HiddenSheetTests {
         #expect(FormulaEngine.evaluate("=参数!A1", in: FormulaContext(workbook: wb, sheet: 0)).cell == .text("参数"))
     }
 }
+
+@Suite("从指定行开始排序和筛选")
+struct SortFromRowTests {
+    /// A title, captions, then rows whose cells must stay together.
+    private var report: Sheet {
+        Sheet(
+            name: "报表",
+            rows: [
+                [.text("北京战区月度门店数"), .empty, .empty],
+                [.text("月份"), .text("门店"), .text("金额")],
+                [.text("1月"), .text("甲"), .number(30)],
+                [.text("2月"), .text("乙"), .number(10)],
+                [.text("3月"), .text("丙"), .number(20)],
+                [.text("4月"), .text("丁"), .number(40)],
+            ])
+    }
+
+    @Test("标题行下面的表头会被认出来")
+    func titleAboveCaptions() {
+        #expect(SheetQuery.guessedHeaderRow(in: report) == 1)
+    }
+
+    @Test("冻结了标题行时也认下一行表头")
+    func frozenTitle() {
+        var s = report
+        s.frozenRows = 1
+        #expect(SheetQuery.guessedHeaderRow(in: s) == 1)
+    }
+
+    @Test("冻结到表头时就用冻结行，普通首行表头不变")
+    func ordinaryHeaders() {
+        var s = report
+        s.frozenRows = 2
+        #expect(SheetQuery.guessedHeaderRow(in: s) == 1)
+        let plain = Sheet(name: "a", rows: [[.text("名"), .text("值"), .text("注")], [.text("甲"), .number(1), .empty]])
+        #expect(SheetQuery.guessedHeaderRow(in: plain) == 0)
+        let noHeader = Sheet(name: "b", rows: [[.number(1), .number(2), .number(3)], [.number(4), .number(5), .number(6)]])
+        #expect(SheetQuery.guessedHeaderRow(in: noHeader) == nil)
+    }
+
+    @Test("排序时每行整行一起移动")
+    func rowsMoveWhole() {
+        let s = report
+        var q = SheetQuery()
+        q.headerRowIndex = 1
+        q.sortColumn = 2
+        q.ascending = false
+        let order = q.visibleRows(in: s)
+        #expect(order == [0, 1, 5, 2, 4, 3])
+        let shown = order.dropFirst(2).map { "\(s.cell($0, 0).display)\(s.cell($0, 1).display)\(s.cell($0, 2).display)" }
+        #expect(shown == ["4月丁40", "1月甲30", "3月丙20", "2月乙10"])
+    }
+
+    @Test("指定行以上不动，以下才排序")
+    func sortBelowRow() {
+        var q = SheetQuery()
+        q.startData(at: 4)
+        q.sortColumn = 2
+        q.ascending = false
+        #expect(q.headerRowIndex == 3)
+        #expect(q.visibleRows(in: report) == [0, 1, 2, 3, 5, 4])
+    }
+
+    @Test("指定行以上不被筛掉")
+    func filterBelowRow() {
+        var q = SheetQuery()
+        q.startData(at: 4)
+        q.filters[1] = .values(["丁"])
+        #expect(q.visibleRows(in: report) == [0, 1, 2, 3, 5])
+        #expect(q.distinctValues(in: report, column: 1).map(\.0).sorted() == ["丁", "丙"].sorted())
+    }
+
+    @Test("从第一行开始就没有表头")
+    func fromTop() {
+        var q = SheetQuery()
+        q.startData(at: 0)
+        #expect(q.headerRowIndex == nil)
+        #expect(q.firstDataRow == 0)
+    }
+}

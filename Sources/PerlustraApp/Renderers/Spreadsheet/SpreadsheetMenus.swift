@@ -63,6 +63,13 @@ extension SpreadsheetRenderer {
                 item("升序排序") { [weak self] in self?.sort(column: p.col, ascending: true) }
                 item("降序排序") { [weak self] in self?.sort(column: p.col, ascending: false) }
                 item("筛选此列…") { [weak self] in self?.openColumnPanel(p.col) }
+                let row = visible[p.row]
+                if row != query.firstDataRow || query.sortColumn == nil {
+                    sep()
+                    item("从第 \(row + 1) 行往下升序排序") { [weak self] in self?.sort(fromSheetRow: row, column: p.col, ascending: true) }
+                    item("从第 \(row + 1) 行往下降序排序") { [weak self] in self?.sort(fromSheetRow: row, column: p.col, ascending: false) }
+                    item("从第 \(row + 1) 行往下筛选此列…") { [weak self] in self?.openFilter(fromSheetRow: row, column: p.col) }
+                }
             }
             sep()
             item("隐藏所选行") { [weak self] in self?.hideSelectedRows() }
@@ -85,7 +92,7 @@ extension SpreadsheetRenderer {
                 addStructureItems(item, rows: false, cols: true)
             }
             sep()
-            item(headerRow ? "不把这行当表头" : "把第 1 行当表头") { [weak self] in
+            item(headerRow ? "取消表头" : "自动识别表头") { [weak self] in
                 guard let self else { return }
                 self.setHeaderRow(!self.headerRow)
             }
@@ -102,6 +109,14 @@ extension SpreadsheetRenderer {
         menu { item, sep in
             if editingEnabled {
                 addStructureItems(item, rows: true, cols: false)
+                sep()
+            }
+            if visible.indices.contains(row) {
+                let sheetRow = visible[row]
+                item("从第 \(sheetRow + 1) 行开始排序和筛选") { [weak self] in self?.startData(atSheetRow: sheetRow) }
+                if sheetRow + 1 < sheet.rows.count {
+                    item("把第 \(sheetRow + 1) 行当表头") { [weak self] in self?.startData(atSheetRow: sheetRow + 1) }
+                }
                 sep()
             }
             item("隐藏所选行") { [weak self] in self?.hideSelectedRows() }

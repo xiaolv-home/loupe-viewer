@@ -47,7 +47,10 @@ import PerlustraCore
             while workbookTask != nil { await pause(0.05) }
             // Each scripted step is its own undo step, as separate user actions would be.
             let um = window.undoManager
-            let grouped = ["insrows", "inscols", "delrows", "delcols", "edit", "resizecol", "resizerow", "merge", "mergeforce", "unmerge"].contains(verb)
+            let grouped = [
+                "sort", "filter", "gt", "clear", "startrow", "startsort", "insrows", "inscols", "delrows", "delcols", "edit", "resizecol", "resizerow", "merge",
+                "mergeforce", "unmerge",
+            ].contains(verb)
             if grouped { um?.groupsByEvent = false; um?.beginUndoGrouping() }
             defer { if grouped { um?.endUndoGrouping() } }
             switch verb {
@@ -62,6 +65,16 @@ import PerlustraCore
                 let kv = arg.split(separator: ",").map(String.init)
                 r.sort(column: Int(kv[0]) ?? 0, ascending: kv.count < 2 || kv[1] != "desc")
             case "clear": r.clearFilters()
+            case "startrow": r.startData(atSheetRow: Int(arg) ?? 0)
+            case "startsort":
+                let kv = arg.split(separator: ",").map(String.init)
+                r.sort(fromSheetRow: Int(kv[0]) ?? 0, column: Int(kv[1]) ?? 0, ascending: kv.count < 3 || kv[2] != "desc")
+            case "rows":
+                print(
+                    "SHEET rows",
+                    r.visible.prefix(Int(arg) ?? 8).map { row in
+                        "\(row + 1):" + (0..<r.sheet.columnCount).map { r.sheet.cell(row, $0).display }.joined(separator: "|")
+                    })
             case "formula", "calc": r.calcText = arg; r.calculate(); await pause(0.8); print("SHEET result", r.resultText)
             case "fill": r.calcText = arg; r.fillComputedColumn(); await pause(1.5)
             case "search": r.searchText = arg; r.runSearch(); print("SHEET search", r.searchInfo, r.address)
@@ -179,8 +192,9 @@ import PerlustraCore
             case "qltree": print(debugOriginalTree())
             case "qljs": print("QLJS", await (originalView as? OriginalPreview)?.evaluate(arg) ?? "no preview")
             case "qlzoom": originalZoom = CGFloat(Double(arg) ?? 100) / 100
-            case "undo": window.undoManager?.undo()
-            case "redo": window.undoManager?.redo()
+            // The action the 撤销 menu item sends, so the menu's route is what gets tested.
+            case "undo": window.perform(Selector(("undo:")), with: nil)
+            case "redo": window.perform(Selector(("redo:")), with: nil)
             case "save": r.save { ok in print("SHEET saved", ok) }; await pause(1.5)
             case "saveas": r.write(to: URL(fileURLWithPath: arg)) { ok in print("SHEET savedAs", ok) }; await pause(1.5)
             default: print("SHEET unknown verb", verb)
