@@ -1,0 +1,3 @@
+import LoupeApp
+
+LoupeApplication.run()

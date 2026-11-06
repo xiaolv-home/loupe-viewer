@@ -34,11 +34,11 @@ if [[ "$CONFIG" == "release" ]]; then
 else
   cp "$BIN_NATIVE" "$APP/Contents/MacOS/Loupe"
 fi
-cp Sources/Loupe/Info.plist "$APP/Contents/Info.plist"
+cp Sources/LoupeApp/Info.plist "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 if [[ -f Resources/AppIcon.icns ]]; then cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"; fi
-rsync -a --delete --exclude '.DS_Store' Sources/Loupe/Resources/web/ "$APP/Contents/Resources/web/"
-rsync -a --delete --exclude '.DS_Store' Sources/Loupe/Resources/skills/ "$APP/Contents/Resources/skills/"
+rsync -a --delete --exclude '.DS_Store' Sources/LoupeApp/Resources/web/ "$APP/Contents/Resources/web/"
+rsync -a --delete --exclude '.DS_Store' Sources/LoupeApp/Resources/skills/ "$APP/Contents/Resources/skills/"
 # The app redistributes the vendored web libraries: ship the licence texts with it.
 cp LICENSE NOTICE "$APP/Contents/Resources/"
 

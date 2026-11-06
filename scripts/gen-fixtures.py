@@ -55,7 +55,7 @@ code = {
 }
 for name, body in code.items():
     p("code", name).write_text(body, encoding="utf-8")
-shutil.copy(Path(__file__).resolve().parent.parent / "Sources/Loupe/Renderers/TextRenderer.swift", p("code", "TextRenderer.swift"))
+shutil.copy(Path(__file__).resolve().parent.parent / "Sources/LoupeApp/Renderers/Text/TextRenderer.swift", p("code", "TextRenderer.swift"))
 
 # Large file (> 50 MB) to exercise the virtualised line view.
 big = p("text", "large-60mb.log")

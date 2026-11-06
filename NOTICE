@@ -16,9 +16,9 @@ by the MIT license above.
 
 == Bundled third-party software ==
 
-Sources/Loupe/Resources/web/vendor holds these libraries, used to render Markdown,
+Sources/LoupeApp/Resources/web/vendor holds these libraries, used to render Markdown,
 code and diagrams inside the app. Each one's license text is in
-Sources/Loupe/Resources/web/vendor/licenses.
+Sources/LoupeApp/Resources/web/vendor/licenses.
 
   highlight.js 11.11.1            BSD-3-Clause      (c) 2006 Ivan Sagalaev
   markdown-it 14.1.0              MIT               (c) 2014 Vitaly Puzrin, Alex Kocharin
@@ -29,7 +29,7 @@ Sources/Loupe/Resources/web/vendor/licenses.
                                                     permissively licensed dependencies (d3, dagre…)
   DOMPurify 3.2.6                 Apache-2.0 or MPL-2.0 (c) Dr.-Ing. Mario Heiderich, Cure53
 
-Sources/Loupe/Resources/web/vditor holds the Markdown writer (a subset of its dist folder:
+Sources/LoupeApp/Resources/web/vditor holds the Markdown writer (a subset of its dist folder:
 the editor, its Lute Markdown engine, Chinese strings, icons, content themes, extra
 highlight.js languages and styles, and KaTeX's mhchem). KaTeX, Mermaid and highlight.js
 requests are served from the copies listed above.

@@ -16,17 +16,26 @@ let package = Package(
             dependencies: ["CArchive"],
             path: "Sources/LoupeCore"
         ),
-        .executableTarget(
-            name: "Loupe",
+        .target(
+            name: "LoupeApp",
             dependencies: ["LoupeCore", "LoupeObjC"],
-            path: "Sources/Loupe",
+            path: "Sources/LoupeApp",
             exclude: ["Resources", "Info.plist"],
-            swiftSettings: [.unsafeFlags(["-Onone"], .when(configuration: .debug))],
             linkerSettings: [
                 .linkedFramework("AppKit"), .linkedFramework("Quartz"), .linkedFramework("PDFKit"),
                 .linkedFramework("AVKit"), .linkedFramework("AVFoundation"), .linkedFramework("WebKit"),
                 .linkedFramework("CoreText"), .linkedFramework("OpenGL"), .linkedFramework("Vision")
             ]
+        ),
+        .executableTarget(
+            name: "Loupe",
+            dependencies: ["LoupeApp"],
+            path: "Sources/Loupe"
+        ),
+        .testTarget(
+            name: "LoupeAppTests",
+            dependencies: ["LoupeApp", "LoupeCore"],
+            path: "Tests/LoupeAppTests"
         ),
         .testTarget(
             name: "LoupeCoreTests",

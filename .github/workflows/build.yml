@@ -66,7 +66,7 @@ jobs:
       - name: 标签与版本号一致
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          ver=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Sources/Loupe/Info.plist)
+          ver=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Sources/LoupeApp/Info.plist)
           [ "v$ver" = "$GITHUB_REF_NAME" ] || { echo "::error::Info.plist 是 $ver，标签是 $GITHUB_REF_NAME"; exit 1; }
 
       - uses: actions/upload-artifact@v4
