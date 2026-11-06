@@ -151,10 +151,16 @@ final class FolderBrowser: ObservableObject {
         return out
     }
 
+    /// Asked for whenever the sidebar redraws, and working it out checks files on disk, so the
+    /// answer is kept for a moment. It only fills a menu, where a few seconds' lag can't be seen.
     static var recentFolders: [URL] {
+        if let kept = recentFoldersKept, Date().timeIntervalSince(kept.at) < 10 { return kept.folders }
         var seen = Set<String>()
-        return RecentFiles.all().map { $0.deletingLastPathComponent() }.filter { seen.insert($0.path).inserted }.prefix(6).map { $0 }
+        let folders = RecentFiles.all().map { $0.deletingLastPathComponent() }.filter { seen.insert($0.path).inserted }.prefix(6).map { $0 }
+        recentFoldersKept = (Date(), folders)
+        return folders
     }
+    private static var recentFoldersKept: (at: Date, folders: [URL])?
 
     /// Folders first, then files and packages (iWork documents open as files), by name.
     nonisolated static func list(_ dir: URL, showHidden: Bool) -> [Item] {

@@ -210,7 +210,7 @@ private struct AIFileCard: View {
 
     var body: some View {
         HStack(spacing: 9) {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable().frame(width: 28, height: 28)
+            Image(nsImage: FileIcons.icon(for: url)).resizable().frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 1) {
                 Text(url.lastPathComponent).font(.system(size: 12, weight: .semibold)).lineLimit(1).truncationMode(.middle)
                 Text(url.deletingLastPathComponent().path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))

@@ -45,6 +45,8 @@ final class DrawingPainter {
 
     // MARK: Shapes
 
+    private var isDark: Bool { NSAppearance.currentDrawing().bestMatch(from: [.darkAqua, .aqua]) == .darkAqua }
+
     private func ns(_ c: RGBA) -> NSColor {
         NSColor(srgbRed: CGFloat(c.r) / 255, green: CGFloat(c.g) / 255, blue: CGFloat(c.b) / 255, alpha: CGFloat(c.a) / 255)
     }
@@ -94,7 +96,7 @@ final class DrawingPainter {
 
     private func drawShape(_ s: DrawingShape, in r: CGRect, scale: CGFloat) {
         let line = s.line
-        let lineColor = line?.color.map(ns) ?? NSColor(white: 0.35, alpha: 1)
+        let lineColor = line?.color.map(ns) ?? (isDark ? NSColor(white: 1, alpha: 0.45) : NSColor(white: 0.35, alpha: 1))
         let lineWidth = max(0.5, CGFloat(line?.width ?? 0.75) * 4 / 3 * scale)
         if s.isLine {
             guard line?.none != true else { return }
@@ -143,7 +145,7 @@ final class DrawingPainter {
                 if run.italic { font = NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask) }
                 var attrs: [NSAttributedString.Key: Any] = [
                     .font: font, .paragraphStyle: style,
-                    .foregroundColor: run.color.map(ns) ?? NSColor(white: 0.12, alpha: 1),
+                    .foregroundColor: run.color.map(ns) ?? (isDark && s.fill == nil ? Theme.ink : NSColor(white: 0.12, alpha: 1)),
                 ]
                 if run.underline { attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue }
                 text.append(NSAttributedString(string: run.text, attributes: attrs))
@@ -159,9 +161,9 @@ final class DrawingPainter {
 
     /// An object Loupe cannot draw: a labelled box where it sits, so nothing looks missing.
     private func placeholder(_ what: String, in r: CGRect, scale: CGFloat) {
-        NSColor(white: 0.96, alpha: 1).setFill()
+        (isDark ? NSColor(white: 1, alpha: 0.05) : NSColor(white: 0.96, alpha: 1)).setFill()
         r.fill()
-        NSColor(white: 0.8, alpha: 1).setStroke()
+        (isDark ? NSColor(white: 1, alpha: 0.2) : NSColor(white: 0.8, alpha: 1)).setStroke()
         let p = NSBezierPath(rect: r.insetBy(dx: 0.5, dy: 0.5))
         p.setLineDash([4, 3], count: 2, phase: 0)
         p.stroke()

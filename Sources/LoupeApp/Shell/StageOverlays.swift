@@ -235,7 +235,7 @@ struct FailureView: View {
     var body: some View {
         VStack(spacing: 18) {
             ZStack {
-                Image(nsImage: NSWorkspace.shared.icon(forFile: file.url.path))
+                Image(nsImage: FileIcons.icon(for: file.url))
                     .resizable().frame(width: 96, height: 96)
                 Image(systemName: "exclamationmark.circle.fill")
                     .font(.system(size: 24)).foregroundStyle(.white, Theme.ember)

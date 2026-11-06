@@ -18,9 +18,9 @@ struct ChartPainter {
         guard rect.width > 4, rect.height > 4, let ctx = NSGraphicsContext.current?.cgContext else { return }
         ctx.saveGState()
         ctx.clip(to: rect)
-        (spec.background.map(ns) ?? .white).setFill()
+        cardColor.setFill()
         rect.fill()
-        NSColor(white: 0.85, alpha: 1).setStroke()
+        frameColor.setStroke()
         let frame = NSBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5))
         frame.lineWidth = 1
         frame.stroke()
@@ -30,7 +30,7 @@ struct ChartPainter {
             let t = spec.title
             let font = NSFont.systemFont(ofSize: px(t?.size ?? 14), weight: (t?.bold ?? true) ? .semibold : .regular)
             let h = drawText(
-                title, font: font, color: t?.color.map(ns) ?? NSColor(white: 0.25, alpha: 1),
+                title, font: font, color: t?.color.map(readable) ?? (isDark ? Theme.ink : NSColor(white: 0.25, alpha: 1)),
                 in: CGRect(x: area.minX, y: area.minY, width: area.width, height: area.height * 0.3), align: .center)
             area.origin.y += h + 6 * scale
             area.size.height -= h + 6 * scale
@@ -58,7 +58,33 @@ struct ChartPainter {
 
     func px(_ pt: Double) -> CGFloat { CGFloat(pt) * 4 / 3 * scale }
     var labelFont: NSFont { NSFont.systemFont(ofSize: px(9)) }
-    var labelColor: NSColor { NSColor(white: 0.35, alpha: 1) }
+    var labelColor: NSColor { isDark ? NSColor(white: 1, alpha: 0.72) : NSColor(white: 0.35, alpha: 1) }
+
+    // MARK: Colours on black
+
+    /// A chart with no colours of its own, or Office's default white, goes dark with the theme: a
+    /// white card glares on a black page. One given a real colour keeps it.
+    var isDark: Bool { NSAppearance.currentDrawing().bestMatch(from: [.darkAqua, .aqua]) == .darkAqua }
+
+    var cardColor: NSColor {
+        guard isDark else { return spec.background.map(ns) ?? .white }
+        guard let b = spec.background, Self.luminance(b) < 0.9 else { return NSColor(hex: 0x141417) }
+        return ns(b)
+    }
+
+    var frameColor: NSColor { isDark ? NSColor(white: 1, alpha: 0.14) : NSColor(white: 0.85, alpha: 1) }
+    var gridColor: NSColor { isDark ? NSColor(white: 1, alpha: 0.1) : NSColor(white: 0.88, alpha: 1) }
+    var axisColor: NSColor { isDark ? NSColor(white: 1, alpha: 0.3) : NSColor(white: 0.75, alpha: 1) }
+
+    /// Text given a dark colour for a white card would vanish on a black one.
+    func readable(_ c: RGBA) -> NSColor {
+        guard isDark, Self.luminance(c) < 0.4, cardColor.brightnessComponentOrZero < 0.5 else { return ns(c) }
+        return Int(max(c.r, c.g, c.b)) - Int(min(c.r, c.g, c.b)) < 48 ? Theme.ink : (ns(c).blended(withFraction: 0.45, of: .white) ?? ns(c))
+    }
+
+    private static func luminance(_ c: RGBA) -> Double {
+        (0.2126 * Double(c.r) + 0.7152 * Double(c.g) + 0.0722 * Double(c.b)) / 255
+    }
 
     func ns(_ c: RGBA) -> NSColor {
         NSColor(srgbRed: CGFloat(c.r) / 255, green: CGFloat(c.g) / 255, blue: CGFloat(c.b) / 255, alpha: CGFloat(c.a) / 255)
@@ -129,7 +155,7 @@ struct ChartPainter {
         case "ctr": (at, anchor) = (q, (0.5, 0.5))
         default: (at, anchor) = (CGPoint(x: q.x, y: q.y - gap), (0.5, 1))
         }
-        label(text, at: at, anchor: anchor, font: font(of: l), color: l.color.map(ns))
+        label(text, at: at, anchor: anchor, font: font(of: l), color: l.color.map(readable))
     }
 
     func drawEmpty(in r: CGRect) {

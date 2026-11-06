@@ -23,6 +23,10 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
     private let stageHost = NSViewController()
     private let split = NSSplitViewController()
     private var sidebarItem: NSSplitViewItem!
+    private weak var tabStripContainer: TabStripContainer?
+    #if DEBUG
+        var debugTabStripView: NSView? { tabStripContainer }
+    #endif
     private var inspectorItem: NSSplitViewItem!
     private var aiItem: NSSplitViewItem!
     /// The AI conversation in this window (it works on whichever tab is showing).
@@ -124,12 +128,18 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
     /// Puts a document's content in the window; the others stay alive (state kept) but detached.
     private func show(_ m: ViewerModel) {
         guard let s = stages[ObjectIdentifier(m)] else { return }
-        for v in stageHost.view.subviews where v !== s.view { v.removeFromSuperview() }
-        if s.view.superview !== stageHost.view {
-            s.view.frame = stageHost.view.bounds
-            s.view.autoresizingMask = [.width, .height]
-            stageHost.view.addSubview(s.view)
+        // Every open document stays in the window and only its visibility changes: taking a view
+        // out and putting it back makes its whole subtree lay itself out again.
+        // Hidden ones don't follow the window's size either, or resizing would cost more with every
+        // open tab; the one being shown catches up here.
+        if s.view.superview !== stageHost.view { stageHost.view.addSubview(s.view) }
+        if s.view.frame != stageHost.view.bounds { s.view.frame = stageHost.view.bounds }
+        s.view.autoresizingMask = [.width, .height]
+        for v in stageHost.view.subviews where v !== s.view {
+            v.autoresizingMask = []
+            v.isHidden = true
         }
+        s.view.isHidden = false
         tabs.select(m)
         window?.title = m.file?.name ?? "Loupe"
         window?.representedURL = m.file?.url
@@ -174,14 +184,18 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
             show(m)
             return
         }
+        // The tab goes first and the clearing up (web views, players) once it has gone, so closing
+        // never waits for it. Sound stops right away.
         let next = tabs.neighbour(of: m)
-        m.close()
-        if let s = stages.removeValue(forKey: ObjectIdentifier(m)) {
-            s.view.removeFromSuperview()
-            s.removeFromParent()
-        }
+        let stage = stages.removeValue(forKey: ObjectIdentifier(m))
+        m.renderer?.willBeReplaced()
         tabs.remove(m)
         if let next { show(next) }
+        stage?.view.removeFromSuperview()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            m.close()
+            stage?.removeFromParent()
+        }
     }
 
     func document(for url: URL) -> ViewerModel? {
@@ -226,10 +240,17 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
 
     func windowDidResize(_ notification: Notification) { updateStripWidth() }
 
-    func updateStripWidth() {
-        guard let w = window else { return }
-        let sidebar = sidebarItem.isCollapsed ? 0 : sidebarItem.viewController.view.frame.width
-        tabs.availableWidth = max(200, w.frame.width - sidebar - 300)
+    func updateStripWidth() { updateStripWidth(sidebarCollapsed: sidebarItem?.isCollapsed ?? true) }
+
+    /// Worked out for where the sidebar is going, so the strip doesn't wait for it to arrive.
+    private func updateStripWidth(sidebarCollapsed: Bool) {
+        guard let w = window, let sidebarItem else { return }
+        let sidebar = sidebarCollapsed ? 0 : max(sidebarItem.minimumThickness, sidebarItem.viewController.view.frame.width)
+        // What the toolbar needs besides the tabs: the buttons on the right, and with the sidebar
+        // closed also the window controls and the sidebar button on the left.
+        let width = max(200, w.frame.width - sidebar - (sidebarCollapsed ? 470 : 350))
+        tabs.availableWidth = width
+        tabStripContainer?.setWidth(width)
     }
 
     // MARK: Toolbar
@@ -248,14 +269,15 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
         switch id {
         case .loupeTitle:
             let item = NSToolbarItem(itemIdentifier: id)
-            let host = NSHostingView(
-                rootView: TabStrip(
+            let container = TabStripContainer(
+                strip: TabStrip(
                     tabs: tabs,
                     select: { [weak self] m in self?.select(m) },
                     close: { [weak self] m in self?.closeTab(m) },
                     newTab: { [weak self] in self?.addTab(nil) }))
-            host.sizingOptions = [.intrinsicContentSize]
-            item.view = host
+            tabStripContainer = container
+            updateStripWidth()
+            item.view = container
             item.visibilityPriority = .high
             item.label = "标签页"
             return item
@@ -356,8 +378,9 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
     var isAIPanelOpen: Bool { !aiItem.isCollapsed }
 
     @objc func toggleFileSidebar(_ sender: Any?) {
-        sidebarItem.animator().isCollapsed.toggle()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in self?.updateStripWidth() }
+        let collapsing = !sidebarItem.isCollapsed
+        updateStripWidth(sidebarCollapsed: collapsing)
+        sidebarItem.animator().isCollapsed = collapsing
     }
     @objc func previousFile(_ sender: Any?) { model.navigate(-1) }
     @objc func nextFile(_ sender: Any?) { model.navigate(1) }

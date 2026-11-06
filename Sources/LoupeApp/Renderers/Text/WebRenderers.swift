@@ -61,8 +61,12 @@ class WebDocumentRenderer: NSObject, ObservableObject {
         v.isHidden = mode != m
     }
 
+    /// The source view has its text. It fills in a moment after appearing, and until then the empty
+    /// view must not be taken for the document, which would look like an unsaved edit.
+    var sourceIsFilled = true
+
     /// Text as it is now (the source editor's, if it is showing).
-    var currentSource: String { code?.textView.string ?? sourceText }
+    var currentSource: String { sourceIsFilled ? code?.textView.string ?? sourceText : sourceText }
 
     /// Called after source edits settle.
     func sourceDidChange(_ text: String) {}
@@ -87,7 +91,12 @@ class WebDocumentRenderer: NSObject, ObservableObject {
             }
         }
         let t = sourceText, l = sourceLanguage
-        Task { await c.setText(t, language: l, highlight: t.utf8.count <= AppSettings.shared.highlightLimitBytes) }
+        sourceIsFilled = false
+        Task { [weak self] in
+            await c.setText(t, language: l, highlight: t.utf8.count <= AppSettings.shared.highlightLimitBytes)
+            self?.sourceIsFilled = true
+            self?.host?.rendererDidUpdate()
+        }
         return c
     }
 

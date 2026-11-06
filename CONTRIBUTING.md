@@ -26,10 +26,17 @@ scripts/visual-check.py baseline   # 改之前
 scripts/check.sh --visual          # 改之后
 ```
 
+手感不对时先量，再改：
+
+```bash
+scripts/perf.sh                    # 优化版里常用操作的主线程卡顿，一帧是 8–16ms
+```
+
 ## 规范
 
 - **分层**：看 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。违反分层规则或文件超过 600 行，架构检查会失败。
 - **测试**：纯逻辑放 `LoupeCore`，测试写在 `LoupeCoreTests`；渲染器选择、协议行为这类写在 `LoupeAppTests`。用 Swift Testing，因为 XCTest 只随完整 Xcode 提供。
+- **流畅**：不在视图的 `body` 或 `draw` 里碰磁盘、算整篇文档；铺满窗口的效果用图层，不用 `draw(_:)`。
 - **注释**：写为什么，不写做了什么。
 - **界面文字**：说人话，不出现引擎名（PDFKit、Hex）。
 - **设计**：「校样」风格：纸张、裁切标记、一种专色，不加循环动画。

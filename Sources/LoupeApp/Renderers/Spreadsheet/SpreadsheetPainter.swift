@@ -95,7 +95,7 @@ extension SpreadsheetRenderer {
         let lk = CellLook(
             attrs: attrs, font: f, lineHeight: ceil(f.ascender - f.descender + f.leading), fill: fill, align: align,
             vAlign: style?.vAlign ?? workbook.styles.first?.vAlign ?? .bottom, wraps: wraps, borders: style?.borders ?? [],
-            borderColor: style?.borderColor.map(Self.color) ?? NSColor(white: 0.55, alpha: 1))
+            borderColor: borderColor(style?.borderColor))
         lookCache[ck] = lk
         return lk
     }
@@ -289,6 +289,14 @@ extension SpreadsheetRenderer {
     }
 
     private func isText(_ v: CellValue) -> Bool { if case .text = v { return true }; return false }
+
+    /// A cell border as drawn. On black, the usual black or grey lines become a quiet light line:
+    /// following the text's inversion to full white would make a ruled table glare.
+    func borderColor(_ c: RGBA?) -> NSColor {
+        guard isDark else { return c.map(Self.color) ?? NSColor(white: 0.55, alpha: 1) }
+        guard let c, Int(max(c.r, c.g, c.b)) - Int(min(c.r, c.g, c.b)) >= 48 else { return NSColor(white: 1, alpha: 0.26) }
+        return Self.color(c)
+    }
 
     /// A font colour as drawn. Near-black greys on no fill follow the theme, so they stay
     /// readable in dark mode; real colours (red, dark blue…) keep their hue, lifted a little

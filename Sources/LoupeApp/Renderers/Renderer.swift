@@ -58,6 +58,15 @@ struct InfoSection: Identifiable, Hashable {
     var title: String
     var items: [InfoItem]
     init(_ title: String, _ items: [InfoItem]) { self.title = title; self.items = items }
+
+    /// Equal apart from the identities, which differ each time sections are built.
+    static func sameContent(_ a: [InfoSection], _ b: [InfoSection]) -> Bool {
+        a.count == b.count
+            && zip(a, b).allSatisfy { x, y in
+                x.title == y.title && x.items.count == y.items.count
+                    && zip(x.items, y.items).allSatisfy { $0.label == $1.label && $0.value == $1.value }
+            }
+    }
 }
 
 enum ViewerCommand {

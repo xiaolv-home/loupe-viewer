@@ -30,7 +30,7 @@ extension ChartPainter {
             path.close()
             ns(s.series.pointColors[i] ?? theme.seriesColor(i)).setFill()
             path.fill()
-            NSColor.white.setStroke()
+            (isDark ? cardColor : NSColor.white).setStroke()
             path.lineWidth = 1.2 * scale
             path.stroke()
             let l = labels.at(i)
@@ -64,7 +64,7 @@ extension ChartPainter {
             let r = radius * CGFloat(sc.pos(v))
             return CGPoint(x: c.x + CGFloat(cos(a)) * r, y: c.y + CGFloat(sin(a)) * r)
         }
-        NSColor(white: 0.85, alpha: 1).setStroke()
+        frameColor.setStroke()
         for t in sc.ticks where t > sc.min {
             let ring = NSBezierPath()
             for i in 0..<n { let q = point(i, t); if i == 0 { ring.move(to: q) } else { ring.line(to: q) } }
@@ -72,7 +72,7 @@ extension ChartPainter {
         }
         for i in 0..<n {
             // Set every time: the category label drawn below changes the current colours.
-            NSColor(white: 0.85, alpha: 1).setStroke()
+            frameColor.setStroke()
             let spoke = NSBezierPath(); spoke.move(to: c); spoke.line(to: point(i, sc.max)); spoke.lineWidth = 1; spoke.stroke()
             let q = point(i, sc.max)
             let dx = q.x - c.x, dy = q.y - c.y

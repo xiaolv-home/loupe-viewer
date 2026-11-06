@@ -34,7 +34,8 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
 
     required override init() { super.init() }
 
-    var isDraft: Bool { url.map(MarkdownDrafts.contains) ?? false }
+    private lazy var isDraftFile = url.map(MarkdownDrafts.contains) ?? false
+    var isDraft: Bool { isDraftFile }
     var documentURL: URL? { url }
 
     func makeView(for file: FileContext, host: RenderHost) async throws -> NSView {
@@ -148,6 +149,7 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
             default:
                 await reloadSource(sourceText)
             }
+            differsFromSaved = sourceText != savedText
             applyMode()
             if mode == Self.writeMode { writer?.focus() }
         }
@@ -226,9 +228,10 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
     override func sourceDidChange(_ text: String) { edited() }
 
     /// The text now (the source editor's while it is showing).
-    override var currentSource: String { mode == sourceMode ? (code?.textView.string ?? sourceText) : sourceText }
+    override var currentSource: String { mode == sourceMode && sourceIsFilled ? (code?.textView.string ?? sourceText) : sourceText }
 
     private func edited() {
+        differsFromSaved = sourceText != savedText
         if isDraft { scheduleDraftSave() } else if AppSettings.shared.markdownAutosave { scheduleAutosave() }
         host?.window?.isDocumentEdited = hasUnsavedChanges
         host?.rendererDidUpdate()
@@ -244,6 +247,7 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
                 if (try? self.format.write(text, to: url)) != nil {
                     self.diskText = text
                     self.savedText = self.currentSource
+                    self.differsFromSaved = false
                 }
             }
         }
@@ -265,7 +269,10 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
     /// switching shortcut does not recognise as a text field (源码 mode is one already).
     var wantsArrowKeys: Bool { mode == Self.writeMode }
 
-    var hasUnsavedChanges: Bool { !isDraft && currentSource != savedText }
+    /// The tab strip asks on every redraw: comparing whole documents each time would be felt. In the
+    /// source view the text can be ahead of the last report, so there it is always compared.
+    var hasUnsavedChanges: Bool { !isDraft && (mode == sourceMode ? currentSource != savedText : differsFromSaved) }
+    private var differsFromSaved = false
 
     func saveChanges(completion: @escaping (Bool) -> Void) {
         Task {
@@ -373,11 +380,17 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer, FormatCommandHandli
 
     // MARK: Presentation
 
+    /// Counted once per version of the text; moving the selection redraws the status line too.
+    private var counted: (text: String, lines: Int, chars: Int)?
+
     var statusText: String {
         let text = currentSource
-        let lines = text.split(separator: "\n", omittingEmptySubsequences: false).count
-        let chars = text.unicodeScalars.filter { !$0.properties.isWhitespace }.count
-        var s = "\(Fmt.number(lines)) 行 · \(Fmt.number(chars)) 字"
+        if counted?.text != text {
+            let lines = text.split(separator: "\n", omittingEmptySubsequences: false).count
+            let chars = text.unicodeScalars.filter { !$0.properties.isWhitespace }.count
+            counted = (text, lines, chars)
+        }
+        var s = "\(Fmt.number(counted?.lines ?? 0)) 行 · \(Fmt.number(counted?.chars ?? 0)) 字"
         if mode == Self.writeMode && selectedChars > 0 { s += " · 已选 \(Fmt.number(selectedChars)) 字" }
         if isDraft { s += " · 草稿（已自动保存，⌘S 选位置）" } else if hasUnsavedChanges { s += " · ● 已修改（⌘S 保存）" }
         return s

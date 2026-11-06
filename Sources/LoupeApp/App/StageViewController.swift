@@ -2,23 +2,41 @@ import AppKit
 import SwiftUI
 import LoupeCore
 
-/// The proofing table behind everything: a flat neutral with a soft centre light.
+/// The proofing table behind everything: a flat neutral with a soft centre light. Built from layers
+/// the GPU composites: drawn by hand, this gradient had to be repainted across the whole window each
+/// time a tab was shown, which every action in the app could feel.
 final class StageBackgroundView: NSView {
-    override var isFlipped: Bool { true }
+    private let glow = CAGradientLayer()
 
-    override func draw(_ dirtyRect: NSRect) {
-        Theme.stage.setFill()
-        dirtyRect.fill()
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        glow.type = .radial
+        glow.actions = ["bounds": NSNull(), "position": NSNull(), "startPoint": NSNull(), "endPoint": NSNull(), "colors": NSNull()]
+        layer?.addSublayer(glow)
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var isFlipped: Bool { true }
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        layer?.backgroundColor = resolved(Theme.stage)
         // A faint pool of light in the middle, like a lamp over the table.
         let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        if let g = NSGradient(colors: [NSColor.white.withAlphaComponent(isDark ? 0.035 : 0.28), NSColor.white.withAlphaComponent(0)]) {
-            g.draw(in: NSBezierPath(rect: bounds), relativeCenterPosition: NSPoint(x: 0, y: 0.15))
-        }
+        glow.colors = [NSColor.white.withAlphaComponent(isDark ? 0.035 : 0.28).cgColor, NSColor.white.withAlphaComponent(0).cgColor]
     }
 
-    override func viewDidChangeEffectiveAppearance() {
-        super.viewDidChangeEffectiveAppearance()
-        needsDisplay = true
+    override func layout() {
+        super.layout()
+        glow.frame = bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        // A circle reaching the corners, its centre a little below the middle. The end point is in
+        // units of the layer's own width and height, which differ.
+        let centre = CGPoint(x: 0.5, y: 0.575)
+        let radius = hypot(bounds.width / 2, bounds.height / 2)
+        glow.startPoint = centre
+        glow.endPoint = CGPoint(x: centre.x + radius / bounds.width, y: centre.y + radius / bounds.height)
     }
 }
 
@@ -29,9 +47,16 @@ final class SheetFrameView: NSView {
     private var insetConstraints: [NSLayoutConstraint] = []
     private let markLength: CGFloat = 13
     private let markGap: CGFloat = 5
+    /// Vector marks on their own layer, so this view needs no window-sized bitmap of its own.
+    private let marks = CAShapeLayer()
 
     init(content: NSView) {
         super.init(frame: .zero)
+        wantsLayer = true
+        marks.fillColor = nil
+        marks.lineWidth = 0.75
+        marks.actions = ["path": NSNull(), "bounds": NSNull(), "position": NSNull(), "strokeColor": NSNull()]
+        layer?.addSublayer(marks)
         shadowView.wantsLayer = true
         shadowView.layer?.shadowColor = NSColor.black.cgColor
         shadowView.layer?.shadowOpacity = 0.16
@@ -86,53 +111,65 @@ final class SheetFrameView: NSView {
         super.setFrameSize(newSize)
         if (newSize.width < 700) != wasNarrow { updateInsets() }
         shadowView.layer?.shadowPath = CGPath(rect: shadowView.bounds, transform: nil)
-        needsDisplay = true
+        needsLayout = true
     }
 
     private func updateColors() {
-        shadowView.layer?.backgroundColor = Theme.sheet.cgColor
-        paper.layer?.backgroundColor = Theme.sheet.cgColor
-        paper.layer?.borderColor = Theme.hairline.cgColor
+        marks.strokeColor = resolved(Theme.cropMark)
+        shadowView.layer?.backgroundColor = resolved(Theme.sheet)
+        paper.layer?.backgroundColor = resolved(Theme.sheet)
+        paper.layer?.borderColor = resolved(Theme.hairline)
     }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
-        effectiveAppearance.performAsCurrentDrawingAppearance { updateColors() }
-        needsDisplay = true
+        updateColors()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateColors()
+    }
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        marks.contentsScale = window?.backingScaleFactor ?? 2
     }
 
     override func layout() {
         super.layout()
         shadowView.layer?.shadowPath = CGPath(rect: shadowView.bounds, transform: nil)
+        marks.frame = bounds
+        marks.contentsScale = window?.backingScaleFactor ?? 2
+        marks.path = cropMarks(around: paper.frame)
     }
 
     /// Crop marks: short hairlines extending each sheet edge out into the margin.
-    override func draw(_ dirtyRect: NSRect) {
-        let r = paper.frame
-        guard r.width > 40, r.height > 40 else { return }
-        Theme.cropMark.setStroke()
-        let p = NSBezierPath()
-        p.lineWidth = 0.75
+    private func cropMarks(around r: NSRect) -> CGPath? {
+        guard r.width > 40, r.height > 40 else { return nil }
+        let p = CGMutablePath()
         let g = markGap, l = markLength
         for (x, y, dx, dy) in [
             (r.minX, r.minY, -1.0, -1.0), (r.maxX, r.minY, 1.0, -1.0),
             (r.minX, r.maxY, -1.0, 1.0), (r.maxX, r.maxY, 1.0, 1.0),
         ] {
             // horizontal mark, offset from the corner along the edge line
-            p.move(to: NSPoint(x: x + dx * g, y: y)); p.line(to: NSPoint(x: x + dx * (g + l), y: y))
-            p.move(to: NSPoint(x: x, y: y + dy * g)); p.line(to: NSPoint(x: x, y: y + dy * (g + l)))
+            p.move(to: CGPoint(x: x + dx * g, y: y))
+            p.addLine(to: CGPoint(x: x + dx * (g + l), y: y))
+            p.move(to: CGPoint(x: x, y: y + dy * g))
+            p.addLine(to: CGPoint(x: x, y: y + dy * (g + l)))
         }
-        p.stroke()
         // Registration target centred in the top margin.
-        let c = NSPoint(x: r.midX, y: r.minY / 2)
+        let c = CGPoint(x: r.midX, y: r.minY / 2)
         if r.minY > 16 {
             let rr: CGFloat = 4
-            let reg = NSBezierPath(ovalIn: NSRect(x: c.x - rr, y: c.y - rr, width: rr * 2, height: rr * 2))
-            reg.move(to: NSPoint(x: c.x - 8, y: c.y)); reg.line(to: NSPoint(x: c.x + 8, y: c.y))
-            reg.move(to: NSPoint(x: c.x, y: c.y - 8)); reg.line(to: NSPoint(x: c.x, y: c.y + 8))
-            reg.lineWidth = 0.75
-            reg.stroke()
+            p.addEllipse(in: CGRect(x: c.x - rr, y: c.y - rr, width: rr * 2, height: rr * 2))
+            p.move(to: CGPoint(x: c.x - 8, y: c.y))
+            p.addLine(to: CGPoint(x: c.x + 8, y: c.y))
+            p.move(to: CGPoint(x: c.x, y: c.y - 8))
+            p.addLine(to: CGPoint(x: c.x, y: c.y + 8))
         }
+        return p
     }
 }
 

@@ -67,7 +67,7 @@ final class WebFindBar: NSView, NSSearchFieldDelegate {
     required init?(coder: NSCoder) { fatalError() }
 
     private func updateColors() {
-        effectiveAppearance.performAsCurrentDrawingAppearance { layer?.backgroundColor = Theme.surfaceRaised.cgColor }
+        layer?.backgroundColor = resolved(Theme.surfaceRaised)
     }
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()

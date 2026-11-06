@@ -21,6 +21,7 @@ final class ViewerModel: ObservableObject, RenderHost, Identifiable {
     @Published private(set) var infoSections: [InfoSection] = []
     @Published private(set) var statusText: String = ""
     @Published private(set) var controls: AnyView?
+    private var controlsOwner: ObjectIdentifier?
     @Published private(set) var controlsPlacement: ControlsPlacement = .none
     @Published private(set) var failures: [String] = []
     @Published var isDropTargeted = false
@@ -260,11 +261,23 @@ final class ViewerModel: ObservableObject, RenderHost, Identifiable {
 
     func rendererDidUpdate() {
         guard let r = renderer else { return }
-        infoSections = r.infoSections + openingNotes(r)
-        statusText = r.statusText
-        controls = r.controls
-        controlsPlacement = r.controls == nil ? .none : r.controlsPlacement
-        engine = type(of: r).engineName
+        // Everything showing a model redraws at each assignment, so only real changes are made.
+        let sections = r.infoSections + openingNotes(r)
+        if !InfoSection.sameContent(infoSections, sections) { infoSections = sections }
+        let status = r.statusText
+        if statusText != status { statusText = status }
+        // A renderer's controls watch it themselves; the view only needs replacing when they come
+        // or go, or belong to another renderer.
+        let owner = ObjectIdentifier(r)
+        let newControls = r.controls
+        if controlsOwner != owner || (controls == nil) != (newControls == nil) {
+            controls = newControls
+            controlsOwner = owner
+        }
+        let placement = controls == nil ? ControlsPlacement.none : r.controlsPlacement
+        if controlsPlacement != placement { controlsPlacement = placement }
+        let name = type(of: r).engineName
+        if engine != name { engine = name }
     }
 
     // MARK: Siblings

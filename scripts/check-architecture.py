@@ -115,6 +115,16 @@ def check_core_is_headless(problems: list[str]) -> None:
             problems.append(f"{path.relative_to(ROOT)}：LoupeCore 不能依赖界面框架（{match.group(1)}）")
 
 
+def check_theme_colours(problems: list[str]) -> None:
+    """A theme colour's cgColor resolves against the current appearance, not the view's, so a layer
+    set up that way can stay light in the black theme. Use NSView.resolved(_:) or SurfaceView."""
+    for path in sorted((ROOT / "Sources/LoupeApp").rglob("*.swift")):
+        code = strip(path.read_text(encoding="utf-8"))
+        for number, line in enumerate(code.split("\n"), 1):
+            if re.search(r"\bTheme\.\w+\.cgColor\b", line):
+                problems.append(f"{path.relative_to(ROOT)}:{number}：主题色别直接取 cgColor，用 resolved(_:)")
+
+
 def check_file_sizes(problems: list[str]) -> None:
     for path in sorted((ROOT / "Sources").rglob("*.swift")):
         count = path.read_text(encoding="utf-8").count("\n")
@@ -128,6 +138,7 @@ def main() -> int:
     check_layers("LoupeApp", APP_LAYERS, problems)
     check_renderer_names(problems)
     check_core_is_headless(problems)
+    check_theme_colours(problems)
     check_file_sizes(problems)
     for problem in problems:
         print(problem)

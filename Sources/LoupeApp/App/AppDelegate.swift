@@ -200,6 +200,8 @@ final class AppDelegate: NSObject, AppActions, NSApplicationDelegate, NSMenuDele
         if settingsWindow == nil {
             let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsRoot()))
             w.title = "设置"
+            w.backgroundColor = Theme.surface
+            w.titlebarAppearsTransparent = true
             w.styleMask = [.titled, .closable]
             w.isReleasedWhenClosed = false
             settingsWindow = w
@@ -212,6 +214,7 @@ final class AppDelegate: NSObject, AppActions, NSApplicationDelegate, NSMenuDele
         if shortcutsWindow == nil {
             let w = NSWindow(contentViewController: NSHostingController(rootView: ShortcutsView()))
             w.title = "键盘快捷键"
+            w.backgroundColor = Theme.surface
             w.styleMask = [.titled, .closable, .fullSizeContentView]
             w.titlebarAppearsTransparent = true
             w.isReleasedWhenClosed = false

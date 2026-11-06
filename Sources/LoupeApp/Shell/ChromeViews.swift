@@ -356,7 +356,7 @@ enum IconCache {
         if let i = byKey[key] { return i }
         let i =
             special != nil
-            ? NSWorkspace.shared.icon(forFile: item.url.path)
+            ? FileIcons.icon(for: item.url)
             : NSWorkspace.shared.icon(for: UTType(filenameExtension: ext) ?? .data)
         if byKey.count > 2000 { byKey.removeAll() }
         byKey[key] = i
@@ -379,7 +379,7 @@ struct InspectorView: View {
             if let f = model.file {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(spacing: 10) {
-                        Image(nsImage: NSWorkspace.shared.icon(forFile: f.url.path))
+                        Image(nsImage: FileIcons.icon(for: f.url))
                             .resizable().interpolation(.high).frame(width: 64, height: 64)
                         Text(f.name).font(.system(size: 13, weight: .semibold))
                             .multilineTextAlignment(.center).lineLimit(3)

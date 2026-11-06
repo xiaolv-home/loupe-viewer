@@ -18,6 +18,37 @@ extension NSColor {
     }
 }
 
+extension NSColor {
+    /// How bright a colour is, for those that have no brightness to ask for directly.
+    var brightnessComponentOrZero: CGFloat { usingColorSpace(.sRGB)?.brightnessComponent ?? 0 }
+}
+
+extension NSView {
+    /// A colour as this view shows it. Plain `cgColor` resolves against whatever appearance happens
+    /// to be current, which is the system's rather than the app's when the two differ, so a layer
+    /// given a colour that way can stay light in the black theme.
+    func resolved(_ color: NSColor) -> CGColor {
+        var out = color.cgColor
+        effectiveAppearance.performAsCurrentDrawingAppearance { out = color.cgColor }
+        return out
+    }
+}
+
+/// A plain area in a theme colour that keeps up with the appearance.
+final class SurfaceView: NSView {
+    private let color: NSColor
+
+    init(color: NSColor) {
+        self.color = color
+        super.init(frame: .zero)
+        wantsLayer = true
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var wantsUpdateLayer: Bool { true }
+    override func updateLayer() { layer?.backgroundColor = color.cgColor }
+}
+
 /// Loupe design tokens — "Proof": a print-proofing table. Content sits on paper sheets
 /// with crop marks; colour is used like a spot ink, sparingly.
 enum Theme {

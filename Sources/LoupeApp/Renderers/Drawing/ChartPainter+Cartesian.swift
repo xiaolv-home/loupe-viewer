@@ -119,7 +119,7 @@ extension ChartPainter {
         // Gridlines and value labels.
         for (gi, g) in groups.enumerated() where g.axis?.deleted != true || gi == 0 {
             if g.axis?.majorGridlines ?? (gi == 0) {
-                NSColor(white: 0.88, alpha: 1).setFill()
+                gridColor.setFill()
                 for t in g.scale.ticks {
                     let p = valuePos(g, t)
                     if horizontal {
@@ -143,13 +143,13 @@ extension ChartPainter {
         }
         if let xScale {
             // Gridlines first, labels after: drawing text changes the current fill colour.
-            NSColor(white: 0.88, alpha: 1).setFill()
+            gridColor.setFill()
             let xs = xScale.ticks.map { plotRect.minX + CGFloat(xScale.pos($0)) * plotRect.width }
             for x in xs { CGRect(x: x - 0.5, y: plotRect.minY, width: 1, height: plotRect.height).fill() }
             for (t, x) in zip(xScale.ticks, xs) { label(format(t, nil), at: CGPoint(x: x, y: plotRect.maxY + 3 * scale), anchor: (0.5, 0)) }
         }
         // Category axis line and labels.
-        NSColor(white: 0.75, alpha: 1).setFill()
+        axisColor.setFill()
         let zero = valuePos(primary, max(primary.scale.min, min(primary.scale.max, 0)))
         if horizontal {
             CGRect(x: zero - 0.5, y: plotRect.minY, width: 1, height: plotRect.height).fill()
@@ -256,7 +256,7 @@ extension ChartPainter {
                 let l = (s.series.labels ?? labels).at(i)
                 if l.any {
                     let text = labelText(l, value: s.values[i] ?? 0, series: s, category: i < p.categories.count ? p.categories[i] : nil, total: total)
-                    let font = font(of: l), ink = l.color.map(ns)
+                    let font = font(of: l), ink = l.color.map(readable)
                     let high = v >= 0
                     let pad = 3 * scale
                     if l.position == "ctr" || (l.position == nil && p.plot.isStacked) {
@@ -349,7 +349,7 @@ extension ChartPainter {
         }
         color.setFill()
         path.fill()
-        NSColor.white.withAlphaComponent(0.9).setStroke()
+        (isDark ? cardColor : NSColor.white.withAlphaComponent(0.9)).setStroke()
         path.lineWidth = 0.75 * scale
         path.stroke()
     }

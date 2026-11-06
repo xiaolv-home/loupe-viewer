@@ -17,11 +17,15 @@ final class CellEditor: NSTextField, NSTextFieldDelegate {
         usesSingleLineMode = true
         cell?.isScrollable = true
         wantsLayer = true
-        layer?.borderColor = Theme.emberNS.cgColor
         layer?.borderWidth = 2
         delegate = self
     }
     required init?(coder: NSCoder) { fatalError() }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        layer?.borderColor = resolved(Theme.emberNS)
+    }
 
     private func finish(_ text: String?, _ move: GridPoint) {
         guard !finished else { return }

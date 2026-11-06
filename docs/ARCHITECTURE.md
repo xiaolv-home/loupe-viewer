@@ -67,6 +67,10 @@ Support, Security                零散工具、路径边界（不依赖任何�
 
 Markdown、HTML 走 WKWebView。所有资源经 `loupe://` 协议提供（`loupe://app/` 是应用自带的，`loupe://file/` 是用户文件），外网请求一律被内容规则拦截。写作模式基于 Vditor，`writer.js` 不往编辑器 DOM 里加东西，专注模式、查找高亮和下划线都用样式规则或 CSS Highlight API，否则可能被写进文件。
 
+## 主题
+
+颜色都在 `DesignSystem/Theme.swift`，用动态色，浅色和黑色各一套。给图层设颜色时不能直接取 `Theme.x.cgColor`：它按当前外观解析，系统是浅色、应用选了黑色时会取到浅色。要用 `NSView.resolved(_:)`，或者在 `updateLayer()` 里取，或者用 `SurfaceView`。架构检查会拦这种写法。
+
 ## 调试代码
 
 `AppAutomation` 的 `--probe` 留在正式版里，CI 用它检查打包好的应用。截图、脚本化操作和所有 `debug*` 钩子都在 `#if DEBUG` 里，不会进正式包。

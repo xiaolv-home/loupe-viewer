@@ -152,6 +152,25 @@ import LoupeCore
                     AppDelegate.shared?.newMarkdownDocument(nil)
                     await sleep(3)
                     printTabs(wc)
+                case let c where c.hasPrefix("look:"):
+                    // Switches the look while running: what doesn't follow shows up against a fresh start.
+                    NSApp.appearance = NSAppearance(named: c.hasSuffix("dark") ? .darkAqua : .aqua)
+                    await sleep(0.8)
+                case "inspector": wc.toggleInfoPanel(nil); await sleep(0.5)
+                case "sidebar": wc.toggleFileSidebar(nil); await sleep(0.5)
+                case let c where c.hasPrefix("addtab:"):
+                    wc.addTab(URL(fileURLWithPath: String(c.dropFirst("addtab:".count))))
+                    await sleep(0.8)
+                case let c where c.hasPrefix("tabdrag:"):
+                    // tabdrag:<tab index>,<points> drags a tab with real mouse events.
+                    let p = c.dropFirst("tabdrag:".count).split(separator: ",").compactMap { Double($0) }
+                    if p.count == 2 { await dragTab(wc, index: Int(p[0]), by: p[1]) }
+                    printTabs(wc)
+                case let c where c.hasPrefix("soak:"):
+                    let p = c.dropFirst("soak:".count).split(separator: "|").map(String.init)
+                    await PerformanceProbe(window: wc, fixtures: URL(fileURLWithPath: p[1])).soak(p[0])
+                case let c where c.hasPrefix("perf:"):
+                    await PerformanceProbe(window: wc, fixtures: URL(fileURLWithPath: String(c.dropFirst("perf:".count)))).run()
                 case let c where c.hasPrefix("fsrename:"):
                     let p = c.dropFirst("fsrename:".count).split(separator: "|").map(String.init)
                     wc.performRename(URL(fileURLWithPath: p[0]), to: p[1])
@@ -300,6 +319,33 @@ import LoupeCore
             if let down = event(.leftMouseDown, 0) { scroller.mouseDown(with: down) }
         }
 
+        func dragTab(_ wc: ViewerWindowController, index: Int, by points: Double) async {
+            guard let window = wc.window, let strip = wc.debugTabStripView else { return }
+            let step = wc.tabs.chipWidth + TabList.gap
+            let start = strip.convert(NSPoint(x: step * (Double(index) + 0.4), y: strip.bounds.midY), to: nil)
+            let target = strip.hitTest(strip.convert(start, from: nil))
+            print(
+                "TABDRAG 命中 \(target.map { String(describing: type(of: $0)) } ?? "无") 能拖窗口=\(target?.mouseDownCanMoveWindow ?? false) key=\(window.isKeyWindow)"
+            )
+            func send(_ type: NSEvent.EventType, _ dx: Double) {
+                guard
+                    let e = NSEvent.mouseEvent(
+                        with: type, location: NSPoint(x: start.x + dx, y: start.y), modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                        windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)
+                else { return }
+                window.sendEvent(e)
+            }
+            send(.leftMouseDown, 0)
+            await sleep(0.05)
+            let steps = 24
+            for i in 1...steps {
+                send(.leftMouseDragged, points * Double(i) / Double(steps))
+                await sleep(0.016)
+            }
+            send(.leftMouseUp, points)
+            await sleep(0.4)
+        }
+
         func printTabs(_ wc: ViewerWindowController) {
             let titles = wc.tabs.docs.map { $0.file?.name ?? "首页" }
             print(
@@ -372,6 +418,142 @@ import LoupeCore
                 }
             }
             return kr == KERN_SUCCESS ? Double(info.phys_footprint) / 1_048_576 : -1
+        }
+    }
+
+    /// How long the main thread stalls during everyday actions. A frame is 8 to 16 ms, so anything
+    /// longer shows as a hitch. Run with scripts/perf.sh, which measures an optimised build.
+    @MainActor
+    final class PerformanceProbe {
+        private let wc: ViewerWindowController
+        private let fixtures: URL
+        private var last = CACurrentMediaTime()
+        private var worst = 0.0
+        private var hitches = 0
+        private var rows: [(String, Double, Double, Double)] = []
+        /// The stall that decides how an action feels is the one in its first moments.
+        private var firstMoments = 0.0
+        private var actionStart = 0.0
+
+        init(window: ViewerWindowController, fixtures: URL) {
+            wc = window
+            self.fixtures = fixtures
+        }
+
+        private func measure(_ name: String, settle: Double = 0.45, _ action: () async -> Void) async {
+            await sleep(0.15)
+            last = CACurrentMediaTime()
+            worst = 0
+            hitches = 0
+            firstMoments = 0
+            let start = CACurrentMediaTime()
+            actionStart = start
+            await action()
+            let took = CACurrentMediaTime() - start
+            await sleep(settle)
+            rows.append((name, took * 1000, firstMoments * 1000, worst * 1000))
+        }
+
+        private func sleep(_ s: Double) async { try? await Task.sleep(nanoseconds: UInt64(s * 1e9)) }
+
+        private func openTab(_ path: String) async {
+            let doc = wc.addTab(nil)
+            await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
+                var finished = false
+                doc.onLoadFinished = { _, _ in
+                    guard !finished else { return }
+                    finished = true
+                    done.resume()
+                }
+                doc.open(fixtures.appendingPathComponent(path))
+                DispatchQueue.main.asyncAfter(deadline: .now() + 12) {
+                    guard !finished else { return }
+                    finished = true
+                    done.resume()
+                }
+            }
+        }
+
+        /// Repeats an action for a while, for sampling with `sample`.
+        func soak(_ kind: String) async {
+            for f in ["docs/README.md", "office/report-styled.xlsx", "docs/outline.pdf", "code/hello.py"] { await openTab(f) }
+            await sleep(1)
+            print("SOAK start \(getpid())")
+            fflush(stdout)
+            let docs = wc.tabs.docs.filter { $0.file != nil }
+            let end = Date().addingTimeInterval(12)
+            var i = 0
+            while Date() < end {
+                switch kind {
+                case "switch":
+                    wc.select(docs[i % docs.count])
+                default:
+                    let m = wc.addTab(nil)
+                    await sleep(0.05)
+                    wc.closeTab(m)
+                }
+                i += 1
+                await sleep(0.06)
+            }
+            print("SOAK done \(i)")
+        }
+
+        func run() async {
+            let timer = Timer(timeInterval: 1.0 / 240, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    let now = CACurrentMediaTime()
+                    let gap = now - self.last
+                    self.last = now
+                    if gap > self.worst { self.worst = gap }
+                    if now - self.actionStart < 0.28, gap > self.firstMoments { self.firstMoments = gap }
+                    if gap > 0.017 { self.hitches += 1 }
+                }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            defer { timer.invalidate() }
+
+            let files = [
+                "docs/README.md", "office/report-styled.xlsx", "docs/outline.pdf", "images/photo.jpg", "code/hello.py", "media/h264-aac.mp4", "docs/page.html",
+            ]
+            for f in files { await measure("打开 \(f)", settle: 0.6) { await openTab(f) } }
+
+            let docs = wc.tabs.docs
+            for round in 1...2 {
+                for doc in docs where doc.file != nil {
+                    await measure("切到 \(doc.file?.name ?? "")（第\(round)次）") { wc.select(doc) }
+                }
+            }
+            await measure("新建标签") { wc.addTab(nil) }
+            await measure("侧栏 开") { wc.toggleFileSidebar(nil) }
+            await measure("侧栏 关") { wc.toggleFileSidebar(nil) }
+            await measure("简介 开") { wc.toggleInfoPanel(nil) }
+            await measure("简介 关") { wc.toggleInfoPanel(nil) }
+            await measure("AI 面板 开") { wc.setAIPanel(open: true) }
+            await measure("AI 面板 关") { wc.setAIPanel(open: false) }
+
+            if let md = docs.first(where: { $0.renderer is MarkdownRenderer }), let r = md.renderer as? MarkdownRenderer {
+                wc.select(md)
+                for (mode, name) in [(0, "阅读"), (2, "源码"), (1, "写作")] {
+                    await measure("Markdown 切到\(name)", settle: 0.6) { r.mode = mode }
+                }
+            }
+            if let sheet = docs.first(where: { $0.renderer is SpreadsheetRenderer }), let r = sheet.renderer as? SpreadsheetRenderer {
+                wc.select(sheet)
+                await measure("切工作表") { r.switchSheet(min(1, max(0, r.workbook.sheets.count - 1))) }
+                await measure("切回工作表") { r.switchSheet(0) }
+            }
+            await measure("切到黑色") { NSApp.appearance = NSAppearance(named: .darkAqua) }
+            await measure("切到浅色") { NSApp.appearance = NSAppearance(named: .aqua) }
+
+            for doc in Array(wc.tabs.docs.reversed()) where wc.tabs.docs.count > 1 {
+                await measure("关闭 \(doc.file?.name ?? "首页")") { wc.closeTab(doc) }
+            }
+
+            print("PERF 操作 | 同步耗时ms | 动作时最长卡顿ms | 全程最长卡顿ms")
+            for r in rows.sorted(by: { $0.2 > $1.2 }) {
+                print(String(format: "PERF %@ | %.0f | %.0f | %.0f", r.0, r.1, r.2, r.3))
+            }
         }
     }
 #endif

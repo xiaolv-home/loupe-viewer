@@ -73,6 +73,8 @@ final class MediaRenderer: NSObject, Renderer, AVPictureInPictureControllerDeleg
     private var naturalSize: CGSize = .zero
     private var codecs: [String] = []
     private var fps: Float = 0
+    private var dataRate: Float = 0
+    private var dynamicRange: VideoDynamicRange?
 
     required override init() { super.init() }
 
@@ -103,6 +105,7 @@ final class MediaRenderer: NSObject, Renderer, AVPictureInPictureControllerDeleg
             for d in descs {
                 let code = Self.fourCC(CMFormatDescriptionGetMediaSubType(d))
                 codecs.append("\(t.mediaType == .video ? "视频" : t.mediaType == .audio ? "音频" : "轨道") \(Self.codecName(code))")
+                if t.mediaType == .video, dynamicRange == nil { dynamicRange = VideoDynamicRange(d) }
                 if t.mediaType == .audio, Self.undecodableAudio.contains(code), MPVLibrary.isAvailable {
                     throw RenderError.unsupported("音频编码 \(code.trimmingCharacters(in: .whitespaces)) 无法由 AVFoundation 解码")
                 }
@@ -114,6 +117,7 @@ final class MediaRenderer: NSObject, Renderer, AVPictureInPictureControllerDeleg
             naturalSize = size.applying(tf).applying(CGAffineTransform(scaleX: 1, y: 1))
             naturalSize = CGSize(width: abs(naturalSize.width), height: abs(naturalSize.height))
             fps = (try? await v.load(.nominalFrameRate)) ?? 0
+            dataRate = (try? await v.load(.estimatedDataRate)) ?? 0
         }
 
         let item = AVPlayerItem(asset: asset)
@@ -126,7 +130,7 @@ final class MediaRenderer: NSObject, Renderer, AVPictureInPictureControllerDeleg
         model.engineLabel = Self.engineName
         model.window = host.window
         model.title = file.url.deletingPathExtension().lastPathComponent
-        model.videoInfo = codecs.joined(separator: " · ")
+        model.videoInfo = (codecs + [dynamicRange?.name].compactMap { $0 }).joined(separator: " · ")
         await loadMetadata(asset)
         await loadSubtitles(asset, item: item)
         wire(p, item: item)
@@ -360,12 +364,62 @@ final class MediaRenderer: NSObject, Renderer, AVPictureInPictureControllerDeleg
         if naturalSize.width > 0 { items.append(InfoItem("分辨率", "\(Int(naturalSize.width)) × \(Int(naturalSize.height))")) }
         if fps > 0 { items.append(InfoItem("帧率", String(format: "%.3f fps", fps))) }
         for c in codecs { items.append(InfoItem("编码", c)) }
+        if dataRate > 0 { items.append(InfoItem("视频码率", String(format: "%.1f Mbps", dataRate / 1_000_000))) }
+        if let dynamicRange {
+            items.append(InfoItem("动态范围", dynamicRange.detail))
+            if dynamicRange.isHDR, let screen = host?.window?.screen {
+                let shows = screen.maximumPotentialExtendedDynamicRangeColorComponentValue > 1
+                items.append(InfoItem("当前屏幕", shows ? "能显示 HDR" : "不能显示 HDR，亮部会被压缩，看起来发灰"))
+            }
+        }
         if !model.artist.isEmpty { items.append(InfoItem("艺术家", model.artist)) }
         if !model.album.isEmpty { items.append(InfoItem("专辑", model.album)) }
         if !externalSubs.isEmpty || !legibleOptions.isEmpty { items.append(InfoItem("字幕", "\(externalSubs.count) 个外挂 · \(legibleOptions.count) 个内嵌")) }
         items.append(InfoItem("引擎", "AVFoundation（原画质 · 支持 HDR）"))
         return [InfoSection("影音", items)]
     }
+}
+
+/// What a video's brightness range is, which decides how much of it this screen can show.
+struct VideoDynamicRange {
+    enum Kind { case sdr, hlg, pq, dolbyVision }
+    var kind: Kind
+    var bitDepth: Int?
+
+    init(kind: Kind, bitDepth: Int? = nil) {
+        self.kind = kind
+        self.bitDepth = bitDepth
+    }
+
+    init(_ format: CMFormatDescription) {
+        let transfer = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_TransferFunction) as? String
+        let atoms = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms) as? [String: Any]
+        let code = CMFormatDescriptionGetMediaSubType(format)
+        let dolby = atoms?["dvcC"] != nil || atoms?["dvvC"] != nil || code == 0x6476_6831 || code == 0x6476_6865  // dvh1, dvhe
+        if dolby {
+            kind = .dolbyVision
+        } else if transfer == (kCVImageBufferTransferFunction_ITU_R_2100_HLG as String) {
+            kind = .hlg
+        } else if transfer == (kCVImageBufferTransferFunction_SMPTE_ST_2084_PQ as String) {
+            kind = .pq
+        } else {
+            kind = .sdr
+        }
+        bitDepth = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_BitsPerComponent) as? Int
+    }
+
+    var isHDR: Bool { kind != .sdr }
+
+    var name: String {
+        switch kind {
+        case .sdr: return "SDR"
+        case .hlg: return "HDR（HLG）"
+        case .pq: return "HDR10"
+        case .dolbyVision: return "杜比视界"
+        }
+    }
+
+    var detail: String { name + (bitDepth.map { " · \($0) bit" } ?? "") }
 }
 
 enum MediaSnapshot {

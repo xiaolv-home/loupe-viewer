@@ -74,6 +74,7 @@ struct AISettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .onChange(of: config.providerID) { _, _ in
             keyDraft = ""; testStatus = ""
         }

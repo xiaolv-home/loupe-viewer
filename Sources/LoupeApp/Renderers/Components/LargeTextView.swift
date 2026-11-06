@@ -7,7 +7,7 @@ final class LargeTextView: NSView, NSTableViewDataSource, NSTableViewDelegate, N
     let index: LineIndex
     private let table = NSTableView()
     private let scroll = NSScrollView()
-    private let searchBar = NSView()
+    private let searchBar = SurfaceView(color: Theme.surface)
     private let searchField = NSSearchField()
     private let searchStatus = NSTextField(labelWithString: "")
     private var searchBarHeight: NSLayoutConstraint!
@@ -62,8 +62,6 @@ final class LargeTextView: NSView, NSTableViewDataSource, NSTableViewDelegate, N
         stack.edgeInsets = NSEdgeInsets(top: 6, left: 10, bottom: 6, right: 10)
         stack.translatesAutoresizingMaskIntoConstraints = false
         searchBar.addSubview(stack)
-        searchBar.wantsLayer = true
-        searchBar.layer?.backgroundColor = Theme.surface.cgColor
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: searchBar.leadingAnchor),
             stack.trailingAnchor.constraint(equalTo: searchBar.trailingAnchor),

@@ -4,13 +4,14 @@ import Foundation
 /// save themselves as you type, and move to a real place the first time you press ⌘S.
 @MainActor
 enum MarkdownDrafts {
-    static var root: URL {
+    /// Worked out once: the tab strip checks whether a file is a draft on every redraw.
+    static let root: URL = {
         let base =
             AppEnvironment.isScripted
             ? FileManager.default.temporaryDirectory.appendingPathComponent("loupe-harness-drafts")
             : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!.appendingPathComponent("Loupe/Drafts")
         return base.standardizedFileURL
-    }
+    }()
 
     static func contains(_ url: URL) -> Bool {
         url.standardizedFileURL.deletingLastPathComponent().path == root.path

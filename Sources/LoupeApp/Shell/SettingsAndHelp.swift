@@ -8,13 +8,23 @@ struct SettingsRoot: View {
     @AppStorage(SettingsRoot.tabKey) private var tab = "general"
 
     var body: some View {
-        TabView(selection: $tab) {
-            SettingsView(settings: .shared)
-                .tabItem { Label("通用", systemImage: "gearshape") }.tag("general")
-            AISettingsView()
-                .frame(width: 560, height: 640)
-                .tabItem { Label("AI", systemImage: "sparkles") }.tag("ai")
+        // A plain switch rather than TabView, whose own backing stays system grey in the black theme.
+        VStack(spacing: 0) {
+            Picker("", selection: $tab) {
+                Text("通用").tag("general")
+                Text("AI").tag("ai")
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .padding(.vertical, 10)
+            if tab == "ai" {
+                AISettingsView().frame(width: 560, height: 640)
+            } else {
+                SettingsView(settings: .shared)
+            }
         }
+        .background(Color(nsColor: Theme.surface))
     }
 }
 
@@ -89,6 +99,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .frame(width: 520)
         .fixedSize(horizontal: false, vertical: true)
         .tint(Theme.ember)
