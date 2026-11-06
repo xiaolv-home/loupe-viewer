@@ -67,8 +67,18 @@ public struct ChartLabels: Sendable, Equatable {
     public var seriesName = false
     public var numberFormat: String?
     public var position: String?
+    /// The label's own text style (`txPr`), if it has one.
+    public var fontSize: Double?
+    public var bold: Bool?
+    public var color: RGBA?
+    /// Labels set on single points (`dLbl`). They replace the series' setting for that point, in
+    /// either direction: Excel and WPS write "only these points" as off, plus these.
+    public var points: [Int: ChartLabels] = [:]
     public init() {}
     public var any: Bool { value || percent || category || seriesName }
+    public var anyAtAll: Bool { any || points.values.contains(where: \.any) }
+    /// What applies to one point.
+    public func at(_ index: Int) -> ChartLabels { points[index] ?? self }
 }
 
 public struct ChartSeries: Sendable {

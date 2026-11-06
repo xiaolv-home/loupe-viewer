@@ -95,6 +95,36 @@ struct ChartPainter {
         return NumberFormat.format(.number(v), code: code).text
     }
 
+    /// What a data label says, and how it looks.
+    private func labelText(_ l: ChartLabels, value: Double, series s: ResolvedSeries, category: String?, total: Double?) -> String {
+        var parts: [String] = []
+        if l.seriesName { parts.append(s.name) }
+        if l.category, let category { parts.append(category) }
+        if l.value { parts.append(format(value, l.numberFormat ?? s.numberFormat)) }
+        if l.percent, let total, total > 0 { parts.append(format(value / total, "0%")) }
+        return parts.joined(separator: ", ")
+    }
+
+    private func font(of l: ChartLabels) -> NSFont? {
+        guard l.fontSize != nil || l.bold != nil else { return nil }
+        let size = l.fontSize.map { px(CGFloat($0)) } ?? labelFont.pointSize
+        return l.bold == true ? .boldSystemFont(ofSize: size) : .systemFont(ofSize: size)
+    }
+
+    /// A label beside a point, on the side the file asks for (above unless it says otherwise).
+    private func pointLabel(_ text: String, at q: CGPoint, _ l: ChartLabels) {
+        let gap = 5 * scale
+        let (at, anchor): (CGPoint, (x: CGFloat, y: CGFloat))
+        switch l.position {
+        case "l": (at, anchor) = (CGPoint(x: q.x - gap, y: q.y), (1, 0.5))
+        case "r": (at, anchor) = (CGPoint(x: q.x + gap, y: q.y), (0, 0.5))
+        case "b": (at, anchor) = (CGPoint(x: q.x, y: q.y + gap), (0.5, 0))
+        case "ctr": (at, anchor) = (q, (0.5, 0.5))
+        default: (at, anchor) = (CGPoint(x: q.x, y: q.y - gap), (0.5, 1))
+        }
+        label(text, at: at, anchor: anchor, font: font(of: l), color: l.color.map(ns))
+    }
+
     private func drawEmpty(in r: CGRect) {
         label("没有可画的数据", at: CGPoint(x: r.midX, y: r.midY), anchor: (0.5, 0.5))
     }
@@ -432,16 +462,25 @@ struct ChartPainter {
                     path.lineWidth = CGFloat(s.series.lineWidth ?? 0.75) * scale
                     path.stroke()
                 }
-                let l = s.series.labels ?? labels
-                if l.value || l.seriesName || l.category {
-                    var parts: [String] = []
-                    if l.seriesName { parts.append(s.name) }
-                    if l.category, i < p.categories.count { parts.append(p.categories[i]) }
-                    if l.value { parts.append(format(s.values[i] ?? 0, l.numberFormat ?? s.numberFormat)) }
-                    let text = parts.joined(separator: ", ")
-                    if p.plot.isStacked { label(text, at: CGPoint(x: r.midX, y: r.midY), anchor: (0.5, 0.5)) }
-                    else if horizontal { label(text, at: CGPoint(x: (v >= 0 ? r.maxX : r.minX) + (v >= 0 ? 3 : -3) * scale, y: r.midY), anchor: (v >= 0 ? 0 : 1, 0.5)) }
-                    else { label(text, at: CGPoint(x: r.midX, y: v >= 0 ? r.minY - 2 * scale : r.maxY + 2 * scale), anchor: (0.5, v >= 0 ? 1 : 0)) }
+                let l = (s.series.labels ?? labels).at(i)
+                if l.any {
+                    let text = labelText(l, value: s.values[i] ?? 0, series: s, category: i < p.categories.count ? p.categories[i] : nil, total: total)
+                    let font = font(of: l), ink = l.color.map(ns)
+                    let high = v >= 0
+                    let pad = 3 * scale
+                    if l.position == "ctr" || (l.position == nil && p.plot.isStacked) {
+                        label(text, at: CGPoint(x: r.midX, y: r.midY), anchor: (0.5, 0.5), font: font, color: ink)
+                    } else if horizontal {
+                        let inside = l.position == "inEnd", base = l.position == "inBase"
+                        let edge = base ? (high ? r.minX + pad : r.maxX - pad) : inside ? (high ? r.maxX - pad : r.minX + pad) : (high ? r.maxX + pad : r.minX - pad)
+                        let leading = base ? high : inside ? !high : high
+                        label(text, at: CGPoint(x: edge, y: r.midY), anchor: (leading ? 0 : 1, 0.5), font: font, color: ink)
+                    } else {
+                        let inside = l.position == "inEnd", base = l.position == "inBase"
+                        let edge = base ? (high ? r.maxY - pad : r.minY + pad) : inside ? (high ? r.minY + pad : r.maxY - pad) : (high ? r.minY - pad : r.maxY + pad)
+                        let above = base ? high : inside ? !high : high
+                        label(text, at: CGPoint(x: r.midX, y: edge), anchor: (0.5, above ? 1 : 0), font: font, color: ink)
+                    }
                 }
             }
         }
@@ -533,9 +572,11 @@ struct ChartPainter {
                        spanGaps: spec.displayBlanksAs == "span")
             }
             if p.plot.markers { for case let q? in pts { marker(q, s, color: c) } }
-            let l = s.series.labels ?? p.plot.labels
-            if l.value {
-                for (i, q) in pts.enumerated() { if let q, i < s.values.count, let v = s.values[i] { label(format(v, l.numberFormat ?? s.numberFormat), at: CGPoint(x: q.x, y: q.y - 5 * scale), anchor: (0.5, 1)) } }
+            let labels = s.series.labels ?? p.plot.labels
+            for (i, q) in pts.enumerated() {
+                let l = labels.at(i)
+                guard l.any, let q, i < s.values.count, let v = s.values[i] else { continue }
+                pointLabel(labelText(l, value: v, series: s, category: i < p.categories.count ? p.categories[i] : nil, total: nil), at: q, l)
             }
         }
     }
@@ -586,6 +627,12 @@ struct ChartPainter {
                 stroke(pts, color: c, width: CGFloat(s.series.lineWidth ?? 2) * scale, dashed: s.series.dashed, smooth: s.series.smooth, spanGaps: false)
             }
             if p.plot.markers || s.series.marker != nil { for case let q? in pts { marker(q, s, color: c) } }
+            let labels = s.series.labels ?? p.plot.labels
+            for (i, q) in pts.enumerated() {
+                let l = labels.at(i)
+                guard l.any, let q, let v = s.values[i] else { continue }
+                pointLabel(labelText(l, value: v, series: s, category: nil, total: nil), at: q, l)
+            }
         }
     }
 
@@ -597,7 +644,7 @@ struct ChartPainter {
         let total = values.reduce(0, +)
         guard total > 0 else { return drawEmpty(in: area) }
         let labels = s.series.labels ?? p.plot.labels
-        let pad: CGFloat = labels.any ? 26 * scale : 6 * scale
+        let pad: CGFloat = labels.anyAtAll ? 26 * scale : 6 * scale
         let radius = max(4, min(area.width, area.height) / 2 - pad)
         let c = CGPoint(x: area.midX, y: area.midY)
         let hole = p.plot.kind == .doughnut ? CGFloat(p.plot.holeSize) / 100 * radius : 0
@@ -619,15 +666,16 @@ struct ChartPainter {
             NSColor.white.setStroke()
             path.lineWidth = 1.2 * scale
             path.stroke()
-            if labels.any {
+            let l = labels.at(i)
+            if l.any {
                 var parts: [String] = []
-                if labels.category, i < p.categories.count { parts.append(p.categories[i]) }
-                if labels.value { parts.append(format(v, labels.numberFormat ?? s.numberFormat)) }
-                if labels.percent { parts.append(format(v / total, "0%")) }
+                if l.category, i < p.categories.count { parts.append(p.categories[i]) }
+                if l.value { parts.append(format(v, l.numberFormat ?? s.numberFormat)) }
+                if l.percent { parts.append(format(v / total, "0%")) }
                 let mid = (angle + sweep / 2) * .pi / 180
                 let rr = hole > 0 ? (radius + hole) / 2 : radius * 0.68
                 label(parts.joined(separator: " "), at: CGPoint(x: c.x + CGFloat(cos(mid)) * rr, y: c.y + CGFloat(sin(mid)) * rr), anchor: (0.5, 0.5),
-                      color: .white)
+                      font: font(of: l), color: l.color.map(ns) ?? .white)
             }
             angle += sweep
         }

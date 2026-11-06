@@ -62,7 +62,7 @@ public enum ChartParser {
         }
         if kind == .radar { p.radarFilled = node.value(of: "radarStyle") == "filled" }
         p.axisIDs = node.children("axId").compactMap { $0["val"] }
-        p.labels = labels(node.child("dLbls")) ?? ChartLabels()
+        p.labels = labels(node.child("dLbls"), theme: theme) ?? ChartLabels()
         for (i, s) in node.children("ser").enumerated() {
             p.series.append(series(s, kind: kind, position: i, theme: theme))
         }
@@ -102,20 +102,32 @@ public enum ChartParser {
             guard let i = d.value(of: "idx").flatMap(Int.init) else { continue }
             if case .solid(let c)? = DrawingStyle.fill(in: d.child("spPr"), theme: theme) { out.pointColors[i] = c }
         }
-        out.labels = labels(s.child("dLbls"))
+        out.labels = labels(s.child("dLbls"), theme: theme)
         return out
     }
 
-    private static func labels(_ node: XMLTree?) -> ChartLabels? {
+    private static func labels(_ node: XMLTree?, theme: DrawingTheme, inheriting base: ChartLabels? = nil) -> ChartLabels? {
         guard let node else { return nil }
         if node.value(of: "delete").map(flag) == true { return ChartLabels() }
         var l = ChartLabels()
-        l.value = node.value(of: "showVal").map(flag) ?? false
-        l.percent = node.value(of: "showPercent").map(flag) ?? false
-        l.category = node.value(of: "showCatName").map(flag) ?? false
-        l.seriesName = node.value(of: "showSerName").map(flag) ?? false
-        l.numberFormat = node.child("numFmt")?["formatCode"]
-        l.position = node.value(of: "dLblPos")
+        l.value = node.value(of: "showVal").map(flag) ?? base?.value ?? false
+        l.percent = node.value(of: "showPercent").map(flag) ?? base?.percent ?? false
+        l.category = node.value(of: "showCatName").map(flag) ?? base?.category ?? false
+        l.seriesName = node.value(of: "showSerName").map(flag) ?? base?.seriesName ?? false
+        l.numberFormat = node.child("numFmt")?["formatCode"] ?? base?.numberFormat
+        l.position = node.value(of: "dLblPos") ?? base?.position
+        l.fontSize = base?.fontSize
+        l.bold = base?.bold
+        l.color = base?.color
+        if let d = node.child("txPr")?.descendants("defRPr").first {
+            if let v = d["sz"].flatMap(Double.init) { l.fontSize = v / 100 }
+            if let v = d["b"] { l.bold = flag(v) }
+            if let v = DrawingStyle.color(in: d.child("solidFill"), theme: theme) { l.color = v }
+        }
+        for d in node.children("dLbl") {
+            guard let i = d.value(of: "idx").flatMap(Int.init) else { continue }
+            l.points[i] = labels(d, theme: theme, inheriting: l)
+        }
         return l
     }
 

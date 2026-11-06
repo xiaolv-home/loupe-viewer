@@ -117,6 +117,39 @@ struct DrawingTests {
         #expect(spec.plots[0].series[0].lineWidth == 2.25)
     }
 
+    /// Excel 和 WPS 给单个点加标签时，写成系列整体关闭 + 这几个点各自打开。
+    @Test("数据标签：只开几个点、位置和样式跟着点走，单独关掉的点不显示")
+    func pointLabels() throws {
+        let point = { (idx: Int, pos: String, on: Int) in
+            """
+            <c:dLbl><c:idx val="\(idx)"/><c:txPr><a:bodyPr/><a:p><a:pPr><a:defRPr sz="1400" b="1"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill></a:defRPr></a:pPr></a:p></c:txPr>\
+            <c:dLblPos val="\(pos)"/><c:showVal val="\(on)"/></c:dLbl>
+            """
+        }
+        let xml = """
+        <c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+        <c:chart><c:plotArea><c:lineChart><c:grouping val="standard"/>
+        <c:ser><c:idx val="0"/><c:order val="0"/>
+        <c:dLbls>\(point(1, "l", 1))\(point(7, "r", 1))<c:showVal val="0"/></c:dLbls>
+        </c:ser>
+        <c:ser><c:idx val="1"/><c:order val="1"/>
+        <c:dLbls><c:dLbl><c:idx val="2"/><c:delete val="1"/></c:dLbl><c:dLblPos val="b"/><c:showVal val="1"/></c:dLbls>
+        </c:ser>
+        <c:axId val="1"/><c:axId val="2"/></c:lineChart></c:plotArea></c:chart></c:chartSpace>
+        """
+        let spec = try #require(ChartParser.parse(Data(xml.utf8)))
+        let first = try #require(spec.plots[0].series[0].labels)
+        #expect(!first.any && first.anyAtAll)
+        #expect(first.at(0).any == false)
+        let one = first.at(1)
+        #expect(one.value && one.position == "l" && one.fontSize == 14 && one.bold == true)
+        #expect(one.color == RGBA(hex: "FF0000"))
+        #expect(first.at(7).position == "r")
+        let second = try #require(spec.plots[0].series[1].labels)
+        #expect(second.at(0).value && second.at(0).position == "b")
+        #expect(second.at(2).any == false, "整个系列开着，这个点单独关掉")
+    }
+
     @Test("单元格引用", arguments: [
         ("'图表 分析'!$B$61:$B$68", "图表 分析", 60, 1, 67, 1),
         ("Sheet1!C3", "Sheet1", 2, 2, 2, 2),
