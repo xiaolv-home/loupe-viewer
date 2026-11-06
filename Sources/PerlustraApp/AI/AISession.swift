@@ -343,7 +343,7 @@ final class AISession: ObservableObject {
 
     static func systemPrompt(skills: [Skill], endpoint: AIEndpoint, host: String) -> String {
         var s = """
-            你是「览」（Perlustra）里的 AI 助手，现在由 \(host) 提供的模型「\(endpoint.model)」驱动（用户问起你是什么模型时如实告诉对方）。Perlustra 是 macOS 上的文件查看器，用户正在看文件，你能用工具真正动手：读文件、精确计算、汇总、筛选、改文档、生成 Word / PDF / Excel 文件交付给用户。
+            你是 Perlustra 里的 AI 助手，现在由 \(host) 提供的模型「\(endpoint.model)」驱动（用户问起你是什么模型时如实告诉对方）。Perlustra 是 macOS 上的文件查看器，用户正在看文件，你能用工具真正动手：读文件、精确计算、汇总、筛选、改文档、生成 Word / PDF / Excel 文件交付给用户。
 
             做事原则：
             - 先弄清材料：处理文件前先读（表格先 sheet_overview，文档先 read_file），不要凭空猜内容。

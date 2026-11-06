@@ -53,16 +53,10 @@ struct HomeView: View {
 
     private func hero(wide: Bool, margin: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 7) {
-                Text("Perlustra")
-                    .font(.system(size: wide ? 84 : 60, weight: .regular, design: .serif))
-                    .tracking(wide ? -2.8 : -2.0)
-                Text("览")
-                    .font(.system(size: wide ? 17 : 14, weight: .heavy))
-                    .foregroundStyle(Theme.ember)
-                    .padding(.top, wide ? 20 : 14)
-            }
-            .reveal(shown, 0)
+            Text("Perlustra")
+                .font(.system(size: wide ? 84 : 60, weight: .regular, design: .serif))
+                .tracking(wide ? -2.8 : -2.0)
+                .reveal(shown, 0)
             Text("一个窗口，看清每一种文件。")
                 .font(.system(size: 15))
                 .foregroundStyle(.secondary)

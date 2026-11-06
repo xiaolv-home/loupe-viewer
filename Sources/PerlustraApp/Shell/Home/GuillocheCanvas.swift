@@ -127,7 +127,7 @@ private enum GuillochePipeline {
 /// The words the hairlines are made of, one long strip that repeats.
 private enum MicroprintAtlas {
     static let text =
-        "PERLUSTRA 览  一个窗口，看清每一种文件  PDF · XLSX · DOCX · PPTX · KEY · NUMBERS  照片 RAW HEIC  视频 音频 MOV MP4 MKV  "
+        "PERLUSTRA  一个窗口，看清每一种文件  PDF · XLSX · DOCX · PPTX · KEY · NUMBERS  照片 RAW HEIC  视频 音频 MOV MP4 MKV  "
         + "MARKDOWN · CSV · JSON · SQL · PY · SWIFT  压缩包 ZIP 7Z TAR  字体 OTF TTF WOFF  离线可用  看得清，才算看过  "
     static let height = 44
 

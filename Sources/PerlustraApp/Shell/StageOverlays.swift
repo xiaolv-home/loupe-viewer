@@ -35,7 +35,7 @@ struct StatusStrip: View {
                 }
                 ColorBar(category: f.format.family.category)
             } else {
-                slug("PERLUSTRA · 览", strong: true)
+                slug("PERLUSTRA", strong: true)
                 sep
                 slug("就绪")
                 Spacer()

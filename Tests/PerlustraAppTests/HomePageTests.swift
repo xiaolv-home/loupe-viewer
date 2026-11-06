@@ -44,6 +44,16 @@ import Testing
         #expect(left.x >= layout.reachStart)
     }
 
+    /// Opening a file has to put it on the start page's list, and taking it off has to stick.
+    @MainActor
+    @Test func openedFileIsListedUntilRemoved() {
+        let url = URL(fileURLWithPath: "/private/tmp/perlustra-tests/opened-\(UUID().uuidString).md")
+        RecentFiles.add(url)
+        #expect(RecentFiles.listed().first == url)
+        RecentFiles.remove(url)
+        #expect(!RecentFiles.listed().contains(url))
+    }
+
     @Test func filterNeedsEveryWordInNameOrFolder() {
         let files = ["/a/工作/周报.xlsx", "/a/工作/月报.pdf", "/b/Photos/IMG.HEIC"].map { RecentFile(url: URL(fileURLWithPath: $0), modified: nil) }
         #expect(RecentFiles.matching(files, query: "").count == 3)

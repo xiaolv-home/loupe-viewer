@@ -1,4 +1,4 @@
-# Perlustra · 览
+# Perlustra
 
 轻量、离线、原生的 macOS 万能文件查看器。一个窗口，看清每一种文件。
 

@@ -226,7 +226,7 @@ final class AppDelegate: NSObject, AppActions, NSApplicationDelegate, NSMenuDele
 
     @objc func showAbout(_ sender: Any?) {
         NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Perlustra 览",
+            .applicationName: "Perlustra",
             .credits: NSAttributedString(
                 string: "轻量、离线、原生的万能文件查看器。\n不联网、不执行文档脚本。",
                 attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor]),
