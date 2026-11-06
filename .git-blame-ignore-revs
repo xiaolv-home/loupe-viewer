@@ -1,0 +1,2 @@
+# 全项目格式化，git blame 时跳过：git config blame.ignoreRevsFile .git-blame-ignore-revs
+21b1ac7cefe5b636ca148749a9dcad656312e87a

@@ -26,6 +26,14 @@ jobs:
           sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
           swift --version && xcrun --show-sdk-version
 
+      - name: 架构检查
+        run: python3 scripts/check-architecture.py
+
+      # 只提示不拦截：runner 上 swift-format 的版本和本地不同，排版结果可能有细微差别。
+      - name: 代码格式
+        continue-on-error: true
+        run: scripts/lint.sh
+
       - name: 单元测试
         run: scripts/test.sh
 

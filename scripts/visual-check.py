@@ -6,7 +6,7 @@ dark, and compares them with a baseline taken earlier on this machine.
     scripts/visual-check.py               # after it; exits non-zero if a picture changed
 
 Screenshots depend on the machine and fonts, so the baseline stays in build/ and is not committed.
-Only fixtures are rendered."""
+Only fixtures are rendered. Needs a debug build (scripts/build-app.sh debug) and Pillow."""
 import shutil
 import subprocess
 import sys

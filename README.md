@@ -188,7 +188,9 @@ scripts/test.sh                        # 单元测试（Swift Testing）：格�
 python3 scripts/verify-renderers.py    # 端到端：用真实应用逐个打开样例，断言渲染引擎（没生成的样例会跳过并列出）
 ```
 
-调试参数：
+提交前跑 `scripts/check.sh`，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+调试参数（除 `--probe` 和 `--purge-recents` 外只在 debug 版可用）：
 - `Loupe --probe 文件…`：输出每个文件实际使用的渲染引擎。
 - `--snapshot 目录 文件…`：对窗口截图；锁屏时自动改为离屏渲染。
 - `--stress 目录 --rounds N`：循环打开文件夹内所有文件并报告内存。
@@ -202,30 +204,17 @@ python3 scripts/verify-renderers.py    # 端到端：用真实应用逐个打开
 ## 结构
 
 ```
-Sources/LoupeCore/      纯逻辑（可单测，不依赖界面）
-  Drawing/ Chart/       Office 绘图层与图表：锚点、形状、图片、图表模型与取数（表格之外也能复用）
-  Detection/            格式识别、扩展名表、编码检测
-  Security/             路径边界、符号链接、回环地址（网页与 AI 共用）
-  Text/                 CSV、行索引、高亮、JSON、字幕
-  Archive/              libarchive 封装
-  Formula/              公式：值与语法树、解析、求值、函数库、引用平移（插入删除行列 / 共享公式）
-  Spreadsheet/          表格模型与样式、筛选排序、分组汇总、读取、保存（局部修补 / 行列重排）、SpreadsheetDocument（编辑状态与撤销）
-  AI/                   模型接口（OpenAI 兼容 / Claude，流式 + 工具调用）、工具循环、技能（解析 / 排序 / GitHub 安装）、Markdown→Word/HTML
+Sources/Loupe/          入口
+Sources/LoupeApp/       应用：窗口与外壳、渲染器、AI 面板、设计系统
+Sources/LoupeCore/      纯逻辑（可单测，不依赖界面）：格式识别、表格、公式、图表、AI 协议
 Sources/LoupeObjC/      ObjC 异常兜底（AppKit/PDFKit 抛出的异常不会拖垮主线程）
 Sources/CArchive/       系统 libarchive 的最小头文件声明
-Sources/Loupe/App/      应用生命周期、窗口与工具栏、菜单、设置、调试工具
-Sources/Loupe/UI/       设计系统（Theme）、首页、版口信息条、信息面板、侧栏
-Sources/Loupe/Services/ 跨渲染器的服务（经 Numbers/Keynote 导出）
-Sources/Loupe/AI/       AI 面板与会话、设置（密钥存本机文件）、技能库与技能市场、通用工具（读写文件、搜索、命令）
-Sources/Loupe/Resources/skills  Loupe 自带技能（SKILL.md）
-Sources/Loupe/Renderers 插件式渲染器：canHandle / makeView / cleanup，RendererRegistry 生成降级链
-  Documents/ Text/ Graphics/ Media/   按类别分组的渲染器
-  Spreadsheet/          表格：网格控件、布局、绘制、编辑、行列结构、尺寸缩放、菜单、查找、公式栏、调试钩子
-  Components/           可复用视图（代码视图、树、图片/PDF 视图、幻灯片放映…）
-Sources/Loupe/Resources/web  Markdown 模板与本地 JS/CSS（markdown-it、highlight.js、KaTeX、Mermaid、DOMPurify）；writer.* 与 vditor/ 是写作模式
-fixtures/               样例文件     scripts/   构建、打包、样例生成、测试
+Tests/                  LoupeCoreTests、LoupeAppTests
+fixtures/               样例文件     scripts/   构建、打包、样例生成、检查
 ```
+
+分层和扩展方式见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，开发规范见 [CONTRIBUTING.md](CONTRIBUTING.md)，改动记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 许可证
 
-[MIT](LICENSE)。第三方库与素材的声明见 [NOTICE](NOTICE)，各库的许可证原文在 `Sources/Loupe/Resources/web/vendor/licenses/`。
+[MIT](LICENSE)。第三方库与素材的声明见 [NOTICE](NOTICE)，各库的许可证原文在 `Sources/LoupeApp/Resources/web/vendor/licenses/`。
