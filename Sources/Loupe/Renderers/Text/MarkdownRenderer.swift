@@ -28,6 +28,9 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
     /// The text the reading page shows.
     private var renderedText: String?
     private var draftTimer: Timer?
+    private var autosaveTimer: Timer?
+    /// How many characters are selected in the writer.
+    private var selectedChars = 0
 
     required override init() { super.init() }
 
@@ -81,6 +84,11 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
         }
         w.onToggleSource = { [weak self] in self?.toggleWriteSource() }
         w.onLink = { [weak self] href in self?.follow(href) }
+        w.onSelection = { [weak self] n in
+            self?.selectedChars = n
+            self?.host?.rendererDidUpdate()
+        }
+        w.onToggleMode = { [weak self] name in self?.toggleWriterMode(name) }
         writer = w
         addPane(w.webView, forMode: Self.writeMode)
         // The editor writes Markdown its own tidy way (table padding, [X]…): what it shows for an
@@ -89,6 +97,32 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
         if sourceText == savedText {
             savedText = shown
             sourceText = shown
+        }
+        applyWriterModes()
+    }
+
+    private func applyWriterModes() {
+        writer?.setModes(focus: AppSettings.shared.writerFocus, typewriter: AppSettings.shared.writerTypewriter)
+    }
+
+    /// 专注模式 / 打字机模式 (F8 / F9), remembered for every document.
+    func toggleWriterMode(_ name: String) {
+        let s = AppSettings.shared
+        if name == "focus" { s.writerFocus.toggle() } else { s.writerTypewriter.toggle() }
+        if mode != Self.writeMode { mode = Self.writeMode }
+        applyWriterModes()
+    }
+
+    override var findDriver: WebFindDriver? { mode == Self.writeMode ? writer : nil }
+
+    /// ⌥⌘F. Reading pages can't be changed, so this goes to the writer first.
+    func showReplace() {
+        guard mode == Self.readMode else { showFind(replace: true); return }
+        mode = Self.writeMode
+        Task {
+            while writer == nil || mode != Self.writeMode { try? await Task.sleep(nanoseconds: 50_000_000) }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            showFind(replace: true)
         }
     }
 
@@ -177,7 +211,7 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
     override var currentSource: String { mode == sourceMode ? (code?.textView.string ?? sourceText) : sourceText }
 
     private func edited() {
-        if isDraft { scheduleDraftSave() }
+        if isDraft { scheduleDraftSave() } else if AppSettings.shared.markdownAutosave { scheduleAutosave() }
         host?.window?.isDocumentEdited = hasUnsavedChanges
         host?.rendererDidUpdate()
     }
@@ -193,6 +227,18 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
                     self.diskText = text
                     self.savedText = self.currentSource
                 }
+            }
+        }
+    }
+
+    /// With 自动保存 on, files save themselves once typing pauses.
+    private func scheduleAutosave() {
+        autosaveTimer?.invalidate()
+        guard hasUnsavedChanges else { return }
+        autosaveTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, let url = self.url, self.hasUnsavedChanges else { return }
+                self.write(to: url)
             }
         }
     }
@@ -298,6 +344,7 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
 
     func cleanup() {
         draftTimer?.invalidate()
+        autosaveTimer?.invalidate()
         // A draft nobody wrote anything in is not kept.
         if isDraft, let url, currentSource.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { MarkdownDrafts.discard(url) }
         writer?.teardown()
@@ -312,6 +359,7 @@ final class MarkdownRenderer: WebDocumentRenderer, Renderer {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false).count
         let chars = text.unicodeScalars.filter { !$0.properties.isWhitespace }.count
         var s = "\(Fmt.number(lines)) 行 · \(Fmt.number(chars)) 字"
+        if mode == Self.writeMode && selectedChars > 0 { s += " · 已选 \(Fmt.number(selectedChars)) 字" }
         if isDraft { s += " · 草稿（已自动保存，⌘S 选位置）" } else if hasUnsavedChanges { s += " · ● 已修改（⌘S 保存）" }
         return s
     }

@@ -60,6 +60,7 @@ enum MainMenu {
         add(edit, "全选", #selector(NSText.selectAll(_:)), "a")
         edit.addItem(.separator())
         add(edit, "查找…", #selector(ViewerWindowController.loupeFind(_:)), "f")
+        add(edit, "查找并替换…", #selector(ViewerWindowController.loupeFindReplace(_:)), "f", [.command, .option])
         add(edit, "查找下一个", #selector(ViewerWindowController.loupeFindNext(_:)), "g")
         add(edit, "查找上一个", #selector(ViewerWindowController.loupeFindPrevious(_:)), "g", [.command, .shift])
 
@@ -81,6 +82,12 @@ enum MainMenu {
         add(view, "显示文件夹侧栏", #selector(ViewerWindowController.toggleFileSidebar(_:)), "s", [.command, .control])
         add(view, "显示 AI 助手", #selector(ViewerWindowController.toggleAIPanel(_:)), "j")
         add(view, "进入全屏幕", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control])
+        view.addItem(.separator())
+        let looksItem = view.addItem(withTitle: "外观", action: nil, keyEquivalent: "")
+        let looks = NSMenu(title: "外观")
+        looks.identifier = NSUserInterfaceItemIdentifier("appearance")
+        looks.delegate = delegate
+        looksItem.submenu = looks
 
         // Format (Typora's commands and shortcuts, for the Markdown writer)
         let fmt = submenu(main, "格式")
@@ -106,9 +113,14 @@ enum MainMenu {
         format(fmt, "分割线", "rule", "-", [.command, .option])
         format(fmt, "增加缩进", "indent", "]")
         format(fmt, "减少缩进", "outdent", "[")
+        format(fmt, "清除格式（⌘\\）", "clearFormat")
+        format(fmt, "上移段落", "moveUp", String(UnicodeScalar(NSUpArrowFunctionKey)!), [.command, .control])
+        format(fmt, "下移段落", "moveDown", String(UnicodeScalar(NSDownArrowFunctionKey)!), [.command, .control])
         fmt.addItem(.separator())
         format(fmt, "大纲", "outline", "1", [.command, .control])
         format(fmt, "写作 / 源码（⌘/）", "source")
+        format(fmt, "专注模式", "focus", String(UnicodeScalar(NSF8FunctionKey)!), [])
+        format(fmt, "打字机模式", "typewriter", String(UnicodeScalar(NSF9FunctionKey)!), [])
 
         // Go
         let go = submenu(main, "前往")

@@ -12,6 +12,8 @@ final class MarkdownWriter: NSObject {
     var onChange: ((String) -> Void)?
     var onToggleSource: (() -> Void)?
     var onLink: ((String) -> Void)?
+    var onSelection: ((Int) -> Void)?
+    var onToggleMode: ((String) -> Void)?
     /// Folder pasted pictures are saved under (as assets/…), normally the document's.
     var documentFolder: URL
     private var bridge: WriterBridge?
@@ -72,6 +74,7 @@ final class MarkdownWriter: NSObject {
 
     func insert(_ markdown: String) { call("loupeWriter.insert(\(Self.js(markdown)))") }
     func command(_ name: String) { call("loupeWriter.command('\(name)')") }
+    func setModes(focus: Bool, typewriter: Bool) { call("loupeWriter.setModes(\(focus), \(typewriter))") }
     func focus() {
         webView.window?.makeFirstResponder(webView)
         call("loupeWriter.focus()")
@@ -115,12 +118,32 @@ final class MarkdownWriter: NSObject {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(body["text"] as? String ?? "", forType: .string)
         case "link": if let h = body["href"] as? String { onLink?(h) }
+        case "selection": onSelection?(body["chars"] as? Int ?? 0)
+        case "toggleMode": if let name = body["name"] as? String { onToggleMode?(name) }
+        case "pickImage": pickImages()
         case "image":
             guard let name = body["name"] as? String, let b64 = body["data"] as? String, let data = Data(base64Encoded: b64) else { return nil }
             return savePicture(data, name: name)
         default: break
         }
         return nil
+    }
+
+    /// ⌃⌘I: pictures from disk are copied into assets/ and linked, as pasted ones are.
+    private func pickImages() {
+        guard let window = webView.window else { return }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = true
+        panel.beginSheetModal(for: window) { [weak self] resp in
+            guard let self, resp == .OK else { return }
+            for url in panel.urls {
+                guard let data = try? Data(contentsOf: url), let path = self.savePicture(data, name: url.lastPathComponent) else { continue }
+                let link = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
+                self.insert("![\(url.deletingPathExtension().lastPathComponent)](\(link))")
+            }
+            self.focus()
+        }
     }
 
     /// Saves a pasted picture as assets/<name> beside the document (a free name if taken) and
@@ -147,6 +170,24 @@ final class MarkdownWriter: NSObject {
         guard (try? data.write(to: url)) != nil else { return nil }
         return "assets/" + url.lastPathComponent
     }
+}
+
+/// Find and replace inside the editor (the browser's own find can't replace).
+extension MarkdownWriter: WebFindDriver {
+    private func numbers(_ js: String) async -> (Int, Int) {
+        let r = try? await webView.evaluateJavaScript(js) as? [Int]
+        return (r?.first ?? 0, r?.last ?? 0)
+    }
+    func search(_ query: String, step: Int) async -> (current: Int, total: Int) {
+        await numbers("loupeWriter.find(\(Self.js(query)), \(step))")
+    }
+    func replaceCurrent(_ query: String, with replacement: String) async -> (current: Int, total: Int) {
+        await numbers("loupeWriter.replaceCurrent(\(Self.js(query)), \(Self.js(replacement)))")
+    }
+    func replaceAll(_ query: String, with replacement: String) async -> Int {
+        (try? await webView.evaluateJavaScript("loupeWriter.replaceAll(\(Self.js(query)), \(Self.js(replacement)))") as? Int) ?? 0
+    }
+    func endSearch() { webView.evaluateJavaScript("loupeWriter.endSearch()", completionHandler: nil) }
 }
 
 /// Receives the page's messages (held weakly, so the editor can go away).

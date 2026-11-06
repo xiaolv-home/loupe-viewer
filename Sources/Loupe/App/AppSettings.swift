@@ -1,10 +1,31 @@
 import Foundation
 import SwiftUI
+import AppKit
 
 /// Set when the debug harness drives the app (tests, screenshots): it then leaves no trace in
 /// the user's history — no recent files, remembered folder, window size or sidebar layout.
 enum AppEnvironment {
     @MainActor static var isScripted = false
+}
+
+/// What the whole app looks like. 黑色 is the app's dark palette, whichever way it is chosen.
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system, light, black
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .system: return "跟随系统"
+        case .light: return "浅色"
+        case .black: return "黑色"
+        }
+    }
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: return nil
+        case .light: return NSAppearance(named: .aqua)
+        case .black: return NSAppearance(named: .darkAqua)
+        }
+    }
 }
 
 /// User preferences backed by UserDefaults.
@@ -30,12 +51,25 @@ final class AppSettings: ObservableObject {
     @Published var webPagesRunScripts: Bool { didSet { d.set(webPagesRunScripts, forKey: "webPagesRunScripts") } }
     /// Markdown opens in the Typora-style writer (otherwise as a typeset page to read).
     @Published var markdownOpensForWriting: Bool { didSet { d.set(markdownOpensForWriting, forKey: "markdownOpensForWriting") } }
+    @Published var appearance: AppAppearance {
+        didSet {
+            if !AppEnvironment.isScripted { d.set(appearance.rawValue, forKey: "appearance") }
+            applyAppearance()
+        }
+    }
+    /// Markdown files save themselves a moment after each change.
+    @Published var markdownAutosave: Bool { didSet { d.set(markdownAutosave, forKey: "markdownAutosave") } }
+    /// 专注模式: everything but the paragraph being written fades back.
+    @Published var writerFocus: Bool { didSet { if !AppEnvironment.isScripted { d.set(writerFocus, forKey: "writerFocus") } } }
+    /// 打字机模式: the line being written stays in the middle of the window.
+    @Published var writerTypewriter: Bool { didSet { if !AppEnvironment.isScripted { d.set(writerTypewriter, forKey: "writerTypewriter") } } }
 
     private init() {
         d.register(defaults: [
             "singleWindow": true, "showSidebar": false, "iworkExport": true, "mpvPath": "",
             "preferMPV": false, "wrapText": true, "imageStartsActualSize": false,
-            "highlightLimitMB": 2.0, "showHiddenSiblings": false, "spreadsheetOpensOriginal": false, "spreadsheetEditing": false, "webPagesRunScripts": true, "markdownOpensForWriting": true
+            "highlightLimitMB": 2.0, "showHiddenSiblings": false, "spreadsheetOpensOriginal": false, "spreadsheetEditing": false, "webPagesRunScripts": true, "markdownOpensForWriting": true,
+            "markdownAutosave": false, "writerFocus": false, "writerTypewriter": false
         ])
         singleWindow = d.bool(forKey: "singleWindow")
         showSidebar = d.bool(forKey: "showSidebar")
@@ -50,7 +84,13 @@ final class AppSettings: ObservableObject {
         spreadsheetEditing = d.bool(forKey: "spreadsheetEditing")
         webPagesRunScripts = d.bool(forKey: "webPagesRunScripts")
         markdownOpensForWriting = d.bool(forKey: "markdownOpensForWriting")
+        appearance = AppAppearance(rawValue: d.string(forKey: "appearance") ?? "") ?? .system
+        markdownAutosave = d.bool(forKey: "markdownAutosave")
+        writerFocus = d.bool(forKey: "writerFocus")
+        writerTypewriter = d.bool(forKey: "writerTypewriter")
     }
+
+    func applyAppearance() { NSApp.appearance = appearance.nsAppearance }
 
     var highlightLimitBytes: Int { Int(highlightLimitMB * 1024 * 1024) }
 }

@@ -8,6 +8,7 @@
 }
 /* The writer in Loupe's "proof" style: a sheet of paper, serif text, one spot colour. */
 :root {
+  color-scheme: light dark;
   --paper: #FCFBF8;
   --ink: #1E1D1B;
   --ink-2: rgba(30, 29, 27, .62);
@@ -15,37 +16,51 @@
   --rule: rgba(0, 0, 0, .12);
   --tint: rgba(0, 0, 0, .035);
   --ember: #D9481C;
+  --raised: #FFFFFF;
+  --heading-2: var(--ink);
+  --heading-3: var(--ink);
+  --link: var(--ember);
+  --find: rgba(255, 196, 0, .4);
+  --find-current: rgba(255, 140, 0, .75);
   --serif: ui-serif, "New York", "Songti SC", "STSong", Georgia, serif;
   --serif-bold: "Loupe CJK Bold", ui-serif, "New York", Georgia, serif;
   --sans: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
+  /* 黑色: black paper, and each kind of thing in its own colour so a page can be read at a glance. */
   :root {
-    --paper: #232428;
-    --ink: #E9E5DD;
-    --ink-2: rgba(233, 229, 221, .66);
-    --ink-3: rgba(233, 229, 221, .40);
-    --rule: rgba(255, 255, 255, .13);
-    --tint: rgba(255, 255, 255, .045);
-    --ember: #FF6A3D;
+    --paper: #050506;
+    --raised: #222226;
+    --ink: #E8E4DC;
+    --ink-2: rgba(232, 228, 220, .68);
+    --ink-3: rgba(232, 228, 220, .42);
+    --rule: rgba(255, 255, 255, .16);
+    --tint: rgba(255, 255, 255, .07);
+    --ember: #FF7A45;
+    --heading-2: #FF9A6B;
+    --heading-3: #FFC46B;
+    --link: #6CB8FF;
+    --find: rgba(255, 196, 107, .32);
+    --find-current: rgba(255, 150, 60, .8);
   }
 }
 
 html, body { margin: 0; height: 100%; background: var(--paper); }
 #vditor { height: 100%; }
 
-.vditor { border: 0 !important; background: var(--paper) !important; --panel-background-color: var(--paper);
+.vditor { border: 0 !important; background: var(--paper) !important; --panel-background-color: var(--raised);
   --textarea-background-color: var(--paper); --border-color: var(--rule);
   --blockquote-border-color: var(--ember); --blockquote-text-color: var(--ink-2); }
 .vditor-toolbar { display: none !important; }
 .vditor-content { background: var(--paper); }
 
-/* The writing column. */
+/* The writing column: 648px of text, but the scrolling area is the whole width, so the wheel
+   works over the margins and the scroller sits at the window's edge. */
 .vditor-ir, .vditor-sv { background: var(--paper) !important; }
 .vditor-ir pre.vditor-reset, .vditor-sv.vditor-reset {
-  max-width: 760px; margin: 0 auto; box-sizing: border-box;
-  padding: 56px 56px 40vh !important;
+  max-width: none; margin: 0; box-sizing: border-box;
+  padding: 56px max(56px, calc((100% - 648px) / 2)) 40vh !important;
   background: var(--paper) !important; color: var(--ink) !important;
   font: 17px/1.78 var(--serif) !important; caret-color: var(--ember);
 }
@@ -58,7 +73,9 @@ html, body { margin: 0; height: 100%; background: var(--paper); }
 .vditor-reset h3 { font-size: 1.18em; font-weight: 700; margin: 1.4em 0 .5em; }
 .vditor-reset h4, .vditor-reset h5, .vditor-reset h6 { font: 600 1em/1.4 var(--sans); color: var(--ink-2); }
 .vditor-reset p { margin: 0 0 1em; }
-.vditor-reset a, .vditor-ir__link { color: var(--ember) !important; text-decoration: none !important; border-bottom: .5px solid currentColor; }
+.vditor-reset h2 { color: var(--heading-2); }
+.vditor-reset h3 { color: var(--heading-3); }
+.vditor-reset a, .vditor-ir__link { color: var(--link) !important; text-decoration: none !important; border-bottom: .5px solid currentColor; }
 .vditor-reset strong, .vditor-reset b { font-weight: 700; font-family: var(--serif-bold); }
 .vditor-reset h1, .vditor-reset h2, .vditor-reset h3 { font-family: var(--serif-bold); }
 .vditor .vditor-reset blockquote:not(.callout)::before { width: 2px !important; border-radius: 0 !important; left: 0 !important;
@@ -87,3 +104,45 @@ html, body { margin: 0; height: 100%; background: var(--paper); }
 
 .vditor-reset .vditor-placeholder::before, .vditor-reset[placeholder]:empty::before { color: var(--ink-3) !important; }
 .vditor-tip { font-family: var(--sans); }
+
+/* The app's own marks in the text (nothing is added to the document for these). */
+::highlight(loupe-find) { background-color: var(--find); }
+::highlight(loupe-find-current) { background-color: var(--find-current); }
+::highlight(loupe-underline) { text-decoration: underline; text-decoration-color: currentColor; }
+
+/* Outline: where the caret's section is. */
+.vditor-outline li > span.loupe-outline-current { color: var(--ember) !important; font-weight: 600; }
+
+@media (prefers-color-scheme: dark) {
+  .vditor-ir pre.vditor-reset { caret-color: var(--ember); }
+  .vditor-reset h1 { color: #FFFFFF; }
+  .vditor-reset h4, .vditor-reset h5, .vditor-reset h6 { color: #A9B4C6; }
+  .vditor-reset strong, .vditor-reset b { color: #FFFFFF; }
+  .vditor-reset em, .vditor-reset i { color: #CFC2FF; }
+  .vditor-reset s, .vditor-reset del { color: var(--ink-3); }
+  .vditor-reset mark { background: rgba(255, 196, 107, .24) !important; color: #FFDFA3 !important; border-radius: 2px; padding: 0 .12em; }
+  .vditor-reset code:not(.hljs):not(.highlight-chroma) { color: #7EE7B8; background: rgba(126, 231, 184, .11) !important; }
+  .vditor-reset blockquote { color: var(--ink-2) !important; }
+  .vditor-reset ul > li::marker, .vditor-reset ol > li::marker { color: var(--ember); }
+  .vditor-reset ::selection { background: rgba(108, 184, 255, .32); }
+  .vditor-reset hr { border-top-color: rgba(255, 255, 255, .26); background: transparent !important; }
+
+  /* Code blocks stand off the paper. */
+  .vditor-reset pre > code, .vditor-reset .vditor-ir__preview code, .vditor-ir__preview pre { background: #17171B !important; }
+  .vditor-reset pre > code { color: #E8E4DC; border-radius: 6px; }
+  .vditor-reset .hljs { background: #17171B !important; color: #E8E4DC; }
+  .vditor-reset .hljs-keyword, .vditor-reset .hljs-selector-tag, .vditor-reset .hljs-tag, .vditor-reset .hljs-name, .vditor-reset .hljs-section { color: #FF8F66 !important; }
+  .vditor-reset .hljs-string, .vditor-reset .hljs-attr-value, .vditor-reset .hljs-regexp, .vditor-reset .hljs-addition { color: #A6E37A !important; }
+  .vditor-reset .hljs-number, .vditor-reset .hljs-literal, .vditor-reset .hljs-symbol, .vditor-reset .hljs-variable { color: #FFC46B !important; }
+  .vditor-reset .hljs-comment, .vditor-reset .hljs-quote { color: #77777F !important; font-style: italic; }
+  .vditor-reset .hljs-title, .vditor-reset .hljs-function .hljs-title { color: #6CB8FF !important; }
+  .vditor-reset .hljs-type, .vditor-reset .hljs-class .hljs-title, .vditor-reset .hljs-built_in { color: #7DD3C0 !important; }
+  .vditor-reset .hljs-meta, .vditor-reset .hljs-attr, .vditor-reset .hljs-attribute { color: #C9B8FF !important; }
+  .vditor-reset .hljs-deletion { color: #FF8F8F !important; }
+
+  /* Tables: a header band and visible rules. */
+  .vditor-reset table thead tr { background: #1C1C21 !important; }
+  .vditor-reset table th { color: #FFC46B; }
+  .vditor-reset table tr, .vditor-reset table th, .vditor-reset table td { border-color: rgba(255, 255, 255, .2) !important; }
+  .vditor-reset table tbody tr:nth-child(even) { background: rgba(255, 255, 255, .03) !important; }
+}

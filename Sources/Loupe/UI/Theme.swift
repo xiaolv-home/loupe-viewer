@@ -21,24 +21,24 @@ extension NSColor {
 /// with crop marks; colour is used like a spot ink, sparingly.
 enum Theme {
     // Surfaces
-    static let stage = NSColor.dynamic(light: 0xE6E3DD, dark: 0x1B1C1F)
-    static let stageDot = NSColor.dynamic(light: 0x000000, dark: 0xFFFFFF, alpha: 0.05)
-    static let surface = NSColor.dynamic(light: 0xFCFBF8, dark: 0x25262A)
-    static let surfaceRaised = NSColor.dynamic(light: 0xFFFFFF, dark: 0x2B2C31)
+    static let stage = NSColor.dynamic(light: 0xE6E3DD, dark: 0x19191C)
+    static let stageDot = NSColor.dynamic(light: 0x000000, dark: 0xFFFFFF, alpha: 0.06)
+    static let surface = NSColor.dynamic(light: 0xFCFBF8, dark: 0x111113)
+    static let surfaceRaised = NSColor.dynamic(light: 0xFFFFFF, dark: 0x222226)
     /// The paper a document is printed on.
-    static let sheet = NSColor.dynamic(light: 0xFCFBF8, dark: 0x232428)
+    static let sheet = NSColor.dynamic(light: 0xFCFBF8, dark: 0x050506)
     static let codeBackground = sheet
-    static let ink = NSColor.dynamic(light: 0x1E1D1B, dark: 0xE9E5DD)
-    static let hairline = NSColor.dynamic(light: 0x000000, dark: 0xFFFFFF, alpha: 0.10)
+    static let ink = NSColor.dynamic(light: 0x1E1D1B, dark: 0xF2EEE6)
+    static let hairline = NSColor.dynamic(light: 0x000000, dark: 0xFFFFFF, alpha: 0.14)
     static let cropMark = NSColor.dynamic(light: 0x000000, dark: 0xFFFFFF, alpha: 0.32)
     static let gutterText = NSColor.dynamic(light: 0x000000, dark: 0xFFFFFF, alpha: 0.26)
 
     // Accent (the spot colour)
-    static let emberNS = NSColor.dynamic(light: 0xD9481C, dark: 0xFF6A3D)
+    static let emberNS = NSColor.dynamic(light: 0xD9481C, dark: 0xFF7A45)
     static let ember = Color(nsColor: emberNS)
-    static let emberSoft = Color(nsColor: NSColor.dynamic(light: 0xD9481C, dark: 0xFF6A3D, alpha: 0.14))
+    static let emberSoft = Color(nsColor: NSColor.dynamic(light: 0xD9481C, dark: 0xFF7A45, alpha: 0.18))
     /// Second spot ink used for strings and literals.
-    static let indigoNS = NSColor.dynamic(light: 0x2F4FA8, dark: 0x9DB2F5)
+    static let indigoNS = NSColor.dynamic(light: 0x2F4FA8, dark: 0xA6E37A)
 
     // Type
     static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
@@ -76,16 +76,17 @@ enum Theme {
         }
     }
 
-    // Syntax palette: duotone "spot ink" — ink, ember, indigo and graphite only.
+    // Syntax palette. Light is duotone "spot ink" (ink, ember, indigo, graphite); on black every
+    // kind of token gets its own colour, since weight alone reads poorly there.
     static func syntax(_ k: TokenKind) -> NSColor {
         switch k {
         case .keyword, .tag, .heading: return emberNS
-        case .preprocessor: return .dynamic(light: 0xD9481C, dark: 0xFF6A3D, alpha: 0.75)
+        case .preprocessor: return .dynamic(light: 0xD9481C, dark: 0xC9B8FF, alpha: 0.9)
         case .string, .inserted: return indigoNS
-        case .number, .variable: return .dynamic(light: 0x2F4FA8, dark: 0x9DB2F5, alpha: 0.8)
-        case .comment: return .dynamic(light: 0x000000, dark: 0xFFFFFF, alpha: 0.38)
-        case .type, .key: return .dynamic(light: 0x1E1D1B, dark: 0xF4F1EA)
-        case .function: return ink
+        case .number, .variable: return .dynamic(light: 0x2F4FA8, dark: 0xFFC46B, alpha: 0.9)
+        case .comment: return .dynamic(light: 0x000000, dark: 0xFFFFFF, alpha: 0.42)
+        case .type, .key: return .dynamic(light: 0x1E1D1B, dark: 0x7DD3C0)
+        case .function: return .dynamic(light: 0x1E1D1B, dark: 0x6CB8FF)
         case .deleted, .error: return emberNS
         case .warning: return .dynamic(light: 0xB7791F, dark: 0xE8B65A)
         }

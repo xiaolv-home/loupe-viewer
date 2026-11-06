@@ -41,6 +41,8 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
         window.isReleasedWhenClosed = false
         window.collectionBehavior.insert(.fullScreenPrimary)
         window.backgroundColor = Theme.stage
+        // The bar over the tabs is the table too, not a tint of whatever is behind the window.
+        window.titlebarAppearsTransparent = true
         let first = ViewerModel()
         tabs = TabList(first: first)
         super.init(window: window)
@@ -358,6 +360,7 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
         switch command {
         case "outline": md.toggleOutline()
         case "source": md.toggleWriteSource()
+        case "focus", "typewriter": md.toggleWriterMode(command)
         default: md.format(command)
         }
     }
@@ -367,6 +370,7 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
     @objc func loupeActualSize(_ sender: Any?) { model.perform(.actualSize) }
     @objc func loupeZoomToFit(_ sender: Any?) { model.perform(.zoomToFit) }
     @objc func loupeFind(_ sender: Any?) { model.perform(.find) }
+    @objc func loupeFindReplace(_ sender: Any?) { (model.renderer as? MarkdownRenderer)?.showReplace() }
     @objc func loupeFindNext(_ sender: Any?) { model.perform(.findNext) }
     @objc func loupeFindPrevious(_ sender: Any?) { model.perform(.findPrevious) }
     @objc func loupeRotateLeft(_ sender: Any?) { model.perform(.rotateLeft) }
@@ -390,7 +394,13 @@ final class ViewerWindowController: NSWindowController, NSWindowDelegate, NSTool
         case #selector(toggleInfoPanel(_:)):
             item.title = inspectorItem.isCollapsed ? "显示简介" : "隐藏简介"
             return true
-        case #selector(loupeFormat(_:)): return model.renderer is MarkdownRenderer
+        case #selector(loupeFormat(_:)):
+            if let command = item.representedObject as? String {
+                if command == "focus" { item.state = AppSettings.shared.writerFocus ? .on : .off }
+                if command == "typewriter" { item.state = AppSettings.shared.writerTypewriter ? .on : .off }
+            }
+            return model.renderer is MarkdownRenderer
+        case #selector(loupeFindReplace(_:)): return model.renderer is MarkdownRenderer
         case #selector(toggleAIPanel(_:)):
             item.title = aiItem.isCollapsed ? "显示 AI 助手" : "隐藏 AI 助手"
             return true

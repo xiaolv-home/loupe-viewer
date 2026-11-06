@@ -24,6 +24,12 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("外观") {
+                Picker("主题", selection: $settings.appearance) {
+                    ForEach(AppAppearance.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
             Section("窗口") {
                 Picker("打开新文件时", selection: $settings.singleWindow) {
                     Text("在标签页中打开").tag(true)
@@ -50,6 +56,7 @@ struct SettingsView: View {
                     Text("写作（像 Typora 一样边写边排版）").tag(true)
                     Text("阅读（排版好的页面）").tag(false)
                 }
+                Toggle("Markdown 改动后自动保存", isOn: $settings.markdownAutosave)
                 Toggle("本地网页运行脚本（离线阅读器、导出的报表等；始终断网，只能读本网页所在文件夹）", isOn: $settings.webPagesRunScripts)
             }
             Section("iWork") {
@@ -103,6 +110,8 @@ struct ShortcutsView: View {
         Group(title: "Markdown 写作", items: [("⌘N", "新建 Markdown 文档"), ("⌘1–⌘6  ⌘0", "标题 / 正文"), ("⌘B  ⌘I  ⌘U", "加粗 / 斜体 / 下划线"),
                                          ("⌘K  ⌃`", "链接 / 行内代码"), ("⌥⌘C  ⌥⌘B", "代码块 / 公式块"), ("⌥⌘O  ⌥⌘U", "有序 / 无序列表"),
                                          ("⌥⌘T  ⌥⌘Q", "表格 / 引用"), ("⌘/", "写作 ⇄ 源码"), ("⌃⌘1", "大纲")]),
+        Group(title: "Markdown 写作（续）", items: [("F8  F9", "专注模式 / 打字机模式"), ("⌥⌘F", "查找并替换"), ("⌘L  ⌘D", "选中当前行 / 词"), ("⌘\\", "清除格式"),
+                                               ("⌃⌘↑  ⌃⌘↓", "上移 / 下移段落、列表项、表格行"), ("⌘↩", "表格加一行"), ("⌃⌘I", "插入本地图片"), ("选中后按 * ` ( [", "用符号包住选中的文字")]),
         Group(title: "查找", items: [("⌘F", "查找"), ("⌘G", "查找下一个"), ("⇧⌘G", "查找上一个")]),
         Group(title: "影音", items: [("空格", "播放 / 暂停"), ("⇧⌘P", "播放 / 暂停（菜单）"), (",  .", "逐帧后退 / 前进（暂停时）"),
                                     ("J  L", "后退 / 前进 10 秒"), ("↑  ↓", "音量")])

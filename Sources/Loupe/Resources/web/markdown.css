@@ -8,6 +8,7 @@
 }
 /* Loupe "Proof" typesetting for Markdown: an editorial page, not a note app. */
 :root {
+  color-scheme: light dark;
   --paper: #FCFBF8;
   --ink: #1E1D1B;
   --ink-2: rgba(30, 29, 27, .62);
@@ -23,15 +24,16 @@
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
+  /* 黑色: black paper, and each kind of thing in its own colour so a page can be read at a glance. */
   :root {
-    --paper: #232428;
-    --ink: #E9E5DD;
-    --ink-2: rgba(233, 229, 221, .66);
-    --ink-3: rgba(233, 229, 221, .40);
-    --rule: rgba(255, 255, 255, .13);
-    --tint: rgba(255, 255, 255, .045);
-    --ember: #FF6A3D;
-    --indigo: #9DB2F5;
+    --paper: #050506;
+    --ink: #E8E4DC;
+    --ink-2: rgba(232, 228, 220, .68);
+    --ink-3: rgba(232, 228, 220, .42);
+    --rule: rgba(255, 255, 255, .16);
+    --tint: rgba(255, 255, 255, .07);
+    --ember: #FF7A45;
+    --indigo: #A6E37A;
   }
 }
 
@@ -130,3 +132,27 @@ tr:last-child td { border-bottom: 1px solid var(--ink); }
 @media (max-width: 640px) { .proof { padding: 36px 24px 64px; } body { font-size: 16px; } }
 
 strong, b { font-family: var(--serif-bold); }
+
+@media (prefers-color-scheme: dark) {
+  h1 { color: #FFFFFF; }
+  h2 { color: #FF9A6B; }
+  h3 { color: #FFC46B; }
+  h4, h5, h6 { color: #A9B4C6; }
+  strong, b { color: #FFFFFF; }
+  em, i { color: #CFC2FF; }
+  a { color: #6CB8FF; }
+  mark { background: rgba(255, 196, 107, .24); color: #FFDFA3; }
+  code { color: #7EE7B8; background: rgba(126, 231, 184, .11); }
+  pre { background: #17171B; }
+  pre code { color: #E8E4DC; background: none; }
+  blockquote { font-style: normal; }
+  .hljs-keyword, .hljs-selector-tag, .hljs-tag, .hljs-name, .hljs-section { color: #FF8F66; }
+  .hljs-string, .hljs-attr-value, .hljs-regexp, .hljs-addition { color: #A6E37A; }
+  .hljs-number, .hljs-literal, .hljs-symbol, .hljs-variable { color: #FFC46B; }
+  .hljs-comment, .hljs-quote { color: #77777F; }
+  .hljs-title { color: #6CB8FF; }
+  .hljs-type, .hljs-class .hljs-title, .hljs-built_in { color: #7DD3C0; }
+  .hljs-meta, .hljs-attr, .hljs-attribute { color: #C9B8FF; }
+  th { color: #FFC46B; }
+  ::selection { background: rgba(108, 184, 255, .32); }
+}

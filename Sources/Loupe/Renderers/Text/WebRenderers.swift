@@ -17,7 +17,7 @@ class WebDocumentRenderer: NSObject, ObservableObject {
     let navigator = WebNavigator()
     let container = NSView()
     private let body = NSView()
-    private let findBar = WebFindBar()
+    let findBar = WebFindBar()
     private var findHeight: NSLayoutConstraint!
     private(set) var code: CodeView?
     /// Views for other modes (keyed by mode).
@@ -69,6 +69,9 @@ class WebDocumentRenderer: NSObject, ObservableObject {
 
     func modeDidChange(from old: Int) { applyMode() }
 
+    /// What searches the view on screen, if not the browser's own find.
+    var findDriver: WebFindDriver? { nil }
+
     /// The web view on screen (page or a pane that is one), for find and zoom.
     var activeWebView: WKWebView? { mode == 0 ? web : panes[mode] as? WKWebView }
 
@@ -114,20 +117,28 @@ class WebDocumentRenderer: NSObject, ObservableObject {
         for (m, v) in panes { v.isHidden = m != mode }
         findBar.webView = activeWebView
         if !findBar.isHidden && mode == sourceMode { hideFind() }
+        if findBar.driver !== findDriver {
+            findBar.driver?.endSearch()
+            findBar.driver = findDriver
+        }
+        if !findBar.isHidden && findDriver == nil && findBar.showsReplace { showFind() }
         let first: NSView? = mode == sourceMode ? code?.textView : mode == 0 ? web : panes[mode]
         container.window?.makeFirstResponder(first)
         host?.rendererDidUpdate()
     }
 
-    func showFind() {
+    func showFind(replace: Bool = false) {
         if mode == sourceMode { code?.showFind(); return }
         findBar.webView = activeWebView
+        findBar.driver = findDriver
         findBar.isHidden = false
-        findHeight.constant = 38
+        findBar.showsReplace = replace && findDriver != nil
+        findHeight.constant = findBar.showsReplace ? WebFindBar.heightWithReplace : WebFindBar.height
         container.window?.makeFirstResponder(findBar.field)
     }
 
     func hideFind() {
+        findBar.driver?.endSearch()
         findBar.isHidden = true
         findHeight.constant = 0
         container.window?.makeFirstResponder(activeWebView)

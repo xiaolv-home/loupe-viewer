@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         didFinishLaunching = true
+        AppSettings.shared.applyAppearance()
         if ProcessInfo.processInfo.environment["LOUPE_TIMING"] != nil {
             // Time from process start to the first window on screen.
             var info = kinfo_proc()
@@ -228,8 +229,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ])
     }
 
-    // Open Recent submenu is rebuilt each time it opens.
+    @objc private func chooseAppearance(_ sender: NSMenuItem) {
+        if let raw = sender.representedObject as? String, let a = AppAppearance(rawValue: raw) { AppSettings.shared.appearance = a }
+    }
+
+    // Open Recent and 外观 submenus are rebuilt each time they open.
     func menuNeedsUpdate(_ menu: NSMenu) {
+        if menu.identifier?.rawValue == "appearance" {
+            menu.removeAllItems()
+            for a in AppAppearance.allCases {
+                let item = NSMenuItem(title: a.title, action: #selector(chooseAppearance(_:)), keyEquivalent: "")
+                item.representedObject = a.rawValue
+                item.target = self
+                item.state = AppSettings.shared.appearance == a ? .on : .off
+                menu.addItem(item)
+            }
+            return
+        }
         guard menu.identifier?.rawValue == "recent" else { return }
         menu.removeAllItems()
         let urls = RecentFiles.all().prefix(15)
